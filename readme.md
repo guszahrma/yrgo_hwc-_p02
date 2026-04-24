@@ -1,4 +1,4 @@
-#P02 - drivers för ESP32-S3
+# P02 - drivers för ESP32-S3
 * Driverbibliotek för mikrocontroller `ESP32-S3`
 * Genomförs i kursen Hårdvarunära programmering C/C++
 
@@ -29,3 +29,20 @@ cd temp
 mkdir blnk_demo
 idf.py create-project blink_demo
 ```
+
+## Kommandon för att bygga samt flasha
+Öppna `ESP-32 IDF` och sätt mål:
+```bash
+idf.py set-target esp32s3
+```
+
+För att bygga: 
+```bash
+idf.py build
+```
+
+För att flasha till `ESP-32`:
+```bash
+idf.py -p COMx flash monitor 
+```
+

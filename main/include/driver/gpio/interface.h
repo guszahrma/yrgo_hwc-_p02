@@ -1,0 +1,34 @@
+#pragma once
+
+namespace driver::gpio
+{
+typedef enum Direction
+{
+    OUTPUT,         // 0
+    INPUT_PULL_UP,  // 1
+    INPUT_PULL_DOWN // 2
+} Direction_t;
+
+class Interface
+{
+public:
+    //explicit virtual Interface(std::uint8_t pinNumber, Direction_t direction) noexcept = 0;
+
+    virtual ~Interface() noexcept = default;
+
+    /**
+     * @brief Read function
+     * 
+     * @return true 
+     * @return false 
+     */
+    virtual bool read() noexcept = 0;
+
+    /**
+     * @brief Write function
+     * 
+     * @param state 
+     */
+    virtual void write(bool state) noexcept = 0;
+};
+}

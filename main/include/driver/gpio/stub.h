@@ -1,3 +1,6 @@
+/**
+ * @brief Stub
+ */
 #pragma once
 
 #include <cstdio>
@@ -27,21 +30,23 @@ public:
      */
      bool read() noexcept override
      {
-        // Todo Ska vi implementera en check av direction?
-
+        std::printf("%s state on pin %u\n", (myState ? "True" : "False"), myPinNumber);
         return myState;
      }
 
     /**
      * @brief Write function
      * 
-     * @param state 
+     * @param[in] state 
      */
      void write(bool state) noexcept override
      {
-        if (OUTPUT == myDirection ) { std::printf("Writing %s on pin: %u\n", (state ? "True" : "False"), myPinNumber); }
+        if (OUTPUT == myDirection ) 
+        { 
+            myState = state;
+            std::printf("Writing %s on pin %u\n", (state ? "True" : "False"), myPinNumber);
+        }
      }
-
 
 private:
     const std::uint8_t myPinNumber;

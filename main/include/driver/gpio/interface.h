@@ -12,7 +12,6 @@ typedef enum Direction
 class Interface
 {
 public:
-    //explicit virtual Interface(std::uint8_t pinNumber, Direction_t direction) noexcept = 0;
 
     virtual ~Interface() noexcept = default;
 

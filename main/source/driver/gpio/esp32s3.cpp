@@ -17,6 +17,7 @@ namespace
 constexpr int High{1};
 constexpr int Low{0};
 }
+
 // --------------------------------------------------------------------------------
 Esp32s3::Esp32s3(std::uint8_t pinNumber, Direction direction) noexcept
     : myPinNumber{pinNumber}
@@ -57,7 +58,7 @@ Esp32s3::~Esp32s3() noexcept = default;
 bool Esp32s3::read() noexcept
 {
     // Cast and save the state of the pin
-    int level = gpio_get_level(static_cast<gpio_num_t>(myPinNumber));
+    int level{gpio_get_level(static_cast<gpio_num_t>(myPinNumber))};
     myState = (level != Low);
     
     std::printf("Read %s from pin %u\n", (myState ? "High" : "Low"), myPinNumber);

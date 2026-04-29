@@ -12,7 +12,7 @@ namespace driver::gpio
 class Esp32s3 final : public Interface
 {
 public:
-    explicit Esp32s3(std::uint8_t pinNumber, Direction_t direction) noexcept;
+    explicit Esp32s3(std::uint8_t pinNumber, Direction direction) noexcept;
 
      ~Esp32s3() noexcept override; 
 
@@ -31,9 +31,11 @@ public:
      */
      void write(bool state) noexcept override;
 
+     void toggle() noexcept override;
+
 private:
     const std::uint8_t myPinNumber;
-    const Direction_t myDirection;
+    const Direction myDirection;
     bool myState;
 };
 }

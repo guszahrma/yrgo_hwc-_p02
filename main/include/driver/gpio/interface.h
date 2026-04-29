@@ -1,13 +1,17 @@
 #pragma once
 
+#include <cstdint>
+
 namespace driver::gpio
 {
-typedef enum Direction
+
+// TODO Ändra till class
+enum class Direction : std::uint8_t
 {
     OUTPUT,         // 0
     INPUT_PULL_UP,  // 1
     INPUT_PULL_DOWN // 2
-} Direction_t;
+};
 
 class Interface
 {
@@ -29,5 +33,10 @@ public:
      * @param state 
      */
     virtual void write(bool state) noexcept = 0;
+
+    /**
+     * @brief Toggle function
+     */
+    virtual void toggle() noexcept = 0;
 };
 }

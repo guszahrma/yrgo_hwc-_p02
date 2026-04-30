@@ -13,6 +13,9 @@ enum class Direction : std::uint8_t
     INPUT_PULL_DOWN // 2
 };
 
+/**
+ *  @brief GPIO interface class 
+*/
 class Interface
 {
 public:

@@ -73,7 +73,7 @@ public:
         if (Direction::OUTPUT == myDirection ) 
         { 
             myState = state;
-            std::printf("Writing %s on pin %u\n", (state ? "True" : "False"), myPinNumber);
+            std::printf("Writing %s on pin %u.\n", (state ? "True" : "False"), myPinNumber);
         }
     }
 

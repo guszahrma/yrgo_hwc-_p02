@@ -80,7 +80,7 @@ void Esp32s3::write(bool state) noexcept
     }
     else 
     {
-        std::printf("Warning: Attempted to write to input pin %u\n", myPinNumber);
+        std::printf("Warning: Attempted to write to input pin %u.\n", myPinNumber);
     }
 }
 

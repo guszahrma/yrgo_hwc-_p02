@@ -85,7 +85,7 @@ public:
         if (Direction::OUTPUT == myDirection)
         {
             myState = !myState;
-            std::printf("Toggling %s on pin %u\n", (myState ? "True" : "False"), myPinNumber);
+            std::printf("Toggling %s on pin %u.\n", (myState ? "True" : "False"), myPinNumber);
         }
     }
 

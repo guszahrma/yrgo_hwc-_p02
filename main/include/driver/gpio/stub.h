@@ -9,6 +9,10 @@
 
 namespace driver::gpio
 {
+/**
+ * @brief Stub class for GPIO interface. This class is used for testing and debugging purposes.
+ * It simulates the behavior of a GPIO pin without interacting with actual hardware.
+ */
 class Stub final : public Interface
 {
 public:

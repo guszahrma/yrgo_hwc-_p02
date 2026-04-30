@@ -59,7 +59,7 @@ public:
      */
     bool read() noexcept override
     {
-        std::printf("%s state on pin %u\n", (myState ? "True" : "False"), myPinNumber);
+        std::printf("%s state on pin %u.\n", (myState ? "True" : "False"), myPinNumber);
         return myState;
     }
 

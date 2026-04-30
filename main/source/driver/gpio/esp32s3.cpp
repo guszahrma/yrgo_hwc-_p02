@@ -61,7 +61,7 @@ bool Esp32s3::read() noexcept
     int level{gpio_get_level(static_cast<gpio_num_t>(myPinNumber))};
     myState = (level != Low);
     
-    std::printf("Read %s from pin %u\n", (myState ? "High" : "Low"), myPinNumber);
+    std::printf("Read %s from pin %u.\n", (myState ? "High" : "Low"), myPinNumber);
     return myState;
 }
 

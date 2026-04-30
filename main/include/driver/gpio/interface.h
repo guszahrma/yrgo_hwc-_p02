@@ -5,7 +5,9 @@
 namespace driver::gpio
 {
 
-// TODO Ändra till class
+/**
+ * @brief GPIO direction enumeration.
+ */
 enum class Direction : std::uint8_t
 {
     OUTPUT,         // 0

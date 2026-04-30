@@ -48,7 +48,7 @@ Esp32s3::Esp32s3(std::uint8_t pinNumber, Direction direction) noexcept
             break;
     }
     
-    std::printf("ESP32-S3 GPIO initialized on pin %u\n", myPinNumber);
+    std::printf("ESP32-S3 GPIO initialized on pin %u.\n", myPinNumber);
 }
 
 // --------------------------------------------------------------------------------

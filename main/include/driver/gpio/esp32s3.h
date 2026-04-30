@@ -35,6 +35,10 @@ public:
      */
      void write(bool state) noexcept override;
 
+     /**
+      * @brief Toggle function
+      * switches the state of the pin from high to low or from low to high
+      */
      void toggle() noexcept override;
 
 private:

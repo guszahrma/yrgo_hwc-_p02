@@ -27,8 +27,23 @@ public:
     , myDirection{direction}
     , myState{false}
     {
-        //TODO FIXA SKRIVA UT DIRECTION
-        std::printf("Stub GPIO constructed on pin %u and direction\n", pinNumber);
+        char directionStr[20];
+        switch (direction)
+        {
+            case Direction::OUTPUT:
+                std::snprintf(directionStr, sizeof(directionStr), "OUTPUT");
+                break;
+            case Direction::INPUT_PULL_UP:
+                std::snprintf(directionStr, sizeof(directionStr), "INPUT_PULL_UP");
+                break;
+            case Direction::INPUT_PULL_DOWN:
+                std::snprintf(directionStr, sizeof(directionStr), "INPUT_PULL_DOWN");
+                break;
+            default:
+                std::snprintf(directionStr, sizeof(directionStr), "UNKNOWN");
+                break;
+        }
+        std::printf("Stub GPIO constructed on pin %u and direction %s.\n", pinNumber, directionStr);
     }
 
     /**

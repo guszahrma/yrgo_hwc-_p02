@@ -9,7 +9,11 @@
 
 namespace driver::gpio
 {
+/**
+ * @brief ESP32-S3 GPIO class
+ */
 class Esp32s3 final : public Interface
+
 {
 public:
     explicit Esp32s3(std::uint8_t pinNumber, Direction direction) noexcept;

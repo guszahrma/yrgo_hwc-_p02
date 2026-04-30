@@ -90,7 +90,7 @@ void Esp32s3::toggle() noexcept
     if (Direction::OUTPUT == myDirection)
     {
         write(!myState);
-        std::printf("Toggling %s on pin %u\n", (myState ? "True" : "False"), myPinNumber);
+        std::printf("Toggling %s on pin %u.\n", (myState ? "True" : "False"), myPinNumber);
     }
     else
     {

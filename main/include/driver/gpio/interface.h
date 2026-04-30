@@ -27,8 +27,7 @@ public:
     /**
      * @brief Read function
      * 
-     * @return true 
-     * @return false 
+     * @return current state
      */
     virtual bool read() noexcept = 0;
 

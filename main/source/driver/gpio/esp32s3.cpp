@@ -76,7 +76,7 @@ void Esp32s3::write(bool state) noexcept
         gpio_set_level(pin, state ? High : Low);
         
         myState = state;
-        std::printf("Wrote %s to pin %u\n", (myState ? "High" : "Low"), myPinNumber);
+        std::printf("Wrote %s to pin %u.\n", (myState ? "High" : "Low"), myPinNumber);
     }
     else 
     {

@@ -1,12 +1,13 @@
 /**
  * @brief GPIO example.
  */
-#include <cstdint>
 #include <chrono>
 #include <thread>
 
 #include "driver/gpio/stub.h"
 #include "driver/gpio/esp32s3.h"
+#include "driver/adc/esp32s3.h"
+#include "driver/pin/esp32s3.h"
 
 #include "driver/tempsensor/stub.h" //
 #include "driver/tempsensor/tmp36.h" //
@@ -21,22 +22,24 @@ extern "C" void app_main()
     esp32s3.write(true);
     esp32s3.read();
 
+    constexpr auto adcPin = driver::pin::esp32s3::AdcPin::A6;
+    if (!driver::pin::esp32s3::is_available(adcPin))
+    {
+        printf("app_main: ADC pin %s is already in use, aborting.\n", driver::pin::esp32s3::to_string(adcPin));
+        return;
+    }
+    driver::adc::Esp32s3 esp32s3Adc{adcPin, 3.3f};
+
+    printf("testing: adc value is %i.\n", esp32s3Adc.read_value());
+    printf("testing: adc voltage is %.4f.\n", esp32s3Adc.read_voltage());
 
     while(1)
     {
-    esp32s3.toggle();
+        esp32s3.toggle();
+
+        printf("testing: adc value is %i.\n", esp32s3Adc.read_value());
+        printf("testing: adc voltage is %.4f.\n", esp32s3Adc.read_voltage());
         // Vänta i 500 millisekunder
-        std::this_thread::sleep_for(std::chrono::milliseconds(500));
-
-        //driver::tempsensor::Stub tmp1;  //
-        //tmp1.simulateInitialized(true); //
-        //tmp1.simulateTemperature(17); //
-
-        driver::tempsensor:: tmp1{};  //
-
-
-
-
-        ESP_LOGI("main", "Temperature: %d\n", tmp1.read());
+        std::this_thread::sleep_for(std::chrono::milliseconds(3000));
     }
 }

@@ -29,7 +29,7 @@ public:
     /**
      * @brief Destructor.
      */
-    ~Tmp36() noexcept override;
+    ~Tmp36() noexcept override = default;
 
     /**
      * @brief Check if the temperature sensor is initialized.
@@ -45,11 +45,11 @@ public:
      */
     std::int16_t read() const noexcept override;
 
-    Tmp() = delete;
+    Tmp36() = delete;
     Tmp36(const Tmp36&) = delete;
     Tmp36(Tmp36&&) = delete;
-    Tmp36& operator=(const Tmp26&) = delete;
-    Tmp36& operator=(Tmp&&) = delete;
+    Tmp36& operator=(const Tmp36&) = delete;
+    Tmp36& operator=(Tmp36&&) = delete;
 
 private:
     adc::Interface& myAdc;

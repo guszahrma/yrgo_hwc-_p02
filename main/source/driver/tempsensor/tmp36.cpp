@@ -6,20 +6,23 @@
 
 #include "driver/tempsensor/interface.h"
 #include "driver/tempsensor/tmp36.h"
-
+#include "driver/adc/interface.h" 
 
 namespace driver::tempsensor
 {
     /**
      * @brief constructor
-     * 
-     * @param[in] initialTemp Initial temperature (default = 0).
      */
     Tmp36::Tmp36(adc::Interface& adc, const uint8_t pin) noexcept
         : myAdc{adc}  //värde från adc(0-1023)
         , myPin{pin}
-        , myInitialized{true} //tillstånd av sensor
+        , myInitialized{true} //tillståndet av sensor
     {}
+
+    /**
+     * @brief Destructor
+     */
+    ~Tmp36() noexcept = default;
 
     /**
      * @brief Check if the temperature sensor is initialized.
@@ -47,6 +50,7 @@ namespace driver::tempsensor
         return 100.0 * inputVoltage - 50.0;
         #else
             // Just nu skickar vi tillbaka 0, då vi ej har en färdig ADC.
+            std::printf("The temperature is 0 degrees.\n");
             return 0;
         #endif
     }

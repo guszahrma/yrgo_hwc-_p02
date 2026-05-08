@@ -17,7 +17,7 @@ public:
     virtual ~Interface() = default;
 
     /**
-     * @brief Print
+     * @brief Print function
      * 
      * @param[in] text 
      */

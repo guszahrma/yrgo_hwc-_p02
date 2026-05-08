@@ -89,6 +89,12 @@ public:
         }
     }
 
+    // Delete copy and move constructors
+    Stub(const Stub&)            = delete;
+    Stub(Stub&&)                 = delete;
+    Stub& operator=(const Stub&) = delete;
+    Stub& operator=(Stub&&)      = delete;
+
 private:
     const std::uint8_t myPinNumber;
     const Direction myDirection;

@@ -36,6 +36,12 @@ public:
      */
     std::size_t readLine(char* buffer, std::size_t maxSize) noexcept override;
 
+    // Delete copy and move constructors
+    Esp32s3(const Esp32s3&)            = delete;
+    Esp32s3(Esp32s3&&)                 = delete;
+    Esp32s3& operator=(const Esp32s3&) = delete;
+    Esp32s3& operator=(Esp32s3&&)      = delete;
+
 private:
 };
 } // namespace driver::serial

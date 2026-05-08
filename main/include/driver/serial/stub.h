@@ -98,6 +98,11 @@ public:
         myBuf[myBufLen] = '\0';
     }
 
+    Stub(const Stub&)            = delete;
+    Stub(Stub&&)                 = delete;
+    Stub& operator=(const Stub&) = delete;
+    Stub& operator=(Stub&&)      = delete;
+
 private:
     static constexpr std::size_t BufLen{100U};
 

@@ -8,23 +8,22 @@
 #include "driver/tempsensor/interface.h"
 
 namespace driver{
-    namespace adc{class Interface;} 
-}
+    namespace adc{class Interface;}
 
-namespace driver::tempsensor
+namespace tempsensor
 {
 /**
  * @brief Tmp36
  */
 class Tmp36 final : public Interface
 {
-public:
+    public:
     /**
      * @brief constructor
      * 
      * @param[in] initialTemp Initial temperature (default = 0).
      */
-    explicit Tmp36(adc::Interface& adc, std::uint8_t pin) noexcept;
+    explicit Tmp36(adc::Interface& adc) noexcept;
 
     /**
      * @brief Destructor.
@@ -51,10 +50,10 @@ public:
     Tmp36& operator=(const Tmp36&) = delete;
     Tmp36& operator=(Tmp36&&) = delete;
 
-private:
+    private:
     adc::Interface& myAdc;
-    const std::uint8_t myPin;
     bool myInitialized;
 
 };
 } // namespace driver::tempsensor
+}

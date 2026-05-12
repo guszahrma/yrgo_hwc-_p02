@@ -8,7 +8,7 @@
 #include "driver/gpio/esp32s3.h"
 #include "driver/gpio/interface.h"
 
-#include "driver\gpio.h"
+#include "driver/gpio.h"
 
 namespace driver::gpio
 {

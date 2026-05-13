@@ -17,11 +17,10 @@ public:
     /**
      * @brief Construct a new Stub object
      */
-    Stub() noexcept
-    : myPeriodMs{0}
-    , myStarted{false}
-    , myTimeout{false}
-    , myInitialized{true}
+    Stub(std::uint32_t period_ms = 0, bool start_running = false) noexcept
+        : myPeriodMs{period_ms}
+        , myStarted{start_running}
+        , myTimeout{false}
     {
         std::printf("Stub timer constructed.\n");
     }
@@ -56,7 +55,7 @@ public:
      * 
      * @param[in] period_ms timeout period in milliseconds
      */
-    void period(std::uint32_t period_ms) noexcept override
+    void set_period(std::uint32_t period_ms) noexcept override
     {
         myPeriodMs = period_ms;
         std::printf("Stub timer period set to %u ms.\n", static_cast<unsigned>(myPeriodMs));
@@ -80,16 +79,6 @@ public:
     }
 
     /**
-     * @brief Check if driver is initialized
-     * 
-     * @return true if initialized, otherwise false
-     */
-    bool initialized() noexcept override
-    {
-        return myInitialized;
-    }
-
-    /**
      * @brief Trigger timeout manually for testing
      */
     void trigger() noexcept
@@ -105,7 +94,6 @@ private:
     std::uint32_t myPeriodMs;
     bool myStarted;
     bool myTimeout;
-    bool myInitialized;
 };
 
 }

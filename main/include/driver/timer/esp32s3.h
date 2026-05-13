@@ -31,7 +31,7 @@ public:
      * 
      * @param[in] period_ms timeout period in milliseconds
      */
-    void period(std::uint32_t period_ms) noexcept override;
+    void set_period(std::uint32_t period_ms) noexcept override;
 
     /**
      * @brief Check if timeout has occurred
@@ -40,18 +40,10 @@ public:
      */
     bool timeout() noexcept override;
 
-    /**
-     * @brief Check if driver is initialized
-     * 
-     * @return true if initialized, otherwise false
-     */
-    bool initialized() noexcept override;
-
 private:
     std::uint32_t myPeriodMs;
     std::uint64_t myLastTimeUs;
     bool myStarted;
-    bool myInitialized;
 };
 
 }

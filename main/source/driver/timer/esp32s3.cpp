@@ -20,7 +20,6 @@ Esp32s3::Esp32s3() noexcept
     : myPeriodMs{500}
     , myLastTimeUs{0}
     , myStarted{false}
-    , myInitialized{true}
 {
     std::printf("ESP32-S3 timer initialized.\n");
 }
@@ -45,7 +44,7 @@ void Esp32s3::stop() noexcept
 }
 
 // --------------------------------------------------------------------------------
-void Esp32s3::period(std::uint32_t period_ms) noexcept
+void Esp32s3::set_period(std::uint32_t period_ms) noexcept
 {
     myPeriodMs = period_ms;
     std::printf("ESP32-S3 timer period set to %u ms.\n", static_cast<unsigned>(myPeriodMs));
@@ -70,12 +69,6 @@ bool Esp32s3::timeout() noexcept
     }
 
     return false;
-}
-
-// --------------------------------------------------------------------------------
-bool Esp32s3::initialized() noexcept
-{
-    return myInitialized;
 }
 
 }

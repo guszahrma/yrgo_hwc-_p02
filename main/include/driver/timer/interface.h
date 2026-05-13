@@ -29,7 +29,7 @@ public:
      * 
      * @param period_ms timeout period in milliseconds
      */
-    virtual void period(std::uint32_t period_ms) noexcept = 0;
+    virtual void set_period(std::uint32_t period_ms) noexcept = 0;
 
     /**
      * @brief Check if timeout has occurred
@@ -38,12 +38,7 @@ public:
      */
     virtual bool timeout() noexcept = 0;
 
-    /**
-     * @brief Check if driver is initialized
-     * 
-     * @return true if initialized, otherwise false
-     */
-    virtual bool initialized() noexcept = 0;
+    
 };
 
 }

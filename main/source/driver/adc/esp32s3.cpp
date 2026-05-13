@@ -7,7 +7,7 @@ namespace driver::adc
 {
 
 Esp32s3::Esp32s3(driver::pin::esp32s3::AdcPin pin, float referenceVoltage)
-    : myPin(pin), myHandle(nullptr), myChannel(ADC_CHANNEL_0)
+    : myPin(pin), myHandle(nullptr), myChannel(ADC_CHANNEL_0), myCaliHandle(nullptr)
 {
     if (!acquire_pin(static_cast<std::uint8_t>(driver::pin::esp32s3::to_number(pin))))
     {
@@ -38,11 +38,26 @@ Esp32s3::Esp32s3(driver::pin::esp32s3::AdcPin pin, float referenceVoltage)
     chan_cfg.bitwidth = ADC_BITWIDTH_12;
     adc_oneshot_config_channel(myHandle, myChannel, &chan_cfg);
 
+    adc_cali_curve_fitting_config_t cali_cfg = {};
+    cali_cfg.unit_id  = unit;
+    cali_cfg.chan     = myChannel;
+    cali_cfg.atten   = chan_cfg.atten;
+    cali_cfg.bitwidth = ADC_BITWIDTH_12;
+    if (adc_cali_create_scheme_curve_fitting(&cali_cfg, &myCaliHandle) != ESP_OK)
+    {
+        myCaliHandle = nullptr;
+        std::printf("ESP32-S3 ADC: calibration unavailable, using linear scaling.\n");
+    }
+
     std::printf("ESP32-S3 ADC initialized on pin %s.\n", driver::pin::esp32s3::to_string(pin));
 }
 
 Esp32s3::~Esp32s3() noexcept
 {
+    if (myCaliHandle != nullptr)
+    {
+        adc_cali_delete_scheme_curve_fitting(myCaliHandle);
+    }
     if (myHandle != nullptr)
     {
         adc_oneshot_del_unit(myHandle);
@@ -64,7 +79,19 @@ uint16_t Esp32s3::read_value() noexcept
 
 float Esp32s3::read_voltage() noexcept
 {
-    return static_cast<float>(read_value()) / maxRawValue * myFullScaleVoltage;
+    if (myHandle == nullptr)
+    {
+        return 0.0f;
+    }
+    int raw{};
+    adc_oneshot_read(myHandle, myChannel, &raw);
+    if (myCaliHandle != nullptr)
+    {
+        int millivolts{};
+        adc_cali_raw_to_voltage(myCaliHandle, raw, &millivolts);
+        return static_cast<float>(millivolts) / 1000.0f;
+    }
+    return static_cast<float>(raw) / maxRawValue * myFullScaleVoltage;
 }
 
 } // namespace driver::adc

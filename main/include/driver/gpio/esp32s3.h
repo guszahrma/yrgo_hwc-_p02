@@ -33,7 +33,7 @@ public:
      * 
      * @param[in] state 
      */
-     void write(bool state) noexcept override;
+    void write(bool state) noexcept override;
 
      /**
       * @brief Toggle function

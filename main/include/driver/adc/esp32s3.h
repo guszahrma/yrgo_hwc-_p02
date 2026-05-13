@@ -44,11 +44,11 @@ public:
      */
     float read_voltage() noexcept override;
 
-    Esp32s3() = delete;
-    Esp32s3(const Esp32s3&) = delete;
+    Esp32s3()                          = delete;
+    Esp32s3(const Esp32s3&)            = delete;
+    Esp32s3(Esp32s3&&)                 = delete;
     Esp32s3& operator=(const Esp32s3&) = delete;
-    Esp32s3(Esp32s3&&) = delete;
-    Esp32s3& operator=(Esp32s3&&) = delete;
+    Esp32s3& operator=(Esp32s3&&)      = delete;
 
 private:
     static constexpr float maxRawValue{4095.0f};

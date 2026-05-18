@@ -5,7 +5,9 @@
 namespace driver::gpio
 {
 
-// TODO Ändra till class
+/**
+ * @brief GPIO direction enumeration.
+ */
 enum class Direction : std::uint8_t
 {
     OUTPUT,         // 0
@@ -13,6 +15,9 @@ enum class Direction : std::uint8_t
     INPUT_PULL_DOWN // 2
 };
 
+/**
+ *  @brief GPIO interface class 
+*/
 class Interface
 {
 public:
@@ -22,8 +27,7 @@ public:
     /**
      * @brief Read function
      * 
-     * @return true 
-     * @return false 
+     * @return current state
      */
     virtual bool read() noexcept = 0;
 

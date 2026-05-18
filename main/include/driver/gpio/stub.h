@@ -9,6 +9,10 @@
 
 namespace driver::gpio
 {
+/**
+ * @brief Stub class for GPIO interface. This class is used for testing and debugging purposes.
+ * It simulates the behavior of a GPIO pin without interacting with actual hardware.
+ */
 class Stub final : public Interface
 {
 public:
@@ -23,8 +27,23 @@ public:
     , myDirection{direction}
     , myState{false}
     {
-        //TODO FIXA SKRIVA UT DIRECTION
-        std::printf("Stub GPIO constructed on pin %u and direction\n", pinNumber);
+        char directionStr[20];
+        switch (direction)
+        {
+            case Direction::OUTPUT:
+                std::snprintf(directionStr, sizeof(directionStr), "OUTPUT");
+                break;
+            case Direction::INPUT_PULL_UP:
+                std::snprintf(directionStr, sizeof(directionStr), "INPUT_PULL_UP");
+                break;
+            case Direction::INPUT_PULL_DOWN:
+                std::snprintf(directionStr, sizeof(directionStr), "INPUT_PULL_DOWN");
+                break;
+            default:
+                std::snprintf(directionStr, sizeof(directionStr), "UNKNOWN");
+                break;
+        }
+        std::printf("Stub GPIO constructed on pin %u and direction %s.\n", pinNumber, directionStr);
     }
 
     /**
@@ -40,7 +59,7 @@ public:
      */
     bool read() noexcept override
     {
-        std::printf("%s state on pin %u\n", (myState ? "True" : "False"), myPinNumber);
+        std::printf("%s state on pin %u.\n", (myState ? "True" : "False"), myPinNumber);
         return myState;
     }
 
@@ -54,7 +73,7 @@ public:
         if (Direction::OUTPUT == myDirection ) 
         { 
             myState = state;
-            std::printf("Writing %s on pin %u\n", (state ? "True" : "False"), myPinNumber);
+            std::printf("Writing %s on pin %u.\n", (state ? "True" : "False"), myPinNumber);
         }
     }
 
@@ -66,9 +85,15 @@ public:
         if (Direction::OUTPUT == myDirection)
         {
             myState = !myState;
-            std::printf("Toggling %s on pin %u\n", (myState ? "True" : "False"), myPinNumber);
+            std::printf("Toggling %s on pin %u.\n", (myState ? "True" : "False"), myPinNumber);
         }
     }
+
+    // Delete copy and move constructors
+    Stub(const Stub&)            = delete;
+    Stub(Stub&&)                 = delete;
+    Stub& operator=(const Stub&) = delete;
+    Stub& operator=(Stub&&)      = delete;
 
 private:
     const std::uint8_t myPinNumber;

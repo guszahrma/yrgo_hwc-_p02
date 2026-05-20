@@ -1,11 +1,6 @@
-
-/**
- * @brief GPIO example.
- */
 #include <chrono>
 #include <stdio.h>
 #include <thread>
-
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "driver/serial/esp32s3.h" // Din riktiga driver
@@ -18,6 +13,9 @@
 #include "driver/tempsensor/tmp36.h" 
 #include "esp_log.h"
 
+/**
+ * @brief GPIO example.
+ */
 extern "C" void app_main()
 {
     // 1. Skapa drivrutinen

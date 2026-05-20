@@ -3,8 +3,8 @@
 !*.*
 !*/
 
-# Don't ignore clangd project config.
-!.clangd
+# Ignore clangd project config (machine-specific).
+.clangd
 
 # Don't ignore makefiles.
 !makefile
@@ -41,3 +41,6 @@
 
 # Ignore SDK config backup, but track sdkconfig itself.
 sdkconfig.old
+
+# Ignore cache folder
+.cache/

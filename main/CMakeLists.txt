@@ -1,7 +1,6 @@
 idf_component_register(
     SRCS
         "source/main.cpp"
-        #"source/driver/factory/esp32s3.cpp"
         "source/driver/adc/esp32s3.cpp"
         "source/driver/gpio/esp32s3.cpp"
         "source/driver/serial/esp32s3.cpp"
@@ -9,6 +8,10 @@ idf_component_register(
         #"source/driver/timer/esp32s3.cpp"
     INCLUDE_DIRS
         "include"
+    REQUIRES
+        esp_driver_gpio
+        esp_adc
+
     PRIV_REQUIRES
         esp_driver_uart
         esp_driver_gpio   

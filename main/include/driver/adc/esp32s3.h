@@ -4,6 +4,8 @@
 #include "driver/adc/interface.h"
 #include "driver/pin/esp32s3.h"
 #include "esp_adc/adc_oneshot.h"
+#include "esp_adc/adc_cali.h"
+#include "esp_adc/adc_cali_scheme.h"
 
 /**
  * @brief ADC driver for the ESP32-S3 using the adc_oneshot API.
@@ -44,11 +46,11 @@ public:
      */
     float read_voltage() noexcept override;
 
-    Esp32s3() = delete;
-    Esp32s3(const Esp32s3&) = delete;
+    Esp32s3()                          = delete;
+    Esp32s3(const Esp32s3&)            = delete;
+    Esp32s3(Esp32s3&&)                 = delete;
     Esp32s3& operator=(const Esp32s3&) = delete;
-    Esp32s3(Esp32s3&&) = delete;
-    Esp32s3& operator=(Esp32s3&&) = delete;
+    Esp32s3& operator=(Esp32s3&&)      = delete;
 
 private:
     static constexpr float maxRawValue{4095.0f};
@@ -58,5 +60,6 @@ private:
     float myFullScaleVoltage{};
     adc_oneshot_unit_handle_t myHandle;
     adc_channel_t myChannel;
+    adc_cali_handle_t myCaliHandle;
 };    
 } // namespace driver::adc

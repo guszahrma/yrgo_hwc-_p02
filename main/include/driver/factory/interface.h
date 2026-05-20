@@ -6,6 +6,7 @@
 #include "driver/adc/interface.h"
 #include "driver/gpio/interface.h"
 #include "driver/serial/interface.h"
+#include "driver/pin/interface.h"
 
 namespace driver::factory
 {

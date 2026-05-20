@@ -41,3 +41,6 @@
 
 # Ignore SDK config backup, but track sdkconfig itself.
 sdkconfig.old
+
+# Ignore cache folder
+.cache/

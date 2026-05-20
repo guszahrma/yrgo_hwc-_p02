@@ -21,7 +21,6 @@ extern "C" void app_main()
     mySerial.print("Systemet är redo! Skriv något:\n");
 
     char buffer[64];
-    while (true)
     driver::gpio::Esp32s3 esp32s3{9U, driver::gpio::Direction::OUTPUT};
     
     esp32s3.write(true);
@@ -51,7 +50,6 @@ extern "C" void app_main()
         }
 
         vTaskDelay(pdMS_TO_TICKS(100));
-    }
         esp32s3.toggle();
 
         printf("testing: adc value is %i.\n", esp32s3Adc.read_value());

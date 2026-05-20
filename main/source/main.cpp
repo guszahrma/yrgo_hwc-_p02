@@ -33,7 +33,7 @@ extern "C" void app_main()
 
     driver::tempsensor::Tmp36 tmp36{esp32s3Adc}; 
     tmp36.isInitialized();
-    //ESP_LOGI("main", "The temperature is %d degrees.\n", tmp36.read()); 
+    
 
     while(1)
     {

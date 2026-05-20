@@ -3,6 +3,9 @@
 !*.*
 !*/
 
+# Ignore clangd project config (machine-specific).
+.clangd
+
 # Don't ignore makefiles.
 !makefile
 !Makefile
@@ -27,7 +30,7 @@
 *__pycache__/
 
 # Ignore vscode directory.
-*vscode/
+.vscode/
 *vs/
 
 # Ignore debug folder.
@@ -36,5 +39,8 @@
 # Ignore build folder
 *build/
 
-# Ignore SDK confif file.
-*sdkconfig
+# Ignore SDK config backup, but track sdkconfig itself.
+sdkconfig.old
+
+# Ignore cache folder
+.cache/

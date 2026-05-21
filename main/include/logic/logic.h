@@ -1,4 +1,7 @@
 #pragma once
+#include <cstdint>
+#include "driver/factory/interface.h"
+
 
 /**
  * @brief A simple logic class for handling basic logic operations.
@@ -16,7 +19,7 @@
  *           current temperature (°C)
  */
 
-namespace system::logic
+namespace logic::logic
 {
 class Logic
 {
@@ -41,5 +44,19 @@ public:
     Logic(Logic&&)                 = delete;
     Logic& operator=(const Logic&) = delete;
     Logic& operator=(Logic&&)      = delete;
+private:
+    uint8_t myBlinkState; // 0 for off, 1 for on
+    uint16_t myPeriodLengthMs; // Blinking period in milliseconds
+    std::unique_ptr<driver::serial::Interface> mySerialDriver; // Serial driver for communication
+    std::unique_ptr<driver::gpio::Interface> myGpioDriver; // GPIO driver for controlling the LED
+    std::unique_ptr<driver::adc::Interface> myAdcDriver; // ADC driver for reading temperature or other analog values
+
+    // Command handler functions
+    void handleOn();
+    void handleOff();
+    void handleBlinkOn();
+    void handleBlinkOff();
+    void handlePeriod(uint16_t periodLengthMs);
+    void handleStatus();
 };
 }

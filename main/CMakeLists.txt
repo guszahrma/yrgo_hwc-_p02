@@ -1,6 +1,7 @@
 idf_component_register(
     SRCS
         "source/main.cpp"
+        "source/logic/logic.cpp"
         "source/driver/adc/esp32s3.cpp"
         "source/driver/gpio/esp32s3.cpp"
         "source/driver/serial/esp32s3.cpp"

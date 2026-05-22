@@ -51,13 +51,17 @@ public:
      * 
      * @param[out] buffer Pointer to the buffer where the string will be stored.
      * @param[in] maxSize Maximum number of bytes to read.
-     * @return std::size_t Number of characters read.
+     * 
+     * @return True if a simulated line was successfully copied else return false
      */
-    std::size_t readLine(char* buffer, std::size_t maxSize) noexcept override
+    bool readLine(char* buffer, std::size_t maxSize) noexcept override
     {
-        // Check the given buffer, return 0U is invalid.
-        if (nullptr == buffer) { return 0U; }
-        if (0U == maxSize) { return 0U; }
+        // Check the given buffer, return false if invalid.
+        if (nullptr == buffer) { return false; }
+        if (0U == maxSize) { return false; }
+
+        // If no simulated data is available, return false immediately (non-blocking).
+        if (0U == myBufLen) { return false; }
 
         // Calculate number of bytes to copy (the smallest of maxSize and myBufLen).
         const std::size_t bytesToCopy{maxSize > myBufLen ? myBufLen : maxSize};
@@ -69,12 +73,15 @@ public:
         }
 
         // Add terminating null character. Add it last if we have maxed the buffer.
-        // Else add it to the end of the string
+        // Else add it to the end of the string.
         if (maxSize == bytesToCopy) { buffer[bytesToCopy - 1U] = '\0'; }
         else { buffer[bytesToCopy] = '\0'; }
 
-        // Return the number of copied bytes.
-        return bytesToCopy;
+        // Clear the internal buffer length so we don't read the same simulated line again.
+        myBufLen = 0U;
+
+        // Return true since a line was successfully processed.
+        return true;
     }
 
     /**

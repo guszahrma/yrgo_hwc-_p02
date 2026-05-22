@@ -28,6 +28,6 @@ public:
      * 
      * @return std::string 
      */
-    virtual std::size_t readLine(char* buffer, std::size_t maxSize) noexcept = 0;
+    virtual bool readLine(char* buffer, std::size_t maxSize) noexcept = 0;
 };
 }

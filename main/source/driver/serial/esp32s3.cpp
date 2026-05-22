@@ -1,29 +1,27 @@
 #include "driver/serial/esp32s3.h"
-#include "driver/usb_serial_jtag.h" // Viktig för Nano ESP32
+#include "driver/usb_serial_jtag.h"
 #include <cstring>
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
 
 namespace driver::serial
 {
 
 // --------------------------------------------------------------------------------  
 Esp32s3::Esp32s3(int baudRate) noexcept
+    : myInternalBuf{}
+    , myInternalLen{}
 {
+    (void)baudRate;
     usb_serial_jtag_driver_config_t cfg = {
         .tx_buffer_size = 256,
         .rx_buffer_size = 256
     };
-    
-    // Install USB-serial driver
-    usb_serial_jtag_driver_install(&cfg);
+    (void)usb_serial_jtag_driver_install(&cfg);
 }
 
 // --------------------------------------------------------------------------------
 Esp32s3::~Esp32s3() noexcept
 {
-    // Uninstall USB-serial driver
-    usb_serial_jtag_driver_uninstall();
+    (void)usb_serial_jtag_driver_uninstall();
 }
 
 // --------------------------------------------------------------------------------
@@ -31,53 +29,43 @@ void Esp32s3::print(const char* text) noexcept
 {
     if (text != nullptr)
     {
-        usb_serial_jtag_write_bytes(text, std::strlen(text), pdMS_TO_TICKS(100));
+        (void)usb_serial_jtag_write_bytes(text, std::strlen(text), 0U);
     }
 }
 
 // --------------------------------------------------------------------------------
-std::size_t Esp32s3::readLine(char* buffer, std::size_t maxSize) noexcept
+bool Esp32s3::readLine(char* buffer, std::size_t maxSize) noexcept
 {
-    if (buffer == nullptr || maxSize == 0) return 0;
+    if (nullptr == buffer || 0U == maxSize) { return false; }
 
-    std::size_t index = 0;
+    std::uint8_t byte{};
     
-    // Run until maxSize
-    while (index < maxSize - 1)
+    while (usb_serial_jtag_read_bytes(&byte, 1U, 0U) > 0)
     {
-        uint8_t byte;
-        // Wait a while for every character
-        int len = usb_serial_jtag_read_bytes(&byte, 1, pdMS_TO_TICKS(10));
-        
-        if (len > 0)
-        {
-            // Send back character
-            usb_serial_jtag_write_bytes(&byte, 1, pdMS_TO_TICKS(10));
+        (void)usb_serial_jtag_write_bytes(&byte, 1U, 0U);
 
-            // If character is '\n' or '\r, break. Else continue
-            if (byte == '\n' || byte == '\r')
-            {
-                if (index > 0) 
-                {
-                    break; 
-                }
-                else 
-                {
-                    continue; 
-                }
-            }
-            
-            // Save character in buffer
-            buffer[index++] = static_cast<char>(byte);
-        }
-        else 
+        if ('\n' == byte || '\r' == byte)
         {
-            vTaskDelay(pdMS_TO_TICKS(10)); 
+            if (myInternalLen > 0U)
+            {
+                const std::size_t bytesToCopy{maxSize - 1U > myInternalLen ? myInternalLen : maxSize - 1U};
+                
+                for (std::size_t i{}; i < bytesToCopy; ++i)
+                {
+                    buffer[i] = myInternalBuf[i];
+                }
+                buffer[bytesToCopy] = '\0';
+                
+                myInternalLen = 0U;
+                return true;
+            }
+        }
+        else if (myInternalLen < (InternalBufLen - 1U))
+        {
+            myInternalBuf[myInternalLen++] = static_cast<char>(byte);
         }
     }
-    
-    buffer[index] = '\0';
-    return index;
+    return false;
 }
 
 } // namespace driver::serial

@@ -7,10 +7,10 @@
 
 #include "driver/tempsensor/interface.h"
 
-namespace driver{
-    namespace adc{class Interface;}
+// ADC interface.
+namespace driver::adc { class Interface; }
 
-namespace tempsensor
+namespace driver::tempsensor
 {
 /**
  * @brief Tmp36
@@ -44,16 +44,13 @@ class Tmp36 final : public Interface
      */
     std::int16_t read() const noexcept override;
 
-    Tmp36() = delete;
-    Tmp36(const Tmp36&) = delete;
-    Tmp36(Tmp36&&) = delete;
-    Tmp36& operator=(const Tmp36&) = delete;
-    Tmp36& operator=(Tmp36&&) = delete;
+    Tmp36()                         = delete;
+    Tmp36(const Tmp36&)             = delete;
+    Tmp36(Tmp36&&)                  = delete;
+    Tmp36& operator=(const Tmp36&)  = delete;
+    Tmp36& operator=(Tmp36&&)       = delete;
 
-    private:
+private:
     adc::Interface& myAdc;
-    bool myInitialized;
-
 };
 } // namespace driver::tempsensor
-}

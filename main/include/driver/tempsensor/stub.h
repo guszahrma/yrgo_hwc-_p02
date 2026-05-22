@@ -70,7 +70,11 @@ public:
     {
         myInitialized = initialized;
     }
-
+    Stub()                         = delete;
+    Stub(const Stub&)              = delete;
+    Stub(Stub&&)                   = delete;
+    Stub& operator=(const Stub&)   = delete;
+    Stub& operator=(Stub&&)        = delete;
 private:
     /** Simulated temperature. */
     std::int16_t myTemp;

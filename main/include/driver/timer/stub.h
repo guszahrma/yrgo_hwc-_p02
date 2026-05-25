@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include <cstdio>
+#include <chrono>
 
 #include "driver/timer/interface.h"
 
@@ -20,7 +21,7 @@ public:
     Stub(std::uint32_t period_ms = 0, bool start_running = false) noexcept
         : myPeriodMs{period_ms}
         , myStarted{start_running}
-        , myTimeout{false}
+        , myLastTime{Clock::now()}
     {
         std::printf("Stub timer constructed.\n");
     }
@@ -36,7 +37,7 @@ public:
     void start() noexcept override
     {
         myStarted = true;
-        myTimeout = false;
+        myLastTime = Clock::now();
         std::printf("Stub timer started.\n");
     }
 
@@ -46,7 +47,6 @@ public:
     void stop() noexcept override
     {
         myStarted = false;
-        myTimeout = false;
         std::printf("Stub timer stopped.\n");
     }
 
@@ -68,9 +68,19 @@ public:
      */
     bool timeout() noexcept override
     {
-        if (myTimeout)
+        if (!myStarted)
         {
-            myTimeout = false;
+            return false;
+        }
+
+        const auto currentTime{Clock::now()};
+        const auto elapsedMs{
+            std::chrono::duration_cast<std::chrono::milliseconds>(currentTime - myLastTime).count()
+        };
+
+        if (elapsedMs >= myPeriodMs)
+        {
+            myLastTime = currentTime;
             std::printf("Stub timer timeout detected.\n");
             return true;
         }
@@ -78,22 +88,12 @@ public:
         return false;
     }
 
-    /**
-     * @brief Trigger timeout manually for testing
-     */
-    void trigger() noexcept
-    {
-        if (myStarted)
-        {
-            myTimeout = true;
-            std::printf("Stub timer timeout triggered.\n");
-        }
-    }
-
 private:
+    using Clock = std::chrono::steady_clock;
+
     std::uint32_t myPeriodMs;
     bool myStarted;
-    bool myTimeout;
+    Clock::time_point myLastTime;
 };
 
 }

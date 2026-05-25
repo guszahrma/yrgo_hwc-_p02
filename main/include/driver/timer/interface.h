@@ -27,7 +27,7 @@ public:
     /**
      * @brief Set timeout period in milliseconds
      * 
-     * @param period_ms timeout period in milliseconds
+     * @param[in] period_ms timeout period in milliseconds
      */
     virtual void set_period(std::uint32_t period_ms) noexcept = 0;
 

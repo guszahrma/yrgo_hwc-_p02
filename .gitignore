@@ -44,3 +44,8 @@ sdkconfig.old
 
 # Ignore cache folder
 .cache/
+
+# Ignore component manager downloads (reproducible from idf_component.yml)
+managed_components/
+
+main/include/communication/wifi/esp32s3_local_config.h

@@ -1,4 +1,5 @@
 #include <chrono>
+#include <cstdint>
 #include <stdio.h>
 #include <thread>
 #include "freertos/FreeRTOS.h"
@@ -8,12 +9,27 @@
 #include "driver/gpio/esp32s3.h"
 #include "driver/adc/esp32s3.h"
 #include "driver/pin/esp32s3.h"
+#include "driver/eeprom/esp32s3.h"
 
+
+constexpr std::string dataToStore{"Hello, EEPROM!"};
 /**
  * @brief GPIO example.
  */
 extern "C" void app_main()
 {
+    // test code for eeprom
+    driver::eeprom::Esp32s3 myEeprom(1024); // 1KB EEPROM
+    myEeprom.write(0, reinterpret_cast<const uint8_t*>(dataToStore.c_str()), dataToStore.length());
+    uint8_t eepromBuffer[64];
+    uint16_t bytesRead{0};
+    if ((bytesRead = myEeprom.read(0, eepromBuffer, sizeof(eepromBuffer))) > 0)
+    {
+        eepromBuffer[bytesRead] = '\0'; // Null-terminate the string
+        printf("Read from EEPROM: %s\n", eepromBuffer);
+    }
+    // end of test code for eeprom
+
     // 1. Skapa drivrutinen
     driver::serial::Esp32s3 mySerial(115200); 
     

@@ -4,7 +4,7 @@ idf_component_register(
         "source/driver/adc/esp32s3.cpp"
         "source/driver/gpio/esp32s3.cpp"
         "source/driver/serial/esp32s3.cpp"
-        #"source/driver/tempsensor/tmp36.cpp"
+        "source/driver/tempsensor/tmp36.cpp"
         #"source/driver/timer/esp32s3.cpp"
         "source/driver/nvs/esp32s3.cpp"
     INCLUDE_DIRS
@@ -18,5 +18,5 @@ idf_component_register(
         esp_driver_uart
         esp_driver_gpio   
         esp_driver_usb_serial_jtag
-        
+        esp_adc
 )

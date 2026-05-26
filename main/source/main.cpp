@@ -4,12 +4,16 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "driver/serial/esp32s3.h" // Din riktiga driver
+
 #include "driver/gpio/stub.h"
 #include "driver/gpio/esp32s3.h"
 #include "driver/adc/esp32s3.h"
 #include "driver/pin/esp32s3.h"
 #include "driver/nvs/esp32s3.h"
 
+
+#include "driver/tempsensor/tmp36.h" 
+#include "esp_log.h"
 
 extern "C" void app_main()
 {
@@ -77,6 +81,11 @@ extern "C" void app_main()
     printf("testing: adc value is %i.\n", esp32s3Adc.read_value());
     printf("testing: adc voltage is %.4f.\n", esp32s3Adc.read_voltage());
 
+
+    driver::tempsensor::Tmp36 tmp36{esp32s3Adc}; 
+    tmp36.isInitialized();
+    
+
     while(1)
     {
         // 2. Försök läsa
@@ -90,11 +99,13 @@ extern "C" void app_main()
         }
 
         vTaskDelay(pdMS_TO_TICKS(100));
+        
         esp32s3.toggle();
 
         printf("testing: adc value is %i.\n", esp32s3Adc.read_value());
         printf("testing: adc voltage is %.4f.\n", esp32s3Adc.read_voltage());
         // Vänta i 500 millisekunder
+        ESP_LOGI("main", "The temperature is %d degrees.\n", tmp36.read()); 
         vTaskDelay(pdMS_TO_TICKS(3000));
     }
 }

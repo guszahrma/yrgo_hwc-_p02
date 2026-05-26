@@ -31,7 +31,7 @@
 
 # Ignore vscode directory.
 .vscode/
-*vs/
+.vs/
 
 # Ignore debug folder.
 *Debug/

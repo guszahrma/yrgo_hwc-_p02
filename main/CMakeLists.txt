@@ -7,11 +7,13 @@ idf_component_register(
         #"source/driver/tempsensor/tmp36.cpp"
         #"source/driver/timer/esp32s3.cpp"
         "source/driver/eeprom/esp32s3.cpp"
+        "source/driver/nvs/esp32s3.cpp"
     INCLUDE_DIRS
         "include"
     REQUIRES
         esp_driver_gpio
         esp_adc
+        nvs_flash
 
     PRIV_REQUIRES
         esp_driver_uart

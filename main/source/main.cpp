@@ -2,6 +2,7 @@
 #include <cstdint>
 #include <stdio.h>
 #include <thread>
+#include "driver/nvs/stub.h"
 
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
@@ -11,6 +12,7 @@
 #include "driver/gpio/esp32s3.h"
 #include "driver/adc/esp32s3.h"
 #include "driver/pin/esp32s3.h"
+#include "driver/nvs/esp32s3.h"
 #include "driver/timer/esp32s3.h"
 
 #include "driver/tempsensor/tmp36.h"
@@ -21,8 +23,50 @@
  */
 extern "C" void app_main()
 {
-    driver::serial::Esp32s3 mySerial(115200);
+    //test code for nvs
+    driver::nvs::Esp32s3 myNvs("storage");
+    std::string retrieved;
+    std::uint8_t number{0};
+    
+    // get stored Greeting
+    if (myNvs.get("number", number))
+        printf("Retrieved number from NVS: %u\n", number);
+    else
+        printf("Failed to retrieve number from NVS.\n");
 
+    if (myNvs.getString("greeting", retrieved))
+        printf("Retrieved from NVS: %s\n", retrieved.c_str());
+    else
+        printf("Failed to retrieve string from NVS.\n");
+
+    // store a new Greeting
+    if (myNvs.setString("greeting", "Hello, NVS!"))
+        printf("Successfully stored string in NVS.\n");
+    else
+        printf("Failed to store string in NVS.\n");
+
+    //Store a number
+    if (myNvs.set<uint8_t>("number", number + 1))
+        printf("Successfully stored number in NVS.\n");
+    else
+        printf("Failed to store number in NVS.\n");
+
+    // get stored Greeting again to verify it was updated
+    if (myNvs.get("number", number))
+        printf("Retrieved number from NVS: %u\n", number);
+    else
+        printf("Failed to retrieve number from NVS.\n");
+
+    if (myNvs.getString("greeting", retrieved))
+        printf("Retrieved from NVS: %s\n", retrieved.c_str());
+    else
+        printf("Failed to retrieve string from NVS.\n");
+
+    // end of test code for nvs
+
+    // 1. Skapa drivrutinen
+    driver::serial::Esp32s3 mySerial(115200); 
+    
     vTaskDelay(pdMS_TO_TICKS(2000));
     mySerial.print("Systemet är redo! Skriv något:\n");
 

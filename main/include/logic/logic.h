@@ -29,7 +29,7 @@ public:
      * Uses the factory to create the necessary drivers and initializes the system state.
      * Initialises Led as off and Blink as off, and sets a default blinking period (e.g., 1000 ms).
      */
-    Logic();
+    Logic() noexcept;
     ~Logic() noexcept;
 
     /**
@@ -52,11 +52,11 @@ private:
     std::unique_ptr<driver::adc::Interface> myAdcDriver; // ADC driver for reading temperature or other analog values
 
     // Command handler functions
-    void handleOn();
-    void handleOff();
-    void handleBlinkOn();
-    void handleBlinkOff();
-    void handlePeriod(uint16_t periodLengthMs);
-    void handleStatus();
+    void handleOn() noexcept;
+    void handleOff() noexcept;
+    void handleBlinkOn() noexcept;
+    void handleBlinkOff() noexcept;
+    void handlePeriod(uint16_t periodLengthMs) noexcept;
+    void handleStatus() noexcept;
 };
 }

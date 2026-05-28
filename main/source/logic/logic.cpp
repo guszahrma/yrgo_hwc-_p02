@@ -6,13 +6,13 @@
 #include <string_view>
 #include <sys/_intsup.h>
 #include <sys/unistd.h>
-
 #include "driver/factory/stub.h"
 #include "logic/logic.h"
 
-namespace logic::logic
+namespace logic::logic 
 {
-Logic::Logic()
+
+    Logic::Logic() noexcept
 : myBlinkState(0), // Initialize blink state to off
    myPeriodLengthMs(1000) // Set default blinking period to 1000 ms
 {
@@ -28,13 +28,15 @@ Logic::Logic()
     // Initialize other necessary components and state variables here.
 }
 
+// --------------------------------------------------------------------------------
 Logic::~Logic() noexcept
 {
     // Clean up resources, if necessary.
     // For example, you might want to delete any dynamically allocated drivers or other resources here.
 }
 
-void Logic::run()
+// --------------------------------------------------------------------------------
+void Logic::run() noexcept
 {
 
     // Implementation for running the logic loop will go here.
@@ -91,54 +93,65 @@ void Logic::run()
     }
 }
 
-    void Logic::handleOn()
-    {
-        std::cout << std::endl << "Handling 'on' command..." << std::endl;
+// --------------------------------------------------------------------------------
+void Logic::handleOn() noexcept
+{
+    std::cout << std::endl << "Handling 'on' command..." << std::endl;
 
-        // Implement the logic to turn the LED on.
-        myGpioDriver->write(true);
-    }
-    void Logic::handleOff()
-    {
-        std::cout << std::endl << "Handling 'off' command..." << std::endl;
+    // Implement the logic to turn the LED on.
+    myGpioDriver->write(true);
+}
 
-        // Implement the logic to turn the LED off.
-        myGpioDriver->write(false);
-    }
-    void Logic::handleBlinkOn()
-    {
-        std::cout << std::endl << "Handling 'blink on' command..." << std::endl;
+// --------------------------------------------------------------------------------
+void Logic::handleOff() noexcept
+{
+    std::cout << std::endl << "Handling 'off' command..." << std::endl;
 
-        // Implement the logic to turn blinking on.
-        myBlinkState = 1;
-    }
-    void Logic::handleBlinkOff()
-    {
-        std::cout << std::endl << "Handling 'blink off' command..." << std::endl;
+    // Implement the logic to turn the LED off.
+    myGpioDriver->write(false);
+}
 
-        // Implement the logic to turn blinking off.
-        myBlinkState = 0;
-    }
-    void Logic::handlePeriod(uint16_t periodLengthMs)
-    {
-        std::cout << std::endl << "Handling 'period' command..." << periodLengthMs << " ms" << std::endl;
+// --------------------------------------------------------------------------------
+void Logic::handleBlinkOn() noexcept
+{
+    std::cout << std::endl << "Handling 'blink on' command..." << std::endl;
 
-        // Implement the logic to set the blinking period.
-        myPeriodLengthMs = periodLengthMs;
-    }
-    void Logic::handleStatus()
-    {
-        // Implement the logic to print the current status.
-        // This is a placeholder implementation - replace with actual status printing logic.
-        mySerialDriver->print("Status:\n");
-        mySerialDriver->print("Blink State: ");
-        mySerialDriver->print(myBlinkState ? "On\n" : "Off\n");
-        mySerialDriver->print("Blink Period: ");    
-        mySerialDriver->print(std::to_string(myPeriodLengthMs).c_str());
-        mySerialDriver->print(" ms\n");
-        mySerialDriver->print("Current Temperature: ");
-        // TODO Replace this with a call to the TMP36 class to get actual temperature reading
-        mySerialDriver->print(std::to_string(0).c_str());
-        mySerialDriver->print(" °C\n");
-    }
+    // Implement the logic to turn blinking on.
+    myBlinkState = 1;
+}
+
+// --------------------------------------------------------------------------------
+void Logic::handleBlinkOff() noexcept
+{
+    std::cout << std::endl << "Handling 'blink off' command..." << std::endl;
+
+    // Implement the logic to turn blinking off.
+    myBlinkState = 0;
+}
+
+// --------------------------------------------------------------------------------
+void Logic::handlePeriod(uint16_t periodLengthMs) noexcept
+{
+    std::cout << std::endl << "Handling 'period' command..." << periodLengthMs << " ms" << std::endl;
+
+    // Implement the logic to set the blinking period.
+    myPeriodLengthMs = periodLengthMs;
+}
+
+// --------------------------------------------------------------------------------
+void Logic::handleStatus() noexcept
+{
+    // Implement the logic to print the current status.
+    // This is a placeholder implementation - replace with actual status printing logic.
+    mySerialDriver->print("Status:\n");
+    mySerialDriver->print("Blink State: ");
+    mySerialDriver->print(myBlinkState ? "On\n" : "Off\n");
+    mySerialDriver->print("Blink Period: ");    
+    mySerialDriver->print(std::to_string(myPeriodLengthMs).c_str());
+    mySerialDriver->print(" ms\n");
+    mySerialDriver->print("Current Temperature: ");
+    // TODO Replace this with a call to the TMP36 class to get actual temperature reading
+    mySerialDriver->print(std::to_string(0).c_str());
+    mySerialDriver->print(" °C\n");
+}
 }

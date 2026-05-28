@@ -11,9 +11,9 @@
 namespace communication::wifi
 {
 
-Esp32s3::Esp32s3(std::string ssid, std::string password)
+Esp32s3::Esp32s3(std::string ssid, std::string password) noexcept
 : mySsid(std::move(ssid))
-, myPassword(std::move(password))
+, myPassword(std::move(password)) 
 {}
 
 // --------------------------------------------------------------------------------

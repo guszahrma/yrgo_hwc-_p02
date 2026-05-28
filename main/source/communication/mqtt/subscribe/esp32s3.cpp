@@ -5,7 +5,7 @@ namespace communication::mqtt::subscribe
 {
 
 Esp32s3::Esp32s3(std::string url, std::string topic, std::string clientId,
-                 std::string username, std::string password)
+                 std::string username, std::string password) noexcept
 : myUrl(std::move(url))
 , myTopic(std::move(topic))
 , myClientId(std::move(clientId))
@@ -46,7 +46,7 @@ bool Esp32s3::getValue(std::string& value) noexcept
 }
 
 // --------------------------------------------------------------------------------
-void Esp32s3::eventHandler(void* arg, esp_event_base_t, long int eventId, void* eventData)
+void Esp32s3::eventHandler(void* arg, esp_event_base_t, long int eventId, void* eventData) noexcept
 {
     auto* self  = static_cast<Esp32s3*>(arg);
     auto* event = static_cast<esp_mqtt_event_handle_t>(eventData);

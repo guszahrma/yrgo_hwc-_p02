@@ -11,7 +11,7 @@ class Esp32s3 final : public Interface
 {
 public:
     Esp32s3(std::string url, std::string topic, std::string clientId,
-            std::string username = {}, std::string password = {});
+            std::string username = {}, std::string password = {}) noexcept;
     ~Esp32s3() noexcept override;
 
     Esp32s3(const Esp32s3&)            = delete;
@@ -23,7 +23,7 @@ public:
     bool publish(const std::string& message, uint8_t qos = 0, bool retain = false) noexcept override;
 
 private:
-    static void eventHandler(void* arg, esp_event_base_t base, long int eventId, void* eventData);
+    static void eventHandler(void* arg, esp_event_base_t base, long int eventId, void* eventData) noexcept;
 
     std::string myUrl;
     std::string myTopic;

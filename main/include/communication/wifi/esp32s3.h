@@ -13,7 +13,7 @@ namespace communication::wifi
 class Esp32s3 final : public Interface
 {
 public:
-    Esp32s3(std::string ssid = std::string(defaultSsid), std::string password = std::string(defaultPassword));
+    Esp32s3(std::string ssid = std::string(defaultSsid), std::string password = std::string(defaultPassword)) noexcept;
     ~Esp32s3() noexcept override = default;
 
     Esp32s3(const Esp32s3&)            = delete;

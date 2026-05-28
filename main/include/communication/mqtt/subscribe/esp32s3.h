@@ -18,7 +18,7 @@ public:
      *  @param password The password for the MQTT connection.
      */
     Esp32s3(std::string url, std::string topic, std::string clientId,
-            std::string username = {}, std::string password = {});
+            std::string username = {}, std::string password = {}) noexcept;
     ~Esp32s3() noexcept override;
 
 
@@ -41,7 +41,7 @@ public:
     Esp32s3& operator=(Esp32s3&&)      = delete;
 
 private:
-    static void eventHandler(void* arg, esp_event_base_t base, long int eventId, void* eventData);
+    static void eventHandler(void* arg, esp_event_base_t base, long int eventId, void* eventData) noexcept;
 
     std::string myUrl;
     std::string myTopic;

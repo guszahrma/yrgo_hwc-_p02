@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(Get-NetAdapterAdvancedProperty -Name \"Wi-Fi\")",
+      "PowerShell(Where-Object DisplayName -in \"MIMO Power Save Mode\",\"Preferred Band\",\"Throughput Booster\")",
+      "PowerShell(Get-WmiObject Win32_NetworkAdapter)",
+      "PowerShell(Get-WmiObject Win32_PnPSignedDriver)",
+      "PowerShell(Get-Process)",
+      "PowerShell(Where-Object Name -in \"svchost\",\"WaasMedicAgent\",\"TiWorker\",\"wuauclt\",\"UsoClient\",\"MoUsoCoreWorker\",\"BackgroundTransferHost\",\"OneDrive\",\"Dropbox\",\"googledrivefs\")"
+    ]
+  }
+}

@@ -4,6 +4,8 @@
 #include "driver/factory/interface.h"
 #include "driver/gpio/stub.h"
 #include "driver/serial/stub.h"
+#include "driver/timer/stub.h"
+#include "driver/tempsensor/stub.h"
 
 namespace driver::factory
 {
@@ -28,7 +30,7 @@ public:
      *  
      * @return unique pointer
      */
-    std::unique_ptr<driver::gpio::Interface> create_gpio(std::uint8_t pinNumber, driver::gpio::Direction direction) override
+    std::unique_ptr<driver::gpio::Interface> create_gpio(std::uint8_t pinNumber, driver::gpio::Direction direction) noexcept override
     {
         return std::make_unique<driver::gpio::Stub>(pinNumber, direction);
     }
@@ -41,7 +43,7 @@ public:
      * 
      * @return unique pointer
      */
-    std::unique_ptr<driver::adc::Interface> create_adc(std::uint8_t pinNumber, float referenceVoltage) override
+    std::unique_ptr<driver::adc::Interface> create_adc(std::uint8_t pinNumber, float referenceVoltage) noexcept override
     {
         auto stubAdcPin = static_cast<driver::pin::stub::AdcPin>(pinNumber);
         return std::make_unique<driver::adc::Stub>(stubAdcPin, referenceVoltage);
@@ -54,11 +56,33 @@ public:
      * 
      * @return unique pointer
      */
-    std::unique_ptr<driver::serial::Interface> create_serial(int baudRate) override
+    std::unique_ptr<driver::serial::Interface> create_serial(int baudRate) noexcept override
     {
         (void)(baudRate);
         return std::make_unique<driver::serial::Stub>();
     }
-    
+
+    /**
+     * @brief Create a tempsensor object
+     * 
+     * @param[in] adc 
+     * 
+     * @return unique pointer
+     */
+    std::unique_ptr<driver::tempsensor::Interface> create_tempsensor(driver::adc::Interface& adc) noexcept override
+    {
+        (void)(adc);
+        return std::make_unique<driver::tempsensor::Stub>(static_cast<std::uint16_t>(0));
+    }
+
+    /**
+     * @brief Create a timer object
+     * 
+     * @return unique pointer
+     */
+    std::unique_ptr<driver::timer::Interface> create_timer() noexcept override
+    {
+        return std::make_unique<driver::timer::Stub>();
+    }
 };
 } // namespace driver::factory

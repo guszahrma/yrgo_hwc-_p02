@@ -48,4 +48,5 @@ sdkconfig.old
 # Ignore component manager downloads (reproducible from idf_component.yml)
 managed_components/
 
+# Ignore local WiFi credentials
 main/include/communication/wifi/esp32s3_local_config.h

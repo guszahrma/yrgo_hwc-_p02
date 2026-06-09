@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <cstdio>
 #include <cstring>
+#include <iostream>
 #include <string_view>
 #include <sys/_intsup.h>
 #include <sys/unistd.h>
@@ -46,22 +47,19 @@ void Logic::run() noexcept
     // The loop should be designed to be non-blocking and responsive, allowing for real-time command processing and state updates.
     constexpr std::size_t bufferSize = 64;
     char buffer[bufferSize];
-    uint8_t bufferLength = 0;
-
 
     while(true)
     {
-        if (0 < (bufferLength = mySerialDriver->readLine(buffer, sizeof(buffer))))
+        if (mySerialDriver->readLine(buffer, sizeof(buffer)))
         {
             std::cout << std::endl << std::endl << "Reading line..." << buffer << std::endl;
 
-            std::string_view input{buffer, bufferLength};
+            std::string_view input{buffer, std::strlen(buffer)};
 
             // Split into first word and the rest
             auto spacePos = input.find(' ');
             auto cmd  = input.substr(0, spacePos);
             auto args = (spacePos != std::string_view::npos) ? input.substr(spacePos + 1) : std::string_view{};
-
             if      (cmd == "on")     handleOn();
             else if (cmd == "off")    handleOff();
             else if (cmd == "status") handleStatus();
@@ -76,20 +74,29 @@ void Logic::run() noexcept
                 if (ec == std::errc{})
                     handlePeriod(ms);
             }
-       }
-       // Todo Add blinking logic here, using myBlinkState and myPeriodLengthMs to control the LED blinking behavior.
+        }
+        else {
+            sleep(1); // Sleep briefly to avoid busy-waiting when no input is available
+        }
 
-       // TEMP: randomize command input for testing
-       {
-           static const char* commands[] = {
-               "on", "off", "blink on", "blink off",
-               "period 500", "period 1000", "period 2000", "status"
-           };
-           constexpr std::size_t numCommands = sizeof(commands) / sizeof(commands[0]);
-           sleep(3);
-           auto* stub = static_cast<driver::serial::Stub*>(mySerialDriver.get());
-           stub->simulateInputData(commands[std::rand() % numCommands]);
-       }
+
+        // Todo Add blinking logic here, using myBlinkState and myPeriodLengthMs to control the LED blinking behavior.
+
+#ifndef DRIVER_SERIAL_ESP32S3
+        // TEMP: randomize command input for testing
+        {
+            static const char* commands[] = {
+                "on", "off", "blink on", "blink off",
+                "period 500", "period 1000", "period 2000", "status"
+            };
+            constexpr std::size_t numCommands = sizeof(commands) / sizeof(commands[0]);
+            sleep(1);
+            auto* stub = static_cast<driver::serial::Stub*>(mySerialDriver.get());
+            // Randomly simulate if random input is generated or not
+            if (std::rand() % 10 == 0)
+            stub->simulateInputData(commands[std::rand() % numCommands]);
+        }
+#endif
     }
 }
 

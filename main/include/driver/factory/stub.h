@@ -7,6 +7,13 @@
 #include "driver/timer/stub.h"
 #include "driver/tempsensor/stub.h"
 
+#define DRIVER_SERIAL_ESP32S3
+
+#ifdef DRIVER_SERIAL_ESP32S3
+#include "driver/serial/esp32s3.h"
+#else
+#include "driver/serial/stub.h"
+#endif
 namespace driver::factory
 {
 class Stub final : public Interface
@@ -59,7 +66,11 @@ public:
     std::unique_ptr<driver::serial::Interface> create_serial(int baudRate) noexcept override
     {
         (void)(baudRate);
+#ifdef DRIVER_SERIAL_ESP32S3
+        return std::make_unique<driver::serial::Esp32s3>(baudRate);
+#else
         return std::make_unique<driver::serial::Stub>();
+#endif
     }
 
     /**

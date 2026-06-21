@@ -36,26 +36,27 @@ public:
      * 
      * @return True if initialized, false otherwise.
      */
-    bool isInitialized() const noexcept override{
-        return myInitialized;
-    }
+    bool isInitialized() const noexcept override{ return myInitialized; }
 
     /**
      * @brief Read temperature.
      * 
      * @return Temperature in degrees Celsius.
      */
-    std::int16_t read() const noexcept override {
+    std::int16_t read() const noexcept override 
+    {
         // Return simulated temperature if initialized, else 0.
         return myInitialized ? myTemp : 0;
     }
 
-
     /**
      * @brief simulate a temperature.
      */
-    void simulateTemperature(const std::int16_t temp){
-        if(myInitialized){
+    //! @note Should be marked noexcept.
+    void simulateTemperature(const std::int16_t temp)
+    {
+        if(myInitialized)
+        {
             myTemp = temp;
             std::printf("The temperature is %d degrees.\n", myTemp);
         }
@@ -70,11 +71,13 @@ public:
     {
         myInitialized = initialized;
     }
+
     Stub()                         = delete;
     Stub(const Stub&)              = delete;
     Stub(Stub&&)                   = delete;
     Stub& operator=(const Stub&)   = delete;
     Stub& operator=(Stub&&)        = delete;
+    
 private:
     /** Simulated temperature. */
     std::int16_t myTemp;

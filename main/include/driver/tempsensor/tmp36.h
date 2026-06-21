@@ -13,16 +13,18 @@ namespace driver::adc { class Interface; }
 namespace driver::tempsensor
 {
 /**
- * @brief Tmp36
+ * @brief Tmp36 driver.
  */
 class Tmp36 final : public Interface
 {
-    public:
+public:
     /**
      * @brief constructor
-     * 
+     *
      * @param[in] initialTemp Initial temperature (default = 0).
      */
+    //! @note Incorrect comment, the input argument is named 'adc' and is an ADC instance,
+    //!       not an initial temp (maybe a remnant from the stub)?
     explicit Tmp36(adc::Interface& adc) noexcept;
 
     /**

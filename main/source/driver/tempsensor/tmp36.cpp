@@ -1,8 +1,9 @@
 /**
- * @brief Temperature sensor.
+ * @brief TMP36 driver implementation details.
  */
 #include <cstdint>
 
+//! @note Sort headers.
 #include "driver/tempsensor/tmp36.h"
 #include "driver/adc/interface.h"
 

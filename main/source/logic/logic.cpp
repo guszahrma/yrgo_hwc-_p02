@@ -26,6 +26,8 @@ namespace logic::logic
     mySerialDriver = factory.create_serial(115200);
     myGpioDriver = factory.create_gpio(9U, driver::gpio::Direction::OUTPUT);
     myAdcDriver = factory.create_adc(7U, 3.3f);
+    myTimerDriver = factory.create_timer();
+    myTimerDriver->stop(); // Start the timer for blinking
 
     // Initialize other necessary components and state variables here.
 }
@@ -81,7 +83,13 @@ void Logic::run() noexcept
         }
 
 
-        // Todo Add blinking logic here, using myBlinkState and myPeriodLengthMs to control the LED blinking behavior.
+        // timeout can retrurn true if timer is running and the set period has elapsed, otherwise false
+        if (myTimerDriver->timeout())
+        {
+            // Toggle the LED state
+            myGpioDriver->toggle();
+            myTimerDriver->start(); // Restart the timer for the next period
+        }
 
 #ifndef DRIVER_SERIAL_ESP32S3
         // TEMP: randomize command input for testing
@@ -125,7 +133,7 @@ void Logic::handleBlinkOn() noexcept
     std::cout << std::endl << "Handling 'blink on' command..." << std::endl;
 
     // Implement the logic to turn blinking on.
-    myBlinkState = 1;
+    myTimerDriver->start(); // Start the timer for blinking
 }
 
 // --------------------------------------------------------------------------------
@@ -134,7 +142,7 @@ void Logic::handleBlinkOff() noexcept
     std::cout << std::endl << "Handling 'blink off' command..." << std::endl;
 
     // Implement the logic to turn blinking off.
-    myBlinkState = 0;
+    myTimerDriver->stop(); // Stop the timer for blinking
 }
 
 // --------------------------------------------------------------------------------
@@ -143,7 +151,8 @@ void Logic::handlePeriod(uint16_t periodLengthMs) noexcept
     std::cout << std::endl << "Handling 'period' command..." << periodLengthMs << " ms" << std::endl;
 
     // Implement the logic to set the blinking period.
-    myPeriodLengthMs = periodLengthMs;
+    myTimerDriver->set_period(periodLengthMs);
+    myPeriodLengthMs = periodLengthMs; // Store the new period length
 }
 
 // --------------------------------------------------------------------------------

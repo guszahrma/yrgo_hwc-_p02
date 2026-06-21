@@ -1,3 +1,4 @@
+//! @note File header missing.
 #include <cstdio>
 #include <cstring>
 #include "nvs_flash.h"
@@ -9,6 +10,9 @@ namespace driver::nvs
 bool Esp32s3::isValidKey(const char* key) noexcept
 {
     constexpr std::size_t maxKeyLength = 15;
+    //! @note std::strlen from <cstring>, not strlen from <string.h>.
+    //! @note Also place parentheses around the conditions => you show intent and avoid
+    //!       static code analyzis warnings.
     if (nullptr == key || maxKeyLength < strlen(key))
     {
         printf("nvs: key is null or exceeds %zu characters\n", maxKeyLength);
@@ -24,6 +28,7 @@ Esp32s3::Esp32s3(const char* namespaceName) noexcept
     esp_err_t err = nvs_flash_init();
     if (ESP_ERR_NVS_NO_FREE_PAGES == err || ESP_ERR_NVS_NEW_VERSION_FOUND == err)
     {
+        //! @note Use std::printf from <cstdio> throughout this file, not printf from <stdio.h>.
         printf("nvs: partition needs erase, erasing and reinitialising\n");
         nvs_flash_erase();
         err = nvs_flash_init();
@@ -109,8 +114,10 @@ bool Esp32s3::eraseAll() noexcept
 
 bool Esp32s3::commit() noexcept
 {
+    //! @note { return false; }
     if (!myValid) return false;
     esp_err_t err = nvs_commit(myHandle);
+
     if (ESP_OK != err)
     {
         printf("nvs: commit failed: %s\n", esp_err_to_name(err));
@@ -118,5 +125,4 @@ bool Esp32s3::commit() noexcept
     }
     return true;
 }
-
 } // namespace driver::nvs

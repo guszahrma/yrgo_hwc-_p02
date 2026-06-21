@@ -1,6 +1,9 @@
+//! @note File header missing.
 #pragma once
 
 #include <string>
+
+//! @note Sort headers.
 #include "mqtt_client.h"
 #include "communication/mqtt/subscribe/interface.h"
 
@@ -17,6 +20,7 @@ public:
      *  @param username The username for the MQTT connection.
      *  @param password The password for the MQTT connection.
      */
+    //! @note Same comments here as for communication::mqtt::public::Esp32s3.
     Esp32s3(std::string url, std::string topic, std::string clientId,
             std::string username = {}, std::string password = {}) noexcept;
     ~Esp32s3() noexcept override;
@@ -49,6 +53,8 @@ private:
     std::string myUsername;
     std::string myPassword;
     std::string myLastValue;
+    //! @note Please initialize in the constructor, don't mix it up and initialize some members
+    //!       here and the rest in the constructor.
     esp_mqtt_client_handle_t myClient = nullptr;
     bool myConnected = false;
 };

@@ -1,9 +1,11 @@
+//! @note File header missing.
 #pragma once
 
 #include <string>
 
 namespace communication::mqtt::subscribe
 {
+//! @note Class documentation missing.
 class Interface
 {
 public:

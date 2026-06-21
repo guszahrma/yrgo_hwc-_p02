@@ -1,3 +1,4 @@
+//! @note Incorrect file header, haha! :)
 /**
  * @brief Stub
  */
@@ -13,9 +14,9 @@ namespace driver::gpio
  * @brief ESP32-S3 GPIO class
  */
 class Esp32s3 final : public Interface
-
 {
 public:
+    //! @note The cosntructor should be commented.
     explicit Esp32s3(std::uint8_t pinNumber, Direction direction) noexcept;
 
     ~Esp32s3() noexcept override; 
@@ -26,6 +27,7 @@ public:
      * @return true 
      * @return false 
      */
+    //! @note Mark const.
     bool read() noexcept override;
 
     /**
@@ -33,11 +35,13 @@ public:
      * 
      * @param[in] state 
      */
+    //! @note Please comment state.
     void write(bool state) noexcept override;
 
      /**
       * @brief Toggle function
-      * switches the state of the pin from high to low or from low to high
+      * 
+      *        switches the state of the pin from high to low or from low to high
       */
     void toggle() noexcept override;
 
@@ -52,4 +56,4 @@ private:
     const Direction myDirection;
     bool myState;
 };
-}
+} // namespace driver::gpio

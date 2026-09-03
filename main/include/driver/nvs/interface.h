@@ -1,3 +1,4 @@
+//! @note File header missing.
 #pragma once
 
 #include <cstdint>
@@ -5,7 +6,7 @@
 
 namespace driver::nvs
 {
-
+//! @note Interface doc missing.
 class Interface
 {
 public:
@@ -30,7 +31,8 @@ public:
      *  @param [in] autoCommit  If true, commit to flash immediately after writing.
      *  @return True if successful, false otherwise.
      */
-    virtual bool setString(const char* key, const std::string& value, const bool autoCommit = true) noexcept = 0;
+    virtual bool setString(const char* key, const std::string& value, 
+        const bool autoCommit = true) noexcept = 0;
 
     /** @brief Retrieve a string value.
      *  @param [in]  key    Key to look up.
@@ -55,5 +57,4 @@ public:
      */
     virtual bool eraseAll() noexcept = 0;
 };
-
 } // namespace driver::nvs

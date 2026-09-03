@@ -1,10 +1,10 @@
+//! @note File header missing.
 #pragma once
 
 #include <cstdint>
 
 namespace driver::timer
 {
-
 /**
  * @brief Timer interface class
  */
@@ -29,6 +29,7 @@ public:
      * 
      * @param[in] period_ms timeout period in milliseconds
      */
+    //! @note Use camelCase.
     virtual void set_period(std::uint32_t period_ms) noexcept = 0;
 
     /**
@@ -37,8 +38,5 @@ public:
      * @return true if timeout occurred, otherwise false
      */
     virtual bool timeout() noexcept = 0;
-
-    
 };
-
-}
+} // namespace driver::timer

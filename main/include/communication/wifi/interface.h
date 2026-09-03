@@ -1,7 +1,9 @@
+//! @note File Header missing.
 #pragma once
 
 namespace communication::wifi
 {
+//! @note Class documentation missing.
 class Interface
 {
 public:

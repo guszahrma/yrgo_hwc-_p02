@@ -1,7 +1,7 @@
+//! @note File header missing.
 #pragma once
 
 #include <cstddef>
-
 
 namespace driver::serial
 {
@@ -14,6 +14,7 @@ public:
     /**
      * @brief Destructor
      */
+    //! @note Missing noexcept.
     virtual ~Interface() = default;
 
     /**
@@ -21,6 +22,7 @@ public:
      * 
      * @param[in] text 
      */
+    //! @note Missing documentation of 'text'.
     virtual void print(const char* text) noexcept = 0;
 
     /**
@@ -30,4 +32,4 @@ public:
      */
     virtual bool readLine(char* buffer, std::size_t maxSize) noexcept = 0;
 };
-}
+} // namespace driver::serial

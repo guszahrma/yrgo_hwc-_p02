@@ -1,5 +1,7 @@
+//! @note File header missing.
 #pragma once
 
+//! @note Sort headers.
 #include <cstdint>
 #include <cstdio>
 #include <chrono>
@@ -18,6 +20,7 @@ public:
     /**
      * @brief Construct a new Stub object
      */
+    //! @note Mark explicit.
     Stub(std::uint32_t period_ms = 0, bool start_running = false) noexcept
         : myPeriodMs{period_ms}
         , myStarted{start_running}
@@ -55,6 +58,7 @@ public:
      * 
      * @param[in] period_ms timeout period in milliseconds
      */
+    //! @note camelCase.
     void set_period(std::uint32_t period_ms) noexcept override
     {
         myPeriodMs = period_ms;
@@ -68,11 +72,16 @@ public:
      */
     bool timeout() noexcept override
     {
+        //! @note Can be placed on one line if desired.
         if (!myStarted)
         {
             return false;
         }
 
+        //! @note Do not fix auto and {}; as I wrote before, it's hard for the compiler to know if
+        //!       something like {100U} is an integer or an array/a list holding one argument.
+        //!       Since C++17 this has improved (and that's why you can use it here, who wants
+        //!       an array with space for only one argument anyway), but please use auto and =.
         const auto currentTime{Clock::now()};
         const auto elapsedMs{
             std::chrono::duration_cast<std::chrono::milliseconds>(currentTime - myLastTime).count()
@@ -89,11 +98,12 @@ public:
     }
 
 private:
+    //! @note Good choice to use an alias here; way easier to read in my opinion.
     using Clock = std::chrono::steady_clock;
 
+    //! @note Sort member variables by size (largest first => myLastTime -> myPeriodMs -> myStarted).
     std::uint32_t myPeriodMs;
     bool myStarted;
     Clock::time_point myLastTime;
 };
-
-}
+} // namespace driver::timer

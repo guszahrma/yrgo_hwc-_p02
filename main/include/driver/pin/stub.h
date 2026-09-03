@@ -1,10 +1,10 @@
+//! @note File header missing.
 #pragma once
 
 #include <cstdint>
 
 namespace driver::pin::stub
 {
-
 /**
  * @brief ADC-capable pins for stub/test usage.
  *        Maps directly to physical numbers 0–7.
@@ -28,6 +28,7 @@ enum class GpioPin : std::uint8_t
  * @param [in] pin The ADC pin.
  * @return String literal, never null.
  */
+//! @note Use camelCase and mark noexcept.
 inline const char* to_string(AdcPin pin)
 {
     switch (pin)
@@ -49,6 +50,7 @@ inline const char* to_string(AdcPin pin)
  * @param [in] pin The GPIO pin.
  * @return String literal, never null.
  */
+//! @note camelCase and noexcept.
 inline const char* to_string(GpioPin pin)
 {
     switch (pin)
@@ -76,6 +78,7 @@ inline const char* to_string(GpioPin pin)
  * @param [in] pin The ADC pin (D0–D7).
  * @return Physical pin number (0–7).
  */
+//! @note camelCase and noexcept.
 inline std::uint8_t to_number(AdcPin pin)
 {
     return static_cast<std::uint8_t>(pin);
@@ -86,9 +89,9 @@ inline std::uint8_t to_number(AdcPin pin)
  * @param [in] pin The GPIO pin (D0–D13).
  * @return Physical pin number (0–13).
  */
+//! @note camelCase and noexcept.
 inline std::uint8_t to_number(GpioPin pin)
 {
     return static_cast<std::uint8_t>(pin);
 }
-
 } // namespace driver::pin::stub

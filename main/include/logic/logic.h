@@ -1,7 +1,12 @@
-//! @note Missing file header.
+/**
+ * @file logic.h
+ * @brief A simple logic class for handling basic logic operations.
+ */
+
 #pragma once
 
 #include <cstdint>
+#include <type_traits>
 
 #include "driver/factory/interface.h"
 
@@ -21,8 +26,7 @@
  *           current temperature (°C)
  */
 
-//! @note Why logic::logic, isn't namespace logic enough, haha?
-namespace logic::logic
+namespace logic
 {
 class Logic
 {
@@ -49,23 +53,21 @@ public:
     Logic& operator=(Logic&&)      = delete;
 private:
 
-    //! @note std::uint8_t, std::uint16_t.
-    //!       Also sort member variables by size (largest first) -> the pointers should be declared first.
-    uint8_t myBlinkState; // 0 for off, 1 for on
-    uint16_t myPeriodLengthMs; // Blinking period in milliseconds
+    void handleOn() noexcept;
+    void handleOff() noexcept;
+    void handleBlinkOn() noexcept;
+    void handleBlinkOff() noexcept;
+    void handlePeriod(std::uint16_t periodLengthMs) noexcept;
+    void handleStatus() noexcept;
+
+
+    std::uint16_t myPeriodLengthMs; // Blinking period in milliseconds
+    bool myBlinkState; // false for off, true for on
     std::unique_ptr<driver::serial::Interface> mySerialDriver; // Serial driver for communication
     std::unique_ptr<driver::gpio::Interface> myGpioDriver; // GPIO driver for controlling the LED
     std::unique_ptr<driver::adc::Interface> myAdcDriver; // ADC driver for reading temperature or other analog values
     std::unique_ptr<driver::timer::Interface> myTimerDriver; // Timer driver for handling blinking timing
 
     // Command handler functions
-    //! @note Place private methods above the member variables (no functional difference, just good practice).
-    void handleOn() noexcept;
-    void handleOff() noexcept;
-    void handleBlinkOn() noexcept;
-    void handleBlinkOff() noexcept;
-    //! @note std::uint16_t.
-    void handlePeriod(uint16_t periodLengthMs) noexcept;
-    void handleStatus() noexcept;
 };
-} // namespace logic::logic
+} // namespace logic

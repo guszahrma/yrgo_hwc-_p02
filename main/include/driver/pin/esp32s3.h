@@ -181,7 +181,7 @@ inline bool is_available(AdcPin pin)
     //! auto& manager      = PhysicalPinManager::instance();
     //! const auto physPin = static_cast<std::uint8_t>(to_number(pin);
     //! return manager.is_in_use(physPin);
-    return !driver::pin::PhysicalPinManager::instance().is_in_use(static_cast<std::uint8_t>(to_number(pin)));
+    return !driver::pin::PhysicalPinManager::instance().isInUse(static_cast<std::uint8_t>(to_number(pin)));
 }
 
 /**
@@ -193,6 +193,6 @@ inline bool is_available(AdcPin pin)
 inline bool is_available(GpioPin pin)
 {
     //! @note Same here! At lease omit driver::pin, since you're already in namespace driver::pin::x.
-    return !driver::pin::PhysicalPinManager::instance().is_in_use(static_cast<std::uint8_t>(to_number(pin)));
+    return !driver::pin::PhysicalPinManager::instance().isInUse(static_cast<std::uint8_t>(to_number(pin)));
 }
 } // namespace driver::pin::esp32s3

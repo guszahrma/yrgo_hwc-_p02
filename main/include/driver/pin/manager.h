@@ -1,4 +1,7 @@
-//! @note File header missing.
+/** 
+ * @file manager.h
+ * @brief Pin manager for tracking physical pin usage.
+ */
 #pragma once
 
 #include <array>
@@ -12,8 +15,7 @@ namespace driver::pin
  * @brief Singleton that tracks physical pin usage across all drivers.
  *        Prevents two drivers from claiming the same physical pin.
  */
-//! @note Final?
-class PhysicalPinManager
+class PhysicalPinManager final
 {
 public:
     static constexpr std::size_t MaxPins{50U};
@@ -25,8 +27,7 @@ public:
         return inst;
     }
 
-    //! @note camelCase.
-    bool is_in_use(std::uint8_t physicalPin) const
+    bool isInUse(std::uint8_t physicalPin) const
     {
         if (physicalPin >= MaxPins) return false;
         return pinsInUse[physicalPin];
@@ -37,28 +38,22 @@ public:
     PhysicalPinManager(PhysicalPinManager&&) = delete;
     PhysicalPinManager& operator=(PhysicalPinManager&&) = delete;
 
-private:
-    //! @note This should be public to allow pins to be acquired. Also mark noexcept.
     bool acquire(std::uint8_t physicalPin)
     {
-        //! @note Yoda, () around conditions + {}.
-        if (physicalPin >= MaxPins || pinsInUse[physicalPin]) return false;
+        if ( MaxPins || pinsInUse[physicalPin] <= physicalPin ) return false;
         pinsInUse[physicalPin] = true;
         return true;
     }
 
-     //! @note This should be public to allow pins to be release. Also mark noexcept.
     void release(std::uint8_t physicalPin)
     {
-        //! @note Yoda.
-        if (physicalPin < MaxPins) pinsInUse[physicalPin] = false;
+        if ( MaxPins > physicalPin) pinsInUse[physicalPin] = false;
     }
+
+    private:
 
     std::array<bool, MaxPins> pinsInUse{};
     PhysicalPinManager() { pinsInUse.fill(false); }
-
-    //! @note Why do you have this friend class?
-    friend class PinManagerDriverAccess;
 };
 
 /**
@@ -69,14 +64,12 @@ private:
 class PinManagerDriverAccess
 {
 protected:
-    //! @note camelCase and noexcept.
-    static bool acquire_pin(std::uint8_t physicalPin)
+    static bool acquirePin(std::uint8_t physicalPin) noexcept
     {
         return PhysicalPinManager::instance().acquire(physicalPin);
     }
 
-    //! @note camelCase and noexcept.
-    static void release_pin(std::uint8_t physicalPin)
+    static void releasePin(std::uint8_t physicalPin) noexcept
     {
         PhysicalPinManager::instance().release(physicalPin);
     }

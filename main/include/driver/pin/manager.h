@@ -1,6 +1,5 @@
 /** 
- * @file manager.h
- * @brief Pin manager for tracking physical pin usage.
+ * @file Pin manager for tracking physical pin usage.
  */
 #pragma once
 

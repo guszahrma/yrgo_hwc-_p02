@@ -1,3 +1,4 @@
+//! @note File header missing.
 #pragma once
 
 #include "driver/adc/stub.h"
@@ -7,6 +8,7 @@
 #include "driver/timer/stub.h"
 #include "driver/tempsensor/stub.h"
 
+//! @note Please remove this later when your real factory is implemented.
 #define DRIVER_SERIAL_ESP32S3
 
 #ifdef DRIVER_SERIAL_ESP32S3
@@ -65,7 +67,8 @@ public:
      */
     std::unique_ptr<driver::serial::Interface> create_serial(int baudRate) noexcept override
     {
-        (void)(baudRate);
+        (void) (baudRate);
+        //! @note This is fine for now, but remove this later when you have a real factory.
 #ifdef DRIVER_SERIAL_ESP32S3
         return std::make_unique<driver::serial::Esp32s3>(baudRate);
 #else

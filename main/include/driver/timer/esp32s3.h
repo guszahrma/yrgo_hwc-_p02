@@ -1,3 +1,4 @@
+//! @note File header missing.
 #pragma once
 
 #include <cstdint>
@@ -31,6 +32,7 @@ public:
      * 
      * @param[in] period_ms timeout period in milliseconds
      */
+    //! @note Use camelCase.
     void set_period(std::uint32_t period_ms) noexcept override;
 
     /**
@@ -41,9 +43,9 @@ public:
     bool timeout() noexcept override;
 
 private:
+    //! @note Try to declare the biggest member variable first to avoid padding.
     std::uint32_t myPeriodMs;
     std::uint64_t myLastTimeUs;
     bool myStarted;
 };
-
-}
+} // namespace driver::timer

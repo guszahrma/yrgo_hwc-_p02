@@ -1,8 +1,11 @@
+//! @note File header missing.
 #pragma once
 
 #include <cstdio>
 #include <cstdint>
 #include <type_traits>
+
+//! @note Sort headers.
 #include "nvs.h"
 #include "esp_err.h"
 #include "driver/nvs/interface.h"
@@ -35,6 +38,7 @@ public:
     /** @brief Close the NVS namespace handle. */
     ~Esp32s3() noexcept override;
 
+    //! @note I would place these at the bottom of the public segment, but OK.
     Esp32s3(const Esp32s3&)            = delete;
     Esp32s3(Esp32s3&&)                 = delete;
     Esp32s3& operator=(const Esp32s3&) = delete;
@@ -66,8 +70,13 @@ public:
     template<typename T>
     bool set(const char* key, const T value, const bool autoCommit = true) noexcept
     {
+        //! @note Please use { return false; } for safety (it's easy to miss something).
         if (!myValid || !isValidKey(key)) return false;
+
+        //! @note Initialize this variable.
         esp_err_t err;
+
+        //! @note Please use std::uint8_t, std::uint16_t etc, and {} around the conditions, but OK.
         if constexpr      (std::is_same_v<T, uint8_t>)  err = nvs_set_u8 (myHandle, key, value);
         else if constexpr (std::is_same_v<T, uint16_t>) err = nvs_set_u16(myHandle, key, value);
         else if constexpr (std::is_same_v<T, uint32_t>) err = nvs_set_u32(myHandle, key, value);
@@ -77,6 +86,7 @@ public:
         else if constexpr (std::is_same_v<T, int32_t>)  err = nvs_set_i32(myHandle, key, value);
         else if constexpr (std::is_same_v<T, int64_t>)  err = nvs_set_i64(myHandle, key, value);
         else static_assert(false, "Unsupported type for NVS set");
+
         if (ESP_OK != err)
         {
             printf("nvs: set('%s') failed: %s\n", key, esp_err_to_name(err));
@@ -95,6 +105,7 @@ public:
     template<typename T>
     bool get(const char* key, T& value) noexcept
     {
+        //! @note Same here as above.
         if (!myValid || !isValidKey(key)) return false;
         esp_err_t err;
         if constexpr      (std::is_same_v<T, uint8_t>)  err = nvs_get_u8 (myHandle, key, &value);
@@ -136,5 +147,4 @@ private:
     nvs_handle_t myHandle;
     bool         myValid;
 };
-
 } // namespace driver::nvs

@@ -1,3 +1,4 @@
+//! @note File header missing.
 #include <charconv>
 #include <cstdlib>
 #include <cstdint>
@@ -5,6 +6,8 @@
 #include <cstring>
 #include <iostream>
 #include <string_view>
+
+//! @note Same comment here, don't include headers with prefix '_' directly.
 #include <sys/_intsup.h>
 #include <sys/unistd.h>
 #include "driver/factory/stub.h"
@@ -14,9 +17,11 @@
 namespace logic::logic 
 {
 
-    Logic::Logic() noexcept
-: myBlinkState(0), // Initialize blink state to off
-   myPeriodLengthMs(1000) // Set default blinking period to 1000 ms
+// --------------------------------------------------------------------------------
+Logic::Logic() noexcept
+    //! @note Use {} instead of ().
+    : myBlinkState(0) // Initialize blink state to off
+    , myPeriodLengthMs(1000) // Set default blinking period to 1000 ms
 {
     // Create the necessary drivers using the factory and initialize the system state.
     // For example, you might create a serial driver for communication and a GPIO driver for controlling the LED.
@@ -37,19 +42,20 @@ Logic::~Logic() noexcept
 {
     // Clean up resources, if necessary.
     // For example, you might want to delete any dynamically allocated drivers or other resources here.
+    //! @note Don't forget to add cleanup here later.
 }
 
 // --------------------------------------------------------------------------------
 void Logic::run() noexcept
 {
-
     // Implementation for running the logic loop will go here.
     // This will include reading commands from the serial input, processing them, and controlling the LED
     // and other components accordingly. It will also handle the blinking logic and period adjustments.
     
     // The loop should be designed to be non-blocking and responsive, allowing for real-time command processing and state updates.
+    //! @note Initialize with {}.
     constexpr std::size_t bufferSize = 64;
-    char buffer[bufferSize];
+    char buffer[bufferSize]{};
 
     while(true)
     {
@@ -72,13 +78,19 @@ void Logic::run() noexcept
             }
             else if (cmd == "period")
             {
+                //! @note std::uint16_t.
                 uint16_t ms{};
+
+                //! @note Please add an inline comment for this; it's always a good thing to do
+                //!       when using lambdas (lambdas = a necessary evil; works fine, but 
+                //!       usually totally unreadable, haha).
                 auto [ptr, ec] = std::from_chars(args.data(), args.data() + args.size(), ms);
                 if (ec == std::errc{})
                     handlePeriod(ms);
             }
         }
         else {
+            //! @note constexpr instead of magic number.
             sleep(1); // Sleep briefly to avoid busy-waiting when no input is available
         }
 
@@ -94,14 +106,20 @@ void Logic::run() noexcept
 #ifndef DRIVER_SERIAL_ESP32S3
         // TEMP: randomize command input for testing
         {
+            //! @note Skip =.
             static const char* commands[] = {
                 "on", "off", "blink on", "blink off",
                 "period 500", "period 1000", "period 2000", "status"
             };
+            //! @note Initialize with {}.
             constexpr std::size_t numCommands = sizeof(commands) / sizeof(commands[0]);
+
+            //! @note Use constexpr.
             sleep(1);
             auto* stub = static_cast<driver::serial::Stub*>(mySerialDriver.get());
             // Randomly simulate if random input is generated or not
+
+            //! @note Use Yoda notation and a constexpr instead of 10.
             if (std::rand() % 10 == 0)
             stub->simulateInputData(commands[std::rand() % numCommands]);
         }
@@ -134,6 +152,8 @@ void Logic::handleBlinkOn() noexcept
 
     // Implement the logic to turn blinking on.
     myTimerDriver->start(); // Start the timer for blinking
+    //! @note I think myBlinkState can be converted to bool instead.
+    myBlinkState = 1;
 }
 
 // --------------------------------------------------------------------------------
@@ -171,4 +191,4 @@ void Logic::handleStatus() noexcept
     mySerialDriver->print(std::to_string(0).c_str());
     mySerialDriver->print(" °C\n");
 }
-}
+} // namespace logic::logic

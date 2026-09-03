@@ -1,5 +1,5 @@
 /**
- * @brief Stub
+ * @brief GPIO stub driver.
  */
 #pragma once
 
@@ -22,12 +22,15 @@ public:
      * @param[in] pinNumber 
      * @param[in] direction 
      */
+    //! @note Please complete the documentation above (see @param).
     explicit Stub(std::uint8_t pinNumber, Direction direction) noexcept
     : myPinNumber{pinNumber}
     , myDirection{direction}
     , myState{false}
     {
+        //! @note Avoid magic numbers and initialize the array with {}.
         char directionStr[20];
+
         switch (direction)
         {
             case Direction::OUTPUT:
@@ -57,6 +60,7 @@ public:
      * @return true 
      * @return false 
      */
+    //! @note Please fix the comment.
     bool read() noexcept override
     {
         std::printf("%s state on pin %u.\n", (myState ? "True" : "False"), myPinNumber);
@@ -68,9 +72,10 @@ public:
      * 
      * @param[in] state 
      */
+    //! @note Please finalize the comment.
     void write(bool state) noexcept override
     {
-        if (Direction::OUTPUT == myDirection ) 
+        if (Direction::OUTPUT == myDirection) 
         { 
             myState = state;
             std::printf("Writing %s on pin %u.\n", (state ? "True" : "False"), myPinNumber);
@@ -100,4 +105,4 @@ private:
     const Direction myDirection;
     bool myState;
 };
-}
+} // namespace driver::gpio

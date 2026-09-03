@@ -1,7 +1,9 @@
+//! @note Missing file header.
 #pragma once
-#include <cstdint>
-#include "driver/factory/interface.h"
 
+#include <cstdint>
+
+#include "driver/factory/interface.h"
 
 /**
  * @brief A simple logic class for handling basic logic operations.
@@ -19,6 +21,7 @@
  *           current temperature (°C)
  */
 
+//! @note Why logic::logic, isn't namespace logic enough, haha?
 namespace logic::logic
 {
 class Logic
@@ -45,6 +48,9 @@ public:
     Logic& operator=(const Logic&) = delete;
     Logic& operator=(Logic&&)      = delete;
 private:
+
+    //! @note std::uint8_t, std::uint16_t.
+    //!       Also sort member variables by size (largest first) -> the pointers should be declared first.
     uint8_t myBlinkState; // 0 for off, 1 for on
     uint16_t myPeriodLengthMs; // Blinking period in milliseconds
     std::unique_ptr<driver::serial::Interface> mySerialDriver; // Serial driver for communication
@@ -53,11 +59,13 @@ private:
     std::unique_ptr<driver::timer::Interface> myTimerDriver; // Timer driver for handling blinking timing
 
     // Command handler functions
+    //! @note Place private methods above the member variables (no functional difference, just good practice).
     void handleOn() noexcept;
     void handleOff() noexcept;
     void handleBlinkOn() noexcept;
     void handleBlinkOff() noexcept;
+    //! @note std::uint16_t.
     void handlePeriod(uint16_t periodLengthMs) noexcept;
     void handleStatus() noexcept;
 };
-}
+} // namespace logic::logic

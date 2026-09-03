@@ -1,3 +1,4 @@
+//! @note File header missing.
 #pragma once
 
 #include <cstdint>
@@ -12,6 +13,7 @@
 
 namespace driver::factory
 {
+//! @note Class documentation missing.
 class Interface
 {
 public:
@@ -28,6 +30,9 @@ public:
      *  
      * @return unique pointer
      */
+    //! @note Mark noexcept => the device will reboot if allocation fails. That's good, since
+    //!       the system can't run without all drivers initialized anyway.
+    //!       Also, please use camelCase.
     virtual std::unique_ptr<driver::gpio::Interface> create_gpio(std::uint8_t pinNumber, driver::gpio::Direction direction) noexcept = 0;
 
     /**
@@ -38,6 +43,7 @@ public:
      * 
      * @return unique pointer
      */
+    //! @note noexcept and camelCase.
     virtual std::unique_ptr<driver::adc::Interface> create_adc(std::uint8_t pinNumber, float referenceVoltage) noexcept = 0;
 
     /**
@@ -64,5 +70,6 @@ public:
      * @return unique pointer 
      */
     virtual std::unique_ptr<driver::timer::Interface> create_timer() noexcept = 0;
+    //! @note noexcept and camelCase. Also consider making the baud rate unsigned (std::uint32_t).
 };
 } // namespace driver::factory

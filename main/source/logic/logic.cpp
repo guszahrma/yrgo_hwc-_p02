@@ -1,5 +1,9 @@
+<<<<<<< HEAD
 /**
  * @file Implementation of the Logic class for handling commands and controlling the LED and other components.
+=======
+/**  @file Implementation of the Logic class for handling commands and controlling the LED and other components.
+>>>>>>> 47d69850e36567a986acb822598cc5a6ad83e2de
  */
 
 #include <charconv>

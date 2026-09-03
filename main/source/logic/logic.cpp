@@ -1,5 +1,4 @@
-/**  @file logic.cpp
- *  @brief Implementation of the Logic class for handling commands and controlling the LED and other components.
+/**  @file Implementation of the Logic class for handling commands and controlling the LED and other components.
  */
 
 #include <charconv>

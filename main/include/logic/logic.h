@@ -1,6 +1,5 @@
 /**
- * @file logic.h
- * @brief A simple logic class for handling basic logic operations.
+ * @file A simple logic class for handling basic logic operations.
  */
 
 #pragma once

@@ -4,6 +4,9 @@
 #include "driver/adc/stub.h"
 #include "driver/factory/interface.h"
 #include "driver/gpio/stub.h"
+#include "driver/serial/stub.h"
+#include "driver/timer/stub.h"
+#include "driver/tempsensor/stub.h"
 
 //! @note Please remove this later when your real factory is implemented.
 #define DRIVER_SERIAL_ESP32S3
@@ -36,8 +39,7 @@ public:
      *  
      * @return unique pointer
      */
-    std::unique_ptr<driver::gpio::Interface> create_gpio(std::uint8_t pinNumber, 
-        driver::gpio::Direction direction) override
+    std::unique_ptr<driver::gpio::Interface> create_gpio(std::uint8_t pinNumber, driver::gpio::Direction direction) noexcept override
     {
         return std::make_unique<driver::gpio::Stub>(pinNumber, direction);
     }
@@ -50,8 +52,7 @@ public:
      * 
      * @return unique pointer
      */
-    std::unique_ptr<driver::adc::Interface> create_adc(std::uint8_t pinNumber, 
-        float referenceVoltage) override
+    std::unique_ptr<driver::adc::Interface> create_adc(std::uint8_t pinNumber, float referenceVoltage) noexcept override
     {
         auto stubAdcPin = static_cast<driver::pin::stub::AdcPin>(pinNumber);
         return std::make_unique<driver::adc::Stub>(stubAdcPin, referenceVoltage);
@@ -64,8 +65,7 @@ public:
      * 
      * @return unique pointer
      */
-    //! @note Consider making the baud rate unsigned (std::uint32_t).
-    std::unique_ptr<driver::serial::Interface> create_serial(int baudRate) override
+    std::unique_ptr<driver::serial::Interface> create_serial(int baudRate) noexcept override
     {
         (void) (baudRate);
         //! @note This is fine for now, but remove this later when you have a real factory.
@@ -74,6 +74,29 @@ public:
 #else
         return std::make_unique<driver::serial::Stub>();
 #endif
+    }
+
+    /**
+     * @brief Create a tempsensor object
+     * 
+     * @param[in] adc 
+     * 
+     * @return unique pointer
+     */
+    std::unique_ptr<driver::tempsensor::Interface> create_tempsensor(driver::adc::Interface& adc) noexcept override
+    {
+        (void)(adc);
+        return std::make_unique<driver::tempsensor::Stub>(static_cast<std::uint16_t>(0));
+    }
+
+    /**
+     * @brief Create a timer object
+     * 
+     * @return unique pointer
+     */
+    std::unique_ptr<driver::timer::Interface> create_timer() noexcept override
+    {
+        return std::make_unique<driver::timer::Stub>();
     }
 };
 } // namespace driver::factory

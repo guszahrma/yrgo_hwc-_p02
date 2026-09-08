@@ -66,6 +66,7 @@ private:
     std::unique_ptr<driver::gpio::Interface> myGpioDriver; // GPIO driver for controlling the LED
     std::unique_ptr<driver::adc::Interface> myAdcDriver; // ADC driver for reading temperature or other analog values
     std::unique_ptr<driver::timer::Interface> myTimerDriver; // Timer driver for handling blinking timing
+    std::unique_ptr<driver::tempsensor::Interface> myTempSensor; // TMP36 temperature sensor driver
 
     // Command handler functions
 };

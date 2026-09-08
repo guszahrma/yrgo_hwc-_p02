@@ -31,6 +31,7 @@ Logic::Logic() noexcept
     mySerialDriver = factory.create_serial(115200);
     myGpioDriver = factory.create_gpio(9U , driver::gpio::Direction::OUTPUT);
     myAdcDriver = factory.create_adc(6U, 3.3f);
+    myTempSensor = factory.create_tempsensor(*myAdcDriver);
     myTimerDriver = factory.create_timer();
     myTimerDriver->stop(); // Start the timer for blinking
 
@@ -185,8 +186,7 @@ void Logic::handleStatus() noexcept
     mySerialDriver->print(std::to_string(myPeriodLengthMs).c_str());
     mySerialDriver->print(" ms\n");
     mySerialDriver->print("Current Temperature: ");
-    // TODO Replace this with a call to the TMP36 class to get actual temperature reading
-    mySerialDriver->print(std::to_string(0).c_str());
+    mySerialDriver->print(std::to_string(myTempSensor->read()).c_str());
     mySerialDriver->print(" °C\n");
 }
 } // namespace logic::logic

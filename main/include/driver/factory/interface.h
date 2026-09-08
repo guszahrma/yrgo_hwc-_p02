@@ -6,6 +6,7 @@
 
 #include "driver/adc/interface.h"
 #include "driver/gpio/interface.h"
+#include "driver/nvs/interface.h"
 #include "driver/serial/interface.h"
 #include "driver/pin/interface.h"
 #include "driver/timer/interface.h"
@@ -45,6 +46,15 @@ public:
      */
     //! @note noexcept and camelCase.
     virtual std::unique_ptr<driver::adc::Interface> create_adc(std::uint8_t pinNumber, float referenceVoltage) noexcept = 0;
+
+    /**
+     * @brief Create an NVS storage
+     * 
+     * @param[in] namespaceName 
+     * 
+     * @return unique pointer
+     */
+    virtual std::unique_ptr<driver::nvs::Interface> create_nvs(const char* namespaceName) noexcept = 0;
 
     /**
      * @brief Create serial object

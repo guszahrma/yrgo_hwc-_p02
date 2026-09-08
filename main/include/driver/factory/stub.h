@@ -4,6 +4,7 @@
 #include "driver/adc/stub.h"
 #include "driver/factory/interface.h"
 #include "driver/gpio/stub.h"
+#include "driver/nvs/stub.h"
 #include "driver/serial/stub.h"
 #include "driver/timer/stub.h"
 #include "driver/tempsensor/stub.h"
@@ -56,6 +57,18 @@ public:
     {
         auto stubAdcPin = static_cast<driver::pin::stub::AdcPin>(pinNumber);
         return std::make_unique<driver::adc::Stub>(stubAdcPin, referenceVoltage);
+    }
+
+    /**
+     * @brief Create an NVS storage
+     * 
+     * @param[in] namespaceName 
+     * 
+     * @return unique pointer
+     */
+    std::unique_ptr<driver::nvs::Interface> create_nvs(const char* namespaceName) noexcept override
+    {
+        return std::make_unique<driver::nvs::Stub>(namespaceName);
     }
 
     /**

@@ -57,6 +57,7 @@ private:
     std::unique_ptr<driver::gpio::Interface> myGpioDriver; // GPIO driver for controlling the LED
     std::unique_ptr<driver::adc::Interface> myAdcDriver; // ADC driver for reading temperature or other analog values
     std::unique_ptr<driver::timer::Interface> myTimerDriver; // Timer driver for handling blinking timing
+    std::unique_ptr<driver::nvs::Interface> myNvsUserSettingsStorage; // NVS driver for non-volatile storage of Usersettings
 
     // Command handler functions
     //! @note Place private methods above the member variables (no functional difference, just good practice).
@@ -69,5 +70,7 @@ private:
     //! @note std::uint16_t.
     void handlePeriod(uint16_t periodLengthMs) noexcept;
     void handleStatus() noexcept;
+    void handleStore() noexcept;
+    void loadStoredUserSettings() noexcept;
 };
 } // namespace logic::logic

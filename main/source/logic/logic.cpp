@@ -33,6 +33,7 @@ Logic::Logic() noexcept
     myAdcDriver = factory.create_adc(7U, 3.3f);
     myTimerDriver = factory.create_timer();
     myTimerDriver->stop(); // Start the timer for blinking
+    myNvsUserSettingsStorage = factory.create_nvs("user_settings");
 
     // Initialize other necessary components and state variables here.
 }
@@ -56,6 +57,8 @@ void Logic::run() noexcept
     //! @note Initialize with {}.
     constexpr std::size_t bufferSize = 64;
     char buffer[bufferSize]{};
+
+    loadStoredUserSettings();
 
     mySerialDriver->print("write relevant command, write help to get a list of available commands\n");
 
@@ -93,6 +96,8 @@ void Logic::run() noexcept
                 else
                     handleUnknownCommand(cmd);
             }
+            else if (cmd == "store")
+                handleStore();
             else
                 handleUnknownCommand(cmd);
         }
@@ -145,6 +150,7 @@ void Logic::handleHelp() noexcept
     std::cout << "  blink off" << std::endl;
     std::cout << "  period <ms>" << std::endl;
     std::cout << "  status" << std::endl;
+    std::cout << "  store" << std::endl;
     std::cout << "  help" << std::endl;
 }
 
@@ -191,6 +197,7 @@ void Logic::handleBlinkOff() noexcept
 
     // Implement the logic to turn blinking off.
     myTimerDriver->stop(); // Stop the timer for blinking
+    myBlinkState = 0;
 }
 
 // --------------------------------------------------------------------------------
@@ -210,7 +217,7 @@ void Logic::handleStatus() noexcept
     // This is a placeholder implementation - replace with actual status printing logic.
     mySerialDriver->print("Status:\n");
     mySerialDriver->print("Blink State: ");
-    mySerialDriver->print(myBlinkState ? "On\n" : "Off\n");
+    mySerialDriver->print(myBlinkState ? "on\n" : "off\n");
     mySerialDriver->print("Blink Period: ");    
     mySerialDriver->print(std::to_string(myPeriodLengthMs).c_str());
     mySerialDriver->print(" ms\n");
@@ -218,5 +225,48 @@ void Logic::handleStatus() noexcept
     // TODO Replace this with a call to the TMP36 class to get actual temperature reading
     mySerialDriver->print(std::to_string(0).c_str());
     mySerialDriver->print(" °C\n");
+}
+
+// --------------------------------------------------------------------------------
+void Logic::handleStore() noexcept
+{
+    std::cout << std::endl << "Handling 'store' command..." << std::endl;
+
+    myNvsUserSettingsStorage->setString("blink_state", myBlinkState ? "on" : "off");
+    myNvsUserSettingsStorage->setString("blink_period", std::to_string(myPeriodLengthMs));
+
+    // Implement the logic to store the current state to non-volatile memory.
+    // This is a placeholder implementation - replace with actual storage logic.
+    mySerialDriver->print("Storing current state to non-volatile memory...\n");
+}
+
+// --------------------------------------------------------------------------------
+void Logic::loadStoredUserSettings() noexcept
+{
+    std::cout << std::endl << "Loading stored user settings..." << std::endl;
+
+    std::string blinkState;
+    std::string blinkPeriod;
+
+    if (!(myNvsUserSettingsStorage->getString("blink_state", blinkState)))
+        blinkState = "off"; // Default to "off" if not found
+    if (!(myNvsUserSettingsStorage->getString("blink_period", blinkPeriod)))
+        blinkPeriod = "1000"; // Default to 1000 ms if not found
+
+    myBlinkState = (blinkState == "on") ? 1 : 0;
+    myPeriodLengthMs = static_cast<uint16_t>(std::stoi(blinkPeriod));
+
+    // Implement the logic to load the stored state from non-volatile memory.
+    // This is a placeholder implementation - replace with actual loading logic.
+    mySerialDriver->print("Loaded user settings:\n");
+    mySerialDriver->print("Blink State: ");
+    mySerialDriver->print(myBlinkState ? "on\n" : "off\n");
+    mySerialDriver->print("Blink Period: ");
+    mySerialDriver->print(std::to_string(myPeriodLengthMs).c_str());
+    mySerialDriver->print(" ms\n");
+
+    myTimerDriver->set_period(myPeriodLengthMs);
+    if (myBlinkState)
+        myTimerDriver->start(); // Start the timer for blinking if it was previously on
 }
 } // namespace logic::logic

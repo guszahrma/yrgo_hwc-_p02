@@ -39,7 +39,7 @@ public:
 
     bool acquire(std::uint8_t physicalPin)
     {
-        if ( MaxPins || pinsInUse[physicalPin] <= physicalPin ) return false;
+        if ( (MaxPins <= physicalPin ) || pinsInUse[physicalPin]  ) return false;
         pinsInUse[physicalPin] = true;
         return true;
     }

@@ -15,7 +15,7 @@ Esp32s3::Esp32s3(driver::pin::esp32s3::AdcPin pin, float referenceVoltage)
     , myChannel(ADC_CHANNEL_0)
     , myCaliHandle(nullptr)
 {
-    if (!acquire_pin(static_cast<std::uint8_t>(driver::pin::esp32s3::to_number(pin))))
+    if (!acquirePin(static_cast<std::uint8_t>(driver::pin::esp32s3::to_number(pin))))
     {
         std::printf("ESP32-S3 ADC init failed: pin %s already in use.\n", driver::pin::esp32s3::to_string(pin));
         return;
@@ -38,7 +38,7 @@ Esp32s3::Esp32s3(driver::pin::esp32s3::AdcPin pin, float referenceVoltage)
         //!
         //! Note that if you only cast integers, you can mark the methods constexpr.
         //! The same applies to pin::esp32s3::to_number().
-        release_pin(static_cast<std::uint8_t>(driver::pin::esp32s3::to_number(pin)));
+        releasePin(static_cast<std::uint8_t>(driver::pin::esp32s3::to_number(pin)));
         return;
     }
 
@@ -89,7 +89,7 @@ Esp32s3::~Esp32s3() noexcept
     {
         adc_oneshot_del_unit(myHandle);
     }
-    release_pin(static_cast<std::uint8_t>(driver::pin::esp32s3::to_number(myPin)));
+    releasePin(static_cast<std::uint8_t>(driver::pin::esp32s3::to_number(myPin)));
     std::printf("ESP32-S3 ADC released on pin %s.\n", driver::pin::esp32s3::to_string(myPin));
 }
 

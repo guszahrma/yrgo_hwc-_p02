@@ -60,6 +60,8 @@ private:
 
     // Command handler functions
     //! @note Place private methods above the member variables (no functional difference, just good practice).
+    void handleHelp() noexcept;
+    void handleUnknownCommand(const std::string_view& cmd) noexcept;
     void handleOn() noexcept;
     void handleOff() noexcept;
     void handleBlinkOn() noexcept;

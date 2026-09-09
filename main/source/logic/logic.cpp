@@ -57,6 +57,8 @@ void Logic::run() noexcept
     constexpr std::size_t bufferSize = 64;
     char buffer[bufferSize]{};
 
+    mySerialDriver->print("write relevant command, write help to get a list of available commands\n");
+
     while(true)
     {
         if (mySerialDriver->readLine(buffer, sizeof(buffer)))
@@ -69,7 +71,8 @@ void Logic::run() noexcept
             auto spacePos = input.find(' ');
             auto cmd  = input.substr(0, spacePos);
             auto args = (spacePos != std::string_view::npos) ? input.substr(spacePos + 1) : std::string_view{};
-            if      (cmd == "on")     handleOn();
+            if      ("help"== cmd   || "Help" == cmd ) handleHelp();
+            else if (cmd == "on")     handleOn();
             else if (cmd == "off")    handleOff();
             else if (cmd == "status") handleStatus();
             else if (cmd == "blink") {
@@ -87,7 +90,11 @@ void Logic::run() noexcept
                 auto [ptr, ec] = std::from_chars(args.data(), args.data() + args.size(), ms);
                 if (ec == std::errc{})
                     handlePeriod(ms);
+                else
+                    handleUnknownCommand(cmd);
             }
+            else
+                handleUnknownCommand(cmd);
         }
         else {
             //! @note constexpr instead of magic number.
@@ -125,6 +132,27 @@ void Logic::run() noexcept
         }
 #endif
     }
+}
+
+// --------------------------------------------------------------------------------
+void Logic::handleHelp() noexcept
+{
+    std::cout << std::endl << "Handling 'Help' command..." << std::endl;
+    std::cout << std::endl << "Available commands:" << std::endl;
+    std::cout << "  on" << std::endl;
+    std::cout << "  off" << std::endl;
+    std::cout << "  blink on" << std::endl;
+    std::cout << "  blink off" << std::endl;
+    std::cout << "  period <ms>" << std::endl;
+    std::cout << "  status" << std::endl;
+    std::cout << "  help" << std::endl;
+}
+
+// --------------------------------------------------------------------------------
+void Logic::handleUnknownCommand(const std::string_view& cmd) noexcept
+{
+    std::cout << std::endl << "Handling unknown command: " << cmd << std::endl;
+    std::cout << "Type 'help' to see the list of available commands." << std::endl;
 }
 
 // --------------------------------------------------------------------------------

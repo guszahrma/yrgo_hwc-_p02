@@ -20,7 +20,7 @@ jobs:
           clang-format --dry-run --Werror --style=file $files
 
   firmware-build:
-    name: Build ESP32-S3 firmware
+    name: Build ESP32-S3 firmware on Ubuntu
     runs-on: ubuntu-latest
     container: espressif/idf:release-v6.0
     needs: format-check

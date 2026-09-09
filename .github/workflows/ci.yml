@@ -23,7 +23,7 @@ jobs:
     name: Build ESP32-S3 firmware on Ubuntu
     runs-on: ubuntu-latest
     container: espressif/idf:release-v6.0
-    needs: format-check
+#    needs: format-check
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -45,7 +45,7 @@ jobs:
   windows-build:
     name: Build ESP32-S3 firmware on Windows
     runs-on: windows-latest
-    needs: format-check
+#    needs: format-check
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4

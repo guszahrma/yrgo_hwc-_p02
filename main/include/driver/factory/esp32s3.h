@@ -45,6 +45,15 @@ public:
     std::unique_ptr<driver::adc::Interface> create_adc(std::uint8_t pinNumber, float referenceVoltage) noexcept override;
 
     /**
+     * @brief Create a real ESP32-S3 NVS storage
+     *
+     * @param[in] namespaceName
+     *
+     * @return unique pointer to the hardware NVS driver
+     */
+    std::unique_ptr<driver::nvs::Interface> create_nvs(const char* namespaceName) noexcept override;
+    
+    /**
      * @brief Create a real ESP32-S3 serial object
      *
      * @param[in] baudRate

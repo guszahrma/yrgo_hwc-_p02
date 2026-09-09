@@ -85,6 +85,10 @@ bool Esp32s3::getString(const char* key, std::string& value) noexcept
         printf("nvs: getString('%s') read failed: %s\n", key, esp_err_to_name(err));
         return false;
     }
+
+    // remove the null terminator from the string, as std::string manages its own size
+    if (required > 0)
+        value.resize(required - 1);
     return true;
 }
 

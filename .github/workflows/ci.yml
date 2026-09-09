@@ -31,7 +31,11 @@ jobs:
           submodules: recursive
       - name: Build firmware
         shell: bash
-        run: source /opt/esp/idf/export.sh && idf.py build
+        run: |
+          source /opt/esp/idf/export.sh
+          cp main/include/communication/wifi/esp32s3_local_config_template.h main/include/communication/wifi/esp32s3_local_config.h
+          idf.py set-target esp32s3
+          idf.py build
       - name: Upload firmware artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -60,6 +64,8 @@ jobs:
           & (Join-Path $idfPath 'install.bat') esp32s3
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           . (Join-Path $idfPath 'export.ps1')
+          Copy-Item main/include/communication/wifi/esp32s3_local_config_template.h main/include/communication/wifi/esp32s3_local_config.h
+          idf.py set-target esp32s3
           idf.py build
       - name: Upload Windows firmware artifacts
         uses: actions/upload-artifact@v4

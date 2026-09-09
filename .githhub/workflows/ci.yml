@@ -1,0 +1,41 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+# Specify jobs to run.
+jobs:
+  firmware-build:
+    name: Build ESP32 firmware
+    runs-on: ubuntu-latest
+    needs: [format-check]
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+        with:  # ensure we have access to submodules, Eriks Test lib for instance.
+          submodules: recursive
+      - name: Build firmware
+        run: make build
+      - name: Run application
+        run: make run
+      - name: Collect artifacts
+        run: mkdir -p artifacts && mv firmware artifacts
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          path: artifacts
+          name: firmware
+          if-no-files-found: error
+          retention-days: 3
+
+  format-check:
+    name: Check code formatting
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+      - name: Install clang-format
+        run: sudo apt-get install -y clang-format
+      - name: Check code formatting
+        run: make check-format

@@ -1,0 +1,72 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  format-check:
+    name: Check code formatting
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Install clang-format
+        run: sudo apt-get update && sudo apt-get install -y clang-format
+      - name: Check code formatting
+        run: |
+          files=$(git ls-files '*.c' '*.cc' '*.cpp' '*.cxx' '*.h' '*.hh' '*.hpp' '*.hxx')
+          test -n "$files"
+          clang-format --dry-run --Werror --style=file $files
+
+  firmware-build:
+    name: Build ESP32-S3 firmware
+    runs-on: ubuntu-latest
+    container: espressif/idf:release-v6.0
+    needs: format-check
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Build firmware
+        run: idf.py build
+      - name: Upload firmware artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: firmware
+          path: |
+            build/*.bin
+            build/*.elf
+            build/*.map
+          if-no-files-found: error
+          retention-days: 3
+
+  windows-build:
+    name: Build ESP32-S3 firmware on Windows
+    runs-on: windows-latest
+    needs: format-check
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Install ESP-IDF 6.0 for ESP32-S3
+        shell: pwsh
+        run: |
+          $idfPath = Join-Path $env:RUNNER_TEMP 'esp-idf'
+          git clone --recursive --branch v6.0 https://github.com/espressif/esp-idf.git $idfPath
+          & (Join-Path $idfPath 'install.bat') esp32s3
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          . (Join-Path $idfPath 'export.ps1')
+          idf.py build
+      - name: Upload Windows firmware artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: firmware-windows
+          path: |
+            build/*.bin
+            build/*.elf
+            build/*.map
+          if-no-files-found: error
+          retention-days: 3

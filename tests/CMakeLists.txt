@@ -51,6 +51,7 @@ target_include_directories(${TARGET} PRIVATE
 
 target_compile_options(${TARGET} PRIVATE -Wall -Werror)
 target_compile_definitions(${TARGET} PUBLIC TESTSUITE)
+target_compile_definitions(${TARGET} PUBLIC TRACE_ENABLED)
 
 
 # Run the test suite.

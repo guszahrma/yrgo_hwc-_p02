@@ -30,12 +30,12 @@ set(FW_SRC ${MAIN_DIR}/source)
 # Test files.
 set(TST_FILES
     source/testsuite.cpp
-#    source/esp32/gpio_mock.c
+    source/gpio/gpio_mock.c
 )
 
 # Source files.
 set(SRC_FILES
-#    ${FW_SRC}/driver/gpio/esp32s3.cpp
+    ${FW_SRC}/driver/gpio/esp32s3.cpp
 )
 
 # All source files.
@@ -50,7 +50,8 @@ target_include_directories(${TARGET} PRIVATE
 )
 
 target_compile_options(${TARGET} PRIVATE -Wall -Werror)
-target_compile_definitions(${TARGET} PRIVATE TESTSUITE)
+target_compile_definitions(${TARGET} PUBLIC TESTSUITE)
+
 
 # Run the test suite.
 add_custom_target(run ALL

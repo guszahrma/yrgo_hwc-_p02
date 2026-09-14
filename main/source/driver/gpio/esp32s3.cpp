@@ -6,7 +6,7 @@
 
 #include "driver/gpio/esp32s3.h"
 #include "driver/gpio/interface.h"
-#include "driver/gpio.h"
+#include "arch/env/hw_platform.h"
 
 namespace driver::gpio
 {

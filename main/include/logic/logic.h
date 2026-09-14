@@ -69,5 +69,15 @@ private:
     std::unique_ptr<driver::tempsensor::Interface> myTempSensor; // TMP36 temperature sensor driver
 
     // Command handler functions
+    //! @note Place private methods above the member variables (no functional difference, just good practice).
+    void handleHelp() noexcept;
+    void handleUnknownCommand(const std::string_view& cmd) noexcept;
+    void handleOn() noexcept;
+    void handleOff() noexcept;
+    void handleBlinkOn() noexcept;
+    void handleBlinkOff() noexcept;
+    //! @note std::uint16_t.
+    void handlePeriod(uint16_t periodLengthMs) noexcept;
+    void handleStatus() noexcept;
 };
 } // namespace logic

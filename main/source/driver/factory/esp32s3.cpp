@@ -3,6 +3,7 @@
 // Inkludera de riktiga ESP32-S3-drivrutinerna
 #include "driver/gpio/esp32s3.h"
 #include "driver/adc/esp32s3.h"
+#include "driver/nvs/esp32s3.h"
 #include "driver/serial/esp32s3.h"
 #include "driver/tempsensor/tmp36.h"
 #include "driver/timer/esp32s3.h"
@@ -21,6 +22,12 @@ std::unique_ptr<driver::adc::Interface> Esp32s3::create_adc(std::uint8_t pinNumb
 {
     auto realAdcPin = static_cast<driver::pin::esp32s3::AdcPin>(pinNumber);
     return std::make_unique<driver::adc::Esp32s3>(realAdcPin, referenceVoltage);
+}
+
+// -----------------------------------------------------------------------------
+std::unique_ptr<driver::nvs::Interface> Esp32s3::create_nvs(const char* namespaceName) noexcept
+{
+    return std::make_unique<driver::nvs::Esp32s3>(namespaceName);
 }
 
 // -----------------------------------------------------------------------------

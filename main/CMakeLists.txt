@@ -1,5 +1,6 @@
 idf_component_register(
     SRCS
+           SRCS
         "source/main.cpp"
         "source/logic/logic.cpp"
         "source/driver/adc/esp32s3.cpp"
@@ -9,6 +10,7 @@ idf_component_register(
         "source/communication/mqtt/publish/esp32s3.cpp"
         "source/communication/mqtt/subscribe/esp32s3.cpp"
         "source/driver/tempsensor/tmp36.cpp"
+        "source/ml/lin_reg/adaptive.cpp"
         "source/driver/timer/esp32s3.cpp"
         "source/driver/nvs/esp32s3.cpp"
         "source/driver/factory/esp32s3.cpp"

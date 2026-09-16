@@ -1,8 +1,9 @@
-//! @note File header missing.
+/**
+ * @file ESP32-S3 timer driver implementation.
+ */
 
-//! @note Sort headers.
-#include <cstdio>
 #include <cstdint>
+#include <cstdio>
 
 #include "driver/timer/esp32s3.h"
 #include "esp_timer.h"
@@ -11,8 +12,7 @@ namespace driver::timer
 {
 namespace
 {
-//! @note Can be marked constexpr -> can be computed during compilation.
-std::uint64_t microseconds(std::uint32_t periodMs) noexcept
+constexpr std::uint64_t microseconds(std::uint32_t periodMs) noexcept
 {
     return static_cast<std::uint64_t>(periodMs) * 1000ULL;
 }
@@ -20,8 +20,8 @@ std::uint64_t microseconds(std::uint32_t periodMs) noexcept
 
 // --------------------------------------------------------------------------------
 Esp32s3::Esp32s3() noexcept
-    : myPeriodMs{500}
-    , myLastTimeUs{0}
+    : myLastTimeUs{0}
+    , myPeriodMs{500}
     , myStarted{false}
 {
     std::printf("ESP32-S3 timer initialized.\n");
@@ -33,7 +33,7 @@ Esp32s3::~Esp32s3() noexcept = default;
 // --------------------------------------------------------------------------------
 void Esp32s3::start() noexcept
 {
-    myStarted = true;
+    myStarted    = true;
     myLastTimeUs = static_cast<std::uint64_t>(esp_timer_get_time());
     std::printf("ESP32-S3 timer started.\n");
 }
@@ -41,32 +41,27 @@ void Esp32s3::start() noexcept
 // --------------------------------------------------------------------------------
 void Esp32s3::stop() noexcept
 {
-    myStarted = false;
+    myStarted    = false;
     myLastTimeUs = 0;
     std::printf("ESP32-S3 timer stopped.\n");
 }
 
 // --------------------------------------------------------------------------------
-void Esp32s3::set_period(std::uint32_t period_ms) noexcept
+void Esp32s3::setPeriod(std::uint32_t periodMs) noexcept
 {
-    myPeriodMs = period_ms;
+    myPeriodMs = periodMs;
     std::printf("ESP32-S3 timer period set to %u ms.\n", static_cast<unsigned>(myPeriodMs));
 }
 
 // --------------------------------------------------------------------------------
 bool Esp32s3::timeout() noexcept
 {
-    //! @note Short statements like this can be placed on one line if desired.
-    if (!myStarted)
-    {
-        return false;
-    }
+    if (!myStarted) { return false; }
 
     const std::uint64_t currentTimeUs{static_cast<std::uint64_t>(esp_timer_get_time())};
     const std::uint64_t periodUs{microseconds(myPeriodMs)};
 
-    //! @note Yoda, please.
-    if ((currentTimeUs - myLastTimeUs) >= periodUs)
+    if (periodUs <= (currentTimeUs - myLastTimeUs))
     {
         myLastTimeUs = currentTimeUs;
         std::printf("ESP32-S3 timer timeout detected.\n");

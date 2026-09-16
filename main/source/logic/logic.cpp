@@ -206,7 +206,7 @@ void Logic::handlePeriod(uint16_t periodLengthMs) noexcept
     std::cout << std::endl << "Handling 'period' command..." << periodLengthMs << " ms" << std::endl;
 
     // Implement the logic to set the blinking period.
-    myTimerDriver->set_period(periodLengthMs);
+    myTimerDriver->setPeriod(periodLengthMs);
     myPeriodLengthMs = periodLengthMs; // Store the new period length
 }
 
@@ -265,7 +265,7 @@ void Logic::loadStoredUserSettings() noexcept
     mySerialDriver->print(std::to_string(myPeriodLengthMs).c_str());
     mySerialDriver->print(" ms\n");
 
-    myTimerDriver->set_period(myPeriodLengthMs);
+    myTimerDriver->setPeriod(myPeriodLengthMs);
     if (myBlinkState)
         myTimerDriver->start(); // Start the timer for blinking if it was previously on
 }

@@ -1,4 +1,7 @@
-//! @note File header missing.
+/**
+ * @file Timer driver interface.
+ */
+
 #pragma once
 
 #include <cstdint>
@@ -6,36 +9,34 @@
 namespace driver::timer
 {
 /**
- * @brief Timer interface class
+ * @brief Abstract timer.
  */
 class Interface
 {
 public:
-
     virtual ~Interface() noexcept = default;
 
     /**
-     * @brief Start timer
+     * @brief Start the timer.
      */
     virtual void start() noexcept = 0;
 
     /**
-     * @brief Stop timer
+     * @brief Stop the timer.
      */
     virtual void stop() noexcept = 0;
 
     /**
-     * @brief Set timeout period in milliseconds
-     * 
-     * @param[in] period_ms timeout period in milliseconds
+     * @brief Set the timeout period.
+     *
+     * @param[in] periodMs Period in milliseconds.
      */
-    //! @note Use camelCase.
-    virtual void set_period(std::uint32_t period_ms) noexcept = 0;
+    virtual void setPeriod(std::uint32_t periodMs) noexcept = 0;
 
     /**
-     * @brief Check if timeout has occurred
-     * 
-     * @return true if timeout occurred, otherwise false
+     * @brief Check whether the timeout has elapsed.
+     *
+     * @return true if a timeout has occurred, otherwise false.
      */
     virtual bool timeout() noexcept = 0;
 };

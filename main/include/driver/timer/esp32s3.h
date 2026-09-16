@@ -1,4 +1,7 @@
-//! @note File header missing.
+/**
+ * @file ESP32-S3 timer driver.
+ */
+
 #pragma once
 
 #include <cstdint>
@@ -8,7 +11,7 @@
 namespace driver::timer
 {
 /**
- * @brief ESP32-S3 timer class
+ * @brief Hardware timer driver for the ESP32-S3.
  */
 class Esp32s3 final : public Interface
 {
@@ -18,34 +21,32 @@ public:
     ~Esp32s3() noexcept override;
 
     /**
-     * @brief Start timer
+     * @brief Start the timer.
      */
     void start() noexcept override;
 
     /**
-     * @brief Stop timer
+     * @brief Stop the timer.
      */
     void stop() noexcept override;
 
     /**
-     * @brief Set timeout period in milliseconds
-     * 
-     * @param[in] period_ms timeout period in milliseconds
+     * @brief Set the timeout period.
+     *
+     * @param[in] periodMs Period in milliseconds.
      */
-    //! @note Use camelCase.
-    void set_period(std::uint32_t period_ms) noexcept override;
+    void setPeriod(std::uint32_t periodMs) noexcept override;
 
     /**
-     * @brief Check if timeout has occurred
-     * 
-     * @return true if timeout occurred, otherwise false
+     * @brief Check whether the timeout has elapsed.
+     *
+     * @return true if a timeout has occurred, otherwise false.
      */
     bool timeout() noexcept override;
 
 private:
-    //! @note Try to declare the biggest member variable first to avoid padding.
-    std::uint32_t myPeriodMs;
     std::uint64_t myLastTimeUs;
-    bool myStarted;
+    std::uint32_t myPeriodMs;
+    bool          myStarted;
 };
 } // namespace driver::timer

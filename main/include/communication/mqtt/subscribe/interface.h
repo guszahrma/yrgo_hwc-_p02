@@ -1,9 +1,11 @@
-//! @note File header missing.
+/**
+ * @file the generic MQTT subscribe interface
+ */
 #pragma once
 
 #include <string>
 
-namespace communication::mqtt::subscribe
+namespace comm::mqtt::subscribe
 {
 //! @note Class documentation missing.
 class Interface
@@ -24,4 +26,4 @@ public:
      */
     virtual bool isConnected() const noexcept = 0;
 };
-} // namespace communication::mqtt::subscribe
+} // namespace comm::mqtt::subscribe

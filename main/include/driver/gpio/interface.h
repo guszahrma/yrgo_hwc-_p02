@@ -1,4 +1,7 @@
-//! @note File header missing.
+/**
+ * @file GPIO driver interface.
+ */
+
 #pragma once
 
 #include <cstdint>
@@ -6,42 +9,39 @@
 namespace driver::gpio
 {
 /**
- * @brief GPIO direction enumeration.
+ * @brief GPIO pin direction.
  */
 enum class Direction : std::uint8_t
 {
-    //! @note This case is fine; as is PascalCase (my favorite).
     OUTPUT,         // 0
     INPUT_PULL_UP,  // 1
     INPUT_PULL_DOWN // 2
 };
 
 /**
- *  @brief GPIO interface class 
-*/
+ * @brief Abstract GPIO pin.
+ */
 class Interface
 {
 public:
     virtual ~Interface() noexcept = default;
 
     /**
-     * @brief Read function
-     * 
-     * @return current state
+     * @brief Read the pin level.
+     *
+     * @return true if high, false if low.
      */
-    //! @note Consider marking this method const (it's a read method).
     virtual bool read() noexcept = 0;
 
     /**
-     * @brief Write function
-     * 
-     * @param state 
+     * @brief Write a level to the pin.
+     *
+     * @param[in] state true drives high, false drives low.
      */
-    //! @note @param state is not documented.
     virtual void write(bool state) noexcept = 0;
 
     /**
-     * @brief Toggle function
+     * @brief Toggle an output pin between high and low.
      */
     virtual void toggle() noexcept = 0;
 };

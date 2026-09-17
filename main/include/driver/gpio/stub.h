@@ -1,8 +1,10 @@
 /**
- * @brief GPIO stub driver.
+ * @file GPIO stub driver.
  */
+
 #pragma once
 
+#include <cstdint>
 #include <cstdio>
 
 #include "driver/gpio/interface.h"
@@ -10,26 +12,24 @@
 namespace driver::gpio
 {
 /**
- * @brief Stub class for GPIO interface. This class is used for testing and debugging purposes.
- * It simulates the behavior of a GPIO pin without interacting with actual hardware.
+ * @brief Stub GPIO pin for tests. Same interface as the hardware driver, no real pin.
  */
 class Stub final : public Interface
 {
 public:
     /**
-     * @brief Construct a new Stub object
-     * 
-     * @param[in] pinNumber 
-     * @param[in] direction 
+     * @brief Construct a stub GPIO pin.
+     *
+     * @param[in] pinNumber Logical pin number used in log output.
+     * @param[in] direction Pin direction (input or output).
      */
-    //! @note Please complete the documentation above (see @param).
     explicit Stub(std::uint8_t pinNumber, Direction direction) noexcept
-    : myPinNumber{pinNumber}
-    , myDirection{direction}
-    , myState{false}
+        : myPinNumber{pinNumber}
+        , myDirection{direction}
+        , myState{false}
     {
-        //! @note Avoid magic numbers and initialize the array with {}.
-        char directionStr[20];
+        constexpr std::size_t DirectionStrSize{20U};
+        char directionStr[DirectionStrSize]{};
 
         switch (direction)
         {
@@ -49,18 +49,13 @@ public:
         std::printf("Stub GPIO constructed on pin %u and direction %s.\n", pinNumber, directionStr);
     }
 
-    /**
-     * @brief Destroy the Stub object
-     */
     ~Stub() noexcept override = default;
 
     /**
-     * @brief Read function
-     * 
-     * @return true 
-     * @return false 
+     * @brief Read the stubbed pin level.
+     *
+     * @return true if the stored level is high, otherwise false.
      */
-    //! @note Please fix the comment.
     bool read() noexcept override
     {
         std::printf("%s state on pin %u.\n", (myState ? "True" : "False"), myPinNumber);
@@ -68,22 +63,21 @@ public:
     }
 
     /**
-     * @brief Write function
-     * 
-     * @param[in] state 
+     * @brief Write a level if the stub is an output.
+     *
+     * @param[in] state true stores high, false stores low.
      */
-    //! @note Please finalize the comment.
     void write(bool state) noexcept override
     {
-        if (Direction::OUTPUT == myDirection) 
-        { 
+        if (Direction::OUTPUT == myDirection)
+        {
             myState = state;
             std::printf("Writing %s on pin %u.\n", (state ? "True" : "False"), myPinNumber);
         }
     }
 
     /**
-     * @brief Toggle function
+     * @brief Toggle the stored level if the stub is an output.
      */
     void toggle() noexcept override
     {
@@ -94,7 +88,6 @@ public:
         }
     }
 
-    // Delete copy and move constructors
     Stub(const Stub&)            = delete;
     Stub(Stub&&)                 = delete;
     Stub& operator=(const Stub&) = delete;
@@ -102,7 +95,7 @@ public:
 
 private:
     const std::uint8_t myPinNumber;
-    const Direction myDirection;
-    bool myState;
+    const Direction    myDirection;
+    bool               myState;
 };
 } // namespace driver::gpio

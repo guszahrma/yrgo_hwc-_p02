@@ -1,4 +1,6 @@
-//! @note File header missing.
+/**
+ * @file ESP32-S3 Pin driver.
+ */
 #pragma once
 
 #include <cstdint>

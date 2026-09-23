@@ -39,7 +39,7 @@ public:
      *  
      * @return unique pointer
      */
-    std::unique_ptr<driver::gpio::Interface> create_gpio(std::uint8_t pinNumber, driver::gpio::Direction direction) noexcept override
+    std::unique_ptr<driver::gpio::Interface> createGpio(std::uint8_t pinNumber, driver::gpio::Direction direction) noexcept override
     {
         return std::make_unique<driver::gpio::Stub>(pinNumber, direction);
     }
@@ -52,7 +52,7 @@ public:
      * 
      * @return unique pointer
      */
-    std::unique_ptr<driver::adc::Interface> create_adc(std::uint8_t pinNumber, float referenceVoltage) noexcept override
+    std::unique_ptr<driver::adc::Interface> createAdc(std::uint8_t pinNumber, float referenceVoltage) noexcept override
     {
         auto stubAdcPin = static_cast<driver::pin::stub::AdcPin>(pinNumber);
         return std::make_unique<driver::adc::Stub>(stubAdcPin, referenceVoltage);
@@ -65,12 +65,11 @@ public:
      * 
      * @return unique pointer
      */
-    std::unique_ptr<driver::serial::Interface> create_serial(int baudRate) noexcept override
+    std::unique_ptr<driver::serial::Interface> createSerial() noexcept override
     {
-        (void) (baudRate);
         //! @note This is fine for now, but remove this later when you have a real factory.
 #ifdef DRIVER_SERIAL_ESP32S3
-        return std::make_unique<driver::serial::Esp32s3>(baudRate);
+        return std::make_unique<driver::serial::Esp32s3>();
 #else
         return std::make_unique<driver::serial::Stub>();
 #endif
@@ -83,7 +82,7 @@ public:
      * 
      * @return unique pointer
      */
-    std::unique_ptr<driver::tempsensor::Interface> create_tempsensor(driver::adc::Interface& adc) noexcept override
+    std::unique_ptr<driver::tempsensor::Interface> createTempsensor(driver::adc::Interface& adc) noexcept override
     {
         (void)(adc);
         return std::make_unique<driver::tempsensor::Stub>(static_cast<std::uint16_t>(0));
@@ -94,7 +93,7 @@ public:
      * 
      * @return unique pointer
      */
-    std::unique_ptr<driver::timer::Interface> create_timer() noexcept override
+    std::unique_ptr<driver::timer::Interface> createTimer() noexcept override
     {
         return std::make_unique<driver::timer::Stub>();
     }

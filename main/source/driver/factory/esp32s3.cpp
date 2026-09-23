@@ -11,32 +11,32 @@ namespace driver::factory
 {
 
 // -----------------------------------------------------------------------------
-std::unique_ptr<driver::gpio::Interface> Esp32s3::create_gpio(std::uint8_t pinNumber, driver::gpio::Direction direction) noexcept
+std::unique_ptr<driver::gpio::Interface> Esp32s3::createGpio(std::uint8_t pinNumber, driver::gpio::Direction direction) noexcept
 {
     return std::make_unique<driver::gpio::Esp32s3>(pinNumber, direction);
 }
 
 // -----------------------------------------------------------------------------
-std::unique_ptr<driver::adc::Interface> Esp32s3::create_adc(std::uint8_t pinNumber, float referenceVoltage) noexcept
+std::unique_ptr<driver::adc::Interface> Esp32s3::createAdc(std::uint8_t pinNumber, float referenceVoltage) noexcept
 {
     auto realAdcPin = static_cast<driver::pin::esp32s3::AdcPin>(pinNumber);
     return std::make_unique<driver::adc::Esp32s3>(realAdcPin, referenceVoltage);
 }
 
 // -----------------------------------------------------------------------------
-std::unique_ptr<driver::serial::Interface> Esp32s3::create_serial(int baudRate) noexcept
+std::unique_ptr<driver::serial::Interface> Esp32s3::createSerial() noexcept
 {
-    return std::make_unique<driver::serial::Esp32s3>(baudRate);
+    return std::make_unique<driver::serial::Esp32s3>();
 }
 
 // -----------------------------------------------------------------------------
-std::unique_ptr<driver::tempsensor::Interface> Esp32s3::create_tempsensor(adc::Interface& adc) noexcept
+std::unique_ptr<driver::tempsensor::Interface> Esp32s3::createTempsensor(adc::Interface& adc) noexcept
 {
     return std::make_unique<driver::tempsensor::Tmp36>(adc);
 }
 
 // -----------------------------------------------------------------------------
-std::unique_ptr<driver::timer::Interface> Esp32s3::create_timer() noexcept
+std::unique_ptr<driver::timer::Interface> Esp32s3::createTimer() noexcept
 {
     return std::make_unique<driver::timer::Esp32s3>();
 }

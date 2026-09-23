@@ -28,10 +28,10 @@ Logic::Logic() noexcept
     // Initialize the LED as off, set the blink state to off, and set a default blinking period (e.g., 1000 ms).
     driver::factory::Esp32s3 factory{};
     // Example of creating drivers using the factory:   
-    mySerialDriver = factory.create_serial(115200);
-    myGpioDriver = factory.create_gpio(9U, driver::gpio::Direction::OUTPUT);
-    myAdcDriver = factory.create_adc(7U, 3.3f);
-    myTimerDriver = factory.create_timer();
+    mySerialDriver = factory.createSerial();
+    myGpioDriver = factory.createGpio(9U, driver::gpio::Direction::OUTPUT);
+    myAdcDriver = factory.createAdc(7U, 3.3f);
+    myTimerDriver = factory.createTimer();
     myTimerDriver->stop(); // Start the timer for blinking
 
     // Initialize other necessary components and state variables here.

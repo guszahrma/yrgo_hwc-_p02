@@ -1,5 +1,5 @@
 /**
- * @file Esp32s3 serial driver.
+ * @file Esp32s3 serial driver
  */
 #include "driver/serial/esp32s3.h"
 #include "driver/usb_serial_jtag.h"
@@ -9,7 +9,7 @@ namespace driver::serial
 {
 
 // --------------------------------------------------------------------------------  
-Esp32s3::Esp32s3(std::uint32_t baudRate) noexcept
+Esp32s3::Esp32s3() noexcept
     : myInternalBuf{}
     , myInternalLen{}
 {
@@ -42,7 +42,7 @@ bool Esp32s3::readLine(char* buffer, std::size_t maxSize) noexcept
 
     std::uint8_t byte{};
     
-    while ( 0 < usb_serial_jtag_read_bytes(&byte, 1U, 0U))
+    while (0 < usb_serial_jtag_read_bytes(&byte, 1U, 0U))
     {
         (void)usb_serial_jtag_write_bytes(&byte, 1U, 0U);
 

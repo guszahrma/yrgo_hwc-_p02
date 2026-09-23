@@ -13,7 +13,10 @@
 
 namespace driver::factory
 {
-//! @note Class documentation missing.
+/**
+ * @brief Factory interface
+ * 
+ */
 class Interface
 {
 public:
@@ -33,7 +36,7 @@ public:
     //! @note Mark noexcept => the device will reboot if allocation fails. That's good, since
     //!       the system can't run without all drivers initialized anyway.
     //!       Also, please use camelCase.
-    virtual std::unique_ptr<driver::gpio::Interface> create_gpio(std::uint8_t pinNumber, driver::gpio::Direction direction) noexcept = 0;
+    virtual std::unique_ptr<driver::gpio::Interface> createGpio(std::uint8_t pinNumber, driver::gpio::Direction direction) noexcept = 0;
 
     /**
      * @brief Create a adc object
@@ -44,7 +47,7 @@ public:
      * @return unique pointer
      */
     //! @note noexcept and camelCase.
-    virtual std::unique_ptr<driver::adc::Interface> create_adc(std::uint8_t pinNumber, float referenceVoltage) noexcept = 0;
+    virtual std::unique_ptr<driver::adc::Interface> createAdc(std::uint8_t pinNumber, float referenceVoltage) noexcept = 0;
 
     /**
      * @brief Create serial object
@@ -53,7 +56,7 @@ public:
      * 
      * @return unique pointer
      */
-    virtual std::unique_ptr<driver::serial::Interface> create_serial(int baudRate) noexcept = 0;
+    virtual std::unique_ptr<driver::serial::Interface> createSerial() noexcept = 0;
 
     /**
      * @brief Create a tempsensor object
@@ -62,14 +65,14 @@ public:
      * 
      * @return unique pointer
      */
-    virtual std::unique_ptr<driver::tempsensor::Interface> create_tempsensor(adc::Interface& adc) noexcept = 0;
+    virtual std::unique_ptr<driver::tempsensor::Interface> createTempsensor(adc::Interface& adc) noexcept = 0;
 
     /**
      * @brief Create a timer object
      * 
      * @return unique pointer 
      */
-    virtual std::unique_ptr<driver::timer::Interface> create_timer() noexcept = 0;
+    virtual std::unique_ptr<driver::timer::Interface> createTimer() noexcept = 0;
     //! @note noexcept and camelCase. Also consider making the baud rate unsigned (std::uint32_t).
 };
 } // namespace driver::factory

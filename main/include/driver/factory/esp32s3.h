@@ -8,7 +8,9 @@
 
 namespace driver::factory
 {
-//! @note Class doc missing.
+/**
+ * @brief Esp32s3 factory
+ */
 class Esp32s3 final : public Interface
 {
 public:
@@ -22,8 +24,6 @@ public:
      */
     ~Esp32s3() noexcept override = default;
 
-    //! @note noexcept and camelCase in this file as well.
-
     /**
      * @brief Create a real ESP32-S3 gpio object
      * 
@@ -32,7 +32,7 @@ public:
      * 
      * @return unique pointer to the hardware GPIO driver
      */
-    std::unique_ptr<driver::gpio::Interface> create_gpio(std::uint8_t pinNumber, driver::gpio::Direction direction) noexcept override;
+    std::unique_ptr<driver::gpio::Interface> createGpio(std::uint8_t pinNumber, driver::gpio::Direction direction) noexcept override;
 
     /**
      * @brief Create a real ESP32-S3 adc object
@@ -42,7 +42,7 @@ public:
      *
      * @return unique pointer to the hardware ADC driver
      */
-    std::unique_ptr<driver::adc::Interface> create_adc(std::uint8_t pinNumber, float referenceVoltage) noexcept override;
+    std::unique_ptr<driver::adc::Interface> createAdc(std::uint8_t pinNumber, float referenceVoltage) noexcept override;
 
     /**
      * @brief Create a real ESP32-S3 serial object
@@ -51,7 +51,7 @@ public:
      *
      * @return unique pointer to the hardware Serial driver
      */
-    std::unique_ptr<driver::serial::Interface> create_serial(int baudRate) noexcept override;
+    std::unique_ptr<driver::serial::Interface> createSerial() noexcept override;
 
     /**
      * @brief Create a real ESP32-S3 tempsensor object
@@ -60,14 +60,14 @@ public:
      * 
      * @return unique pointer to the hardware tempsensor driver
      */
-    std::unique_ptr<driver::tempsensor::Interface> create_tempsensor(adc::Interface& adc) noexcept override;
+    std::unique_ptr<driver::tempsensor::Interface> createTempsensor(adc::Interface& adc) noexcept override;
 
     /**
      * @brief Create a timer object
      * 
      * @return unique pointer to the hardware timer driver
      */
-    std::unique_ptr<driver::timer::Interface> create_timer() noexcept override;
+    std::unique_ptr<driver::timer::Interface> createTimer() noexcept override;
     
      //! @note Maybe delete copy and move constructors + assignment operators?
 };

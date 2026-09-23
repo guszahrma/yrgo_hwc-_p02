@@ -18,10 +18,8 @@ class Esp32s3 final : public Interface
 public:
     /**
      * @brief Construct a new Esp32s3 object
-     * 
-     * @param[in] baudRate Baud rate for communication.
      */
-    explicit Esp32s3(std::uint32_t baudRate) noexcept;
+    Esp32s3() noexcept;
 
     /**
      * @brief Destroy the Esp32s3 object

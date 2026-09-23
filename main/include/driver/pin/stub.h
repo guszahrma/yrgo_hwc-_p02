@@ -1,4 +1,6 @@
-//! @note File header missing.
+/**
+ * @file Pin driver stub.
+ */
 #pragma once
 
 #include <cstdint>
@@ -11,14 +13,14 @@ namespace driver::pin::stub
  */
 enum class AdcPin : std::uint8_t
 {
-    D0 = 0,
-    D1,
-    D2,
-    D3,
-    D4,
-    D5,
-    D6,
-    D7
+    A0 = 0,
+    A1,
+    A2,
+    A3,
+    A4,
+    A5,
+    A6,
+    A7
 };
 
 /**
@@ -48,27 +50,26 @@ enum class GpioPin : std::uint8_t
  * @param [in] pin The ADC pin.
  * @return String literal, never null.
  */
-//! @note Use camelCase and mark noexcept.
-inline const char* toString(AdcPin pin)
+inline const char* toString(AdcPin pin) noexcept
 {
     switch (pin)
     {
-        case AdcPin::D0:
-            return "D0";
-        case AdcPin::D1:
-            return "D1";
-        case AdcPin::D2:
-            return "D2";
-        case AdcPin::D3:
-            return "D3";
-        case AdcPin::D4:
-            return "D4";
-        case AdcPin::D5:
-            return "D5";
-        case AdcPin::D6:
-            return "D6";
-        case AdcPin::D7:
-            return "D7";
+        case AdcPin::A0:
+            return "A0";
+        case AdcPin::A1:
+            return "A1";
+        case AdcPin::A2:
+            return "A2";
+        case AdcPin::A3:
+            return "A3";
+        case AdcPin::A4:
+            return "A4";
+        case AdcPin::A5:
+            return "A5";
+        case AdcPin::A6:
+            return "A6";
+        case AdcPin::A7:
+            return "A7";
         default:
             return "UNKNOWN";
     }
@@ -79,8 +80,7 @@ inline const char* toString(AdcPin pin)
  * @param [in] pin The GPIO pin.
  * @return String literal, never null.
  */
-//! @note camelCase and noexcept.
-inline const char* toString(GpioPin pin)
+inline const char* toString(GpioPin pin) noexcept
 {
     switch (pin)
     {
@@ -122,14 +122,12 @@ inline const char* toString(GpioPin pin)
  * @param [in] pin The ADC pin (D0–D7).
  * @return Physical pin number (0–7).
  */
-//! @note camelCase and noexcept.
-inline std::uint8_t toNumber(AdcPin pin) { return static_cast<std::uint8_t>(pin); }
+inline std::uint8_t toNumber(AdcPin pin) noexcept { return static_cast<std::uint8_t>(pin); }
 
 /**
  * @brief Returns the physical pin number for a stub GPIO pin.
  * @param [in] pin The GPIO pin (D0–D13).
  * @return Physical pin number (0–13).
  */
-//! @note camelCase and noexcept.
-inline std::uint8_t toNumber(GpioPin pin) { return static_cast<std::uint8_t>(pin); }
+inline std::uint8_t toNumber(GpioPin pin) noexcept { return static_cast<std::uint8_t>(pin); }
 } // namespace driver::pin::stub

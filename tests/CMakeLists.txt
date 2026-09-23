@@ -8,7 +8,7 @@ set(TARGET testsuite)
 # (e.g. ESP-IDF's esp-clang when built from an ESP-IDF shell).
 project(${TARGET} CXX C)
 
-set(CMAKE_CXX_COMPILER g++)
+set(CMAKE_CXX_COMPILER /usr/bin/g++)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
@@ -53,6 +53,9 @@ target_compile_options(${TARGET} PRIVATE -Wall -Werror)
 target_compile_definitions(${TARGET} PUBLIC TESTSUITE)
 target_compile_definitions(${TARGET} PUBLIC TRACE_ENABLED)
 
+
+add_subdirectory(googletest)
+target_link_libraries(${TARGET} PRIVATE gtest gtest_main)
 
 # Run the test suite.
 add_custom_target(run ALL

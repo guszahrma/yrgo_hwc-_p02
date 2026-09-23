@@ -32,7 +32,7 @@ Esp32s3::Esp32s3(driver::pin::esp32s3::AdcPin pin, float referenceVoltage)
     if (!acquirePin(getPhysPin(pin)))
     {
         std::printf("ESP32-S3 ADC init failed: pin %s already in use.\n",
-                    driver::pin::esp32s3::to_string(pin));
+                    driver::pin::esp32s3::toString(pin));
         return;
     }
 
@@ -92,7 +92,7 @@ Esp32s3::Esp32s3(driver::pin::esp32s3::AdcPin pin, float referenceVoltage)
         std::printf("ESP32-S3 ADC: calibration unavailable, using linear scaling.\n");
     }
 
-    std::printf("ESP32-S3 ADC initialized on pin %s.\n", driver::pin::esp32s3::to_string(pin));
+    std::printf("ESP32-S3 ADC initialized on pin %s.\n", driver::pin::esp32s3::toString(pin));
 }
 
 Esp32s3::~Esp32s3() noexcept
@@ -100,7 +100,7 @@ Esp32s3::~Esp32s3() noexcept
     if (nullptr != myCaliHandle) { adc_cali_delete_scheme_curve_fitting(myCaliHandle); }
     if (nullptr != myHandle) { adc_oneshot_del_unit(myHandle); }
     releasePin(getPhysPin(myPin));
-    std::printf("ESP32-S3 ADC released on pin %s.\n", driver::pin::esp32s3::to_string(myPin));
+    std::printf("ESP32-S3 ADC released on pin %s.\n", driver::pin::esp32s3::toString(myPin));
 }
 
 uint16_t Esp32s3::readValue() noexcept

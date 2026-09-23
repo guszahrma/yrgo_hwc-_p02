@@ -49,7 +49,7 @@ enum class GpioPin : std::uint8_t
  * @return String literal, never null.
  */
 //! @note Use camelCase and mark noexcept.
-inline const char* to_string(AdcPin pin)
+inline const char* toString(AdcPin pin)
 {
     switch (pin)
     {
@@ -80,7 +80,7 @@ inline const char* to_string(AdcPin pin)
  * @return String literal, never null.
  */
 //! @note camelCase and noexcept.
-inline const char* to_string(GpioPin pin)
+inline const char* toString(GpioPin pin)
 {
     switch (pin)
     {

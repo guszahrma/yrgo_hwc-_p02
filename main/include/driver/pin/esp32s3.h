@@ -5,7 +5,6 @@
 
 #include <cstdint>
 
-//! @note Sort headers.
 #include "driver/pin/manager.h"
 #include "soc/gpio_num.h"
 
@@ -17,15 +16,14 @@ namespace driver::pin::esp32s3
  */
 enum class AdcPin : std::uint8_t
 {
-    //! @note You don't need to explicitly specify the numbers here. I guess you did it to be clear?
-    A0 = 0,
-    A1 = 1,
-    A2 = 2,
-    A3 = 3,
-    A4 = 4,
-    A5 = 5,
-    A6 = 6,
-    A7 = 7
+    A0,
+    A1,
+    A2,
+    A3,
+    A4,
+    A5,
+    A6,
+    A7
 };
 
 /**
@@ -33,20 +31,20 @@ enum class AdcPin : std::uint8_t
  */
 enum class GpioPin : std::uint8_t
 {
-    D0  = 0,
-    D1  = 1,
-    D2  = 2,
-    D3  = 3,
-    D4  = 4,
-    D5  = 5,
-    D6  = 6,
-    D7  = 7,
-    D8  = 8,
-    D9  = 9,
-    D10 = 10,
-    D11 = 11,
-    D12 = 12,
-    D13 = 13
+    D0,
+    D1,
+    D2,
+    D3,
+    D4,
+    D5,
+    D6,
+    D7,
+    D8,
+    D9,
+    D10,
+    D11,
+    D12,
+    D13
 };
 
 /**
@@ -55,7 +53,7 @@ enum class GpioPin : std::uint8_t
  * @return String literal, never null.
  */
 //! @note Use camelCase and mark noexcept.
-inline const char* to_string(AdcPin pin)
+inline const char* toString(AdcPin pin) noexcept
 {
     switch (pin)
     {
@@ -86,7 +84,7 @@ inline const char* to_string(AdcPin pin)
  * @return String literal, never null.
  */
 //! @note camelCase and noexcept.
-inline const char* to_string(GpioPin pin)
+inline const char* toString(GpioPin pin) noexcept
 {
     switch (pin)
     {

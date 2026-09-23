@@ -1,7 +1,7 @@
 #include <cstdio>
 #include <cstring>
-
-//! @note Include <utility> to use std::move().
+#include <stdint.h>
+#include <utility>
 
 #include "esp_event.h"
 #include "esp_netif.h"
@@ -9,18 +9,16 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "nvs_flash.h"
-//! @note Should be included before "esp_event.h" in my opinion. But maybe you sort like this:
-//!       Standard headers -> ESP32-S3 headers -> local headers. That's OK.
+
 #include "communication/wifi/esp32s3.h"
 
-namespace communication::wifi
+namespace comm::wifi
 {
 
 // --------------------------------------------------------------------------------
-//! @note I won't mention the string thing again, this is fine, since you use std::move().
 Esp32s3::Esp32s3(std::string ssid, std::string password) noexcept
     : mySsid(std::move(ssid))
-    , myPassword(std::move(password)) 
+    , myPassword(std::move(password))
 {}
 
 // --------------------------------------------------------------------------------
@@ -37,71 +35,62 @@ void Esp32s3::init() noexcept
 // --------------------------------------------------------------------------------
 bool Esp32s3::connect() noexcept
 {
-    //! @note std::uint8_t, prefer to use {} over =.
-    constexpr uint8_t maxNetworks = 10;
-    constexpr uint8_t maxSsidLen  = 32;
+    constexpr std::uint8_t maxNetworks{10};
+    constexpr std::uint8_t maxSsidLen{32};
+    constexpr std::uint16_t wifiConnectionInitialWaitTime{5000};
+    constexpr std::uint16_t wifiConnectionAttempts{5};
+    constexpr std::uint16_t wifiConnectionAdditionalWaitTime{1000};
 
-    //! @note Good work with constants here. You may skip = though.
-    char ssidsAvailable[maxNetworks][maxSsidLen] = {};
+    char ssidsAvailable[maxNetworks][maxSsidLen]{};
 
-    //! @note I won't mention std::uint8_t again, but the same applies below.
-    uint8_t found = detectNetworks(ssidsAvailable, maxNetworks, maxSsidLen);
+    std::uint8_t found = detectNetworks(ssidsAvailable, maxNetworks, maxSsidLen);
 
-    //! @note Prefer to initialize with {} or {0U}.
-    for (uint8_t i = 0; i < found; i++)
+    for (std::uint8_t i{}; i < found; i++)
     {
-        //! @note Prefer to use Yoda notation (0 != std::strcmp()).
-        //!       Note that I wrote std::strcmp from <cstring>, not strcmp from <string.h>.
-        //!       Please also use a bracket:
-        //!       if (0 != std::strcmp(ssidsAvailable[i], mySsid.c_str()) != 0) { continue; }
-        if (strcmp(ssidsAvailable[i], mySsid.c_str()) != 0)
-            continue;
+        if (0 != std::strcmp(ssidsAvailable[i], mySsid.c_str())) { continue; }
 
-        printf("wifi: found target network: %s\n", mySsid.c_str());
-        //! @note You may skip = and just use {}; I won't mention it again, but the same applies below.
-        wifi_config_t wifi_config = {};
+        std::printf("wifi: found target network: %s\n", mySsid.c_str());
+        wifi_config_t wifi_config{};
 
-        //! @note std::strncopy, please use a static_cast (safer):
-        //!       std::strncpy(static_cast<char*>(wifi_config.sta.ssid), mySsid.c_str(), 
-        //!                    sizeof(wifi_config.sta.ssid));
-        strncpy((char*)wifi_config.sta.ssid,     mySsid.c_str(),     sizeof(wifi_config.sta.ssid));
-        strncpy((char*)wifi_config.sta.password, myPassword.c_str(), sizeof(wifi_config.sta.password));
+        // @TOD blir detta rätt? uint8 eller char?
+        std::strncpy(reinterpret_cast<char*>(wifi_config.sta.ssid), mySsid.c_str(),
+                     sizeof(wifi_config.sta.ssid));
+        std::strncpy(reinterpret_cast<char*>(wifi_config.sta.password), myPassword.c_str(),
+                     sizeof(wifi_config.sta.password));
 
         esp_wifi_set_mode(WIFI_MODE_STA);
         esp_wifi_set_config(WIFI_IF_STA, &wifi_config);
         esp_wifi_start();
         esp_wifi_connect();
 
-        //! @note Avoid magic numbers, please use a constexpr.
-        //! @note The same applies for all magic numbers below (5, 1000, 32 etc).
-        vTaskDelay(pdMS_TO_TICKS(5000));
-        for (uint8_t retry = 0; retry < 5; retry++)
+        vTaskDelay(pdMS_TO_TICKS(wifiConnectionInitialWaitTime));
+        for (std::uint8_t retry{0}; retry < wifiConnectionAttempts; retry++)
         {
             wifi_ap_record_t ap_info;
-            //! @note Yoda.
-            if (esp_wifi_sta_get_ap_info(&ap_info) == ESP_OK)
+            if (ESP_OK == esp_wifi_sta_get_ap_info(&ap_info))
             {
-                printf("wifi: connected to %s\n", mySsid.c_str());
+                std::printf("wifi: connected to %s\n", mySsid.c_str());
                 return true;
             }
-            vTaskDelay(pdMS_TO_TICKS(1000));
+            vTaskDelay(pdMS_TO_TICKS(wifiConnectionAdditionalWaitTime));
         }
     }
 
-    printf("wifi: failed to connect to %s\n", mySsid.c_str());
+    std::printf("wifi: failed to connect to %s\n", mySsid.c_str());
     return false;
 }
 
 // --------------------------------------------------------------------------------
-uint8_t Esp32s3::detectNetworks(char ssidList[][32], uint8_t maxNetworks, uint8_t maxSsidLength) noexcept
+uint8_t Esp32s3::detectNetworks(char ssidList[][maxNetworkNameLength], std::uint8_t maxNetworks,
+                                std::uint8_t maxSsidLength) noexcept
 {
     esp_wifi_set_mode(WIFI_MODE_STA);
     esp_wifi_start();
 
-    wifi_scan_config_t scan_config = {};
+    wifi_scan_config_t scan_config{};
     esp_wifi_scan_start(&scan_config, true);
 
-    uint16_t found = 0;
+    uint16_t found{0};
     esp_wifi_scan_get_ap_num(&found);
     if (found > maxNetworks) found = maxNetworks;
 
@@ -120,4 +109,4 @@ uint8_t Esp32s3::detectNetworks(char ssidList[][32], uint8_t maxNetworks, uint8_
     delete[] records;
     return static_cast<uint8_t>(found);
 }
-} // namespace communication::wifi
+} // namespace comm::wifi

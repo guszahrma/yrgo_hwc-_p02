@@ -25,7 +25,7 @@ bool Tmp36::isInitialized() const noexcept
 std::int16_t Tmp36::read() const noexcept
 {
     // Calculate input voltage from the temperature sensor.
-    const double inputVoltage{myAdc.read_voltage()};
+    const double inputVoltage{myAdc.readVoltage()};
 
     // Convert voltage to temperature (T  = 100 * Vin - 50).
     const double temperature{100.0 * inputVoltage - 50.0};

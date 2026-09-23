@@ -119,7 +119,6 @@ constexpr const char* toString(GpioPin pin) noexcept
     }
 }
 
-//! @note look at Eriks comment from ADC regardin pins and wifi
 /**
  * @brief Returns the physical GPIO number for an ADC pin.
  * @param [in] pin The ADC pin (A0–A7).
@@ -159,7 +158,6 @@ inline gpio_num_t toNumber(AdcPin pin) noexcept
  * @brief Checks if a pin belongs to ADC2.
  * @param [in] pin The ADC pin to check.
  * @return True if the pin is on ADC2 (A4–A7, GPIO11–GPIO14), false if on ADC1 (A0–A3).
- * @note ADC2 cannot be used while Wi-Fi is active.
  */
 inline bool isAdc2(AdcPin pin) noexcept { return pin >= AdcPin::A4; }
 

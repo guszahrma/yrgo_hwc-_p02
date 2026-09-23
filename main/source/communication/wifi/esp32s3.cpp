@@ -3,6 +3,8 @@
 #include <stdint.h>
 #include <utility>
 
+#include "driver/pin/esp32s3.h"
+#include "driver/pin/manager.h"
 #include "esp_event.h"
 #include "esp_netif.h"
 #include "esp_wifi.h"
@@ -24,12 +26,32 @@ Esp32s3::Esp32s3(std::string ssid, std::string password) noexcept
 // --------------------------------------------------------------------------------
 void Esp32s3::init() noexcept
 {
-    nvs_flash_init();
-    esp_netif_init();
-    esp_event_loop_create_default();
-    esp_netif_create_default_wifi_sta();
-    wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
-    esp_wifi_init(&cfg);
+    // reserve A4 - A7 if Wifi is used to avoid conflicts
+    auto& manager  = driver::pin::PhysicalPinManager::instance();
+    bool a4Acquired{manager.acquire(driver::pin::esp32s3::toNumber(driver::pin::esp32s3::AdcPin::A4))};
+    bool a5Acquired{manager.acquire(driver::pin::esp32s3::toNumber(driver::pin::esp32s3::AdcPin::A5))};
+    bool a6Acquired{manager.acquire(driver::pin::esp32s3::toNumber(driver::pin::esp32s3::AdcPin::A6))};
+    bool a7Acquired{manager.acquire(driver::pin::esp32s3::toNumber(driver::pin::esp32s3::AdcPin::A7))};
+
+    // if all relevant pins can be acquired, then initialize wifi
+    if (a4Acquired && a5Acquired && a6Acquired && a7Acquired)
+    {
+        nvs_flash_init();
+        esp_netif_init();
+        esp_event_loop_create_default();
+        esp_netif_create_default_wifi_sta();
+        wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
+        esp_wifi_init(&cfg);
+
+    }
+    else 
+    {
+        if (!a4Acquired) {manager.release(driver::pin::esp32s3::toNumber(driver::pin::esp32s3::AdcPin::A4));}
+        if (!a5Acquired) {manager.release(driver::pin::esp32s3::toNumber(driver::pin::esp32s3::AdcPin::A5));}
+        if (!a6Acquired) {manager.release(driver::pin::esp32s3::toNumber(driver::pin::esp32s3::AdcPin::A6));}
+        if (!a7Acquired) {manager.release(driver::pin::esp32s3::toNumber(driver::pin::esp32s3::AdcPin::A7));}
+    }
+
 }
 
 // --------------------------------------------------------------------------------

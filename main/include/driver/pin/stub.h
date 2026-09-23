@@ -123,7 +123,7 @@ inline const char* toString(GpioPin pin)
  * @return Physical pin number (0–7).
  */
 //! @note camelCase and noexcept.
-inline std::uint8_t to_number(AdcPin pin) { return static_cast<std::uint8_t>(pin); }
+inline std::uint8_t toNumber(AdcPin pin) { return static_cast<std::uint8_t>(pin); }
 
 /**
  * @brief Returns the physical pin number for a stub GPIO pin.
@@ -131,5 +131,5 @@ inline std::uint8_t to_number(AdcPin pin) { return static_cast<std::uint8_t>(pin
  * @return Physical pin number (0–13).
  */
 //! @note camelCase and noexcept.
-inline std::uint8_t to_number(GpioPin pin) { return static_cast<std::uint8_t>(pin); }
+inline std::uint8_t toNumber(GpioPin pin) { return static_cast<std::uint8_t>(pin); }
 } // namespace driver::pin::stub

@@ -49,4 +49,4 @@ sdkconfig.old
 managed_components/
 
 # Ignore local WiFi credentials
-main/include/communication/wifi/esp32s3_local_config.h
+main/include/communication/wifi/esp32s3_local_config.htests/build/

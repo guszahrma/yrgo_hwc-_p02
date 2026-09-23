@@ -1,9 +1,10 @@
-//! @note File header missing.
+/**
+ * @file ESP32-S3 Pin driver.
+ */
 #pragma once
 
 #include <cstdint>
 
-//! @note Sort headers.
 #include "driver/pin/manager.h"
 #include "soc/gpio_num.h"
 
@@ -15,15 +16,14 @@ namespace driver::pin::esp32s3
  */
 enum class AdcPin : std::uint8_t
 {
-    //! @note You don't need to explicitly specify the numbers here. I guess you did it to be clear?
-    A0 = 0,
-    A1 = 1,
-    A2 = 2,
-    A3 = 3,
-    A4 = 4,
-    A5 = 5,
-    A6 = 6,
-    A7 = 7
+    A0,
+    A1,
+    A2,
+    A3,
+    A4,
+    A5,
+    A6,
+    A7
 };
 
 /**
@@ -31,20 +31,20 @@ enum class AdcPin : std::uint8_t
  */
 enum class GpioPin : std::uint8_t
 {
-    D0  = 0,
-    D1  = 1,
-    D2  = 2,
-    D3  = 3,
-    D4  = 4,
-    D5  = 5,
-    D6  = 6,
-    D7  = 7,
-    D8  = 8,
-    D9  = 9,
-    D10 = 10,
-    D11 = 11,
-    D12 = 12,
-    D13 = 13
+    D0,
+    D1,
+    D2,
+    D3,
+    D4,
+    D5,
+    D6,
+    D7,
+    D8,
+    D9,
+    D10,
+    D11,
+    D12,
+    D13
 };
 
 /**
@@ -52,8 +52,7 @@ enum class GpioPin : std::uint8_t
  * @param [in] pin The ADC pin.
  * @return String literal, never null.
  */
-//! @note Use camelCase and mark noexcept.
-inline const char* to_string(AdcPin pin)
+constexpr const char* toString(AdcPin pin) noexcept
 {
     switch (pin)
     {
@@ -83,8 +82,7 @@ inline const char* to_string(AdcPin pin)
  * @param [in] pin The GPIO pin.
  * @return String literal, never null.
  */
-//! @note camelCase and noexcept.
-inline const char* to_string(GpioPin pin)
+constexpr const char* toString(GpioPin pin) noexcept
 {
     switch (pin)
     {
@@ -121,7 +119,6 @@ inline const char* to_string(GpioPin pin)
     }
 }
 
-//! @note look at Eriks comment from ADC regardin pins and wifi
 /**
  * @brief Returns the physical GPIO number for an ADC pin.
  * @param [in] pin The ADC pin (A0–A7).
@@ -132,8 +129,7 @@ inline const char* to_string(GpioPin pin)
  *         A6=GPIO13 (ADC2_CH2), A7=GPIO14 (ADC2_CH3),
  *         or GPIO_NUM_NC for an unknown pin.
  */
-//! @note camelCase and noexcept.
-inline gpio_num_t to_number(AdcPin pin)
+inline gpio_num_t toNumber(AdcPin pin) noexcept
 {
     switch (pin)
     {
@@ -162,10 +158,8 @@ inline gpio_num_t to_number(AdcPin pin)
  * @brief Checks if a pin belongs to ADC2.
  * @param [in] pin The ADC pin to check.
  * @return True if the pin is on ADC2 (A4–A7, GPIO11–GPIO14), false if on ADC1 (A0–A3).
- * @note ADC2 cannot be used while Wi-Fi is active.
  */
-//! @note camelCase and noexcept.
-inline bool is_adc2(AdcPin pin) { return pin >= AdcPin::A4; }
+inline bool isAdc2(AdcPin pin) noexcept { return pin >= AdcPin::A4; }
 
 /**
  * @brief Returns the physical GPIO number for a GPIO pin.
@@ -176,9 +170,7 @@ inline bool is_adc2(AdcPin pin) { return pin >= AdcPin::A4; }
  *         D10=GPIO21, D11=GPIO38, D12=GPIO47, D13=GPIO48,
  *         or GPIO_NUM_NC for an unknown pin.
  */
-//! @note camelCase and noexcept.
-//! @note remake into constexpr according to Eriks note in adc
-inline gpio_num_t to_number(GpioPin pin)
+constexpr gpio_num_t toNumber(GpioPin pin) noexcept
 {
     switch (pin)
     {
@@ -220,16 +212,11 @@ inline gpio_num_t to_number(GpioPin pin)
  * @param [in] pin The ADC pin to check.
  * @return True if the pin is free to use, false if already acquired.
  */
-//! @note camelCase and noexcept.
-inline bool is_available(AdcPin pin)
+inline bool isAvailable(AdcPin pin) noexcept
 {
-    //! @note This is a very long line, consider acquiring a reference to the pin manager first:
-    //!
-    //! auto& manager      = PhysicalPinManager::instance();
-    //! const auto physPin = static_cast<std::uint8_t>(to_number(pin);
-    //! return manager.is_in_use(physPin);
-    return !driver::pin::PhysicalPinManager::instance().isInUse(
-        static_cast<std::uint8_t>(to_number(pin)));
+    auto& manager      = PhysicalPinManager::instance();
+    const auto physPin = static_cast<std::uint8_t>(toNumber(pin));
+    return manager.isInUse(physPin);
 }
 
 /**
@@ -237,12 +224,10 @@ inline bool is_available(AdcPin pin)
  * @param [in] pin The GPIO pin to check.
  * @return True if the pin is free to use, false if already acquired.
  */
-//! @note camelCase and noexcept.
-inline bool is_available(GpioPin pin)
+inline bool isAvailable(GpioPin pin) noexcept
 {
-    //! @note Same here! At lease omit driver::pin, since you're already in namespace
-    //! driver::pin::x.
-    return !driver::pin::PhysicalPinManager::instance().isInUse(
-        static_cast<std::uint8_t>(to_number(pin)));
+    auto& manager      = PhysicalPinManager::instance();
+    const auto physPin = static_cast<std::uint8_t>(toNumber(pin));
+    return manager.isInUse(physPin);
 }
 } // namespace driver::pin::esp32s3

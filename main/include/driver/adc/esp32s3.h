@@ -34,7 +34,8 @@ public:
      * @note Pins A4–A7 belong to ADC2, which cannot be used while Wi-Fi is active.
      * Jag spar den här till jag jobbar med pin klassen @TODO
      */
-    explicit Esp32s3(driver::pin::esp32s3::AdcPin pin, float referenceVoltage = DefaultVref) noexcept;
+    explicit Esp32s3(driver::pin::esp32s3::AdcPin pin,
+                     float referenceVoltage = DefaultVref) noexcept;
     ~Esp32s3() noexcept override;
 
     /**

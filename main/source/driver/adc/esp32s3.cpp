@@ -16,7 +16,7 @@ constexpr float voltage3_10V{3.1f};
 
 constexpr std::uint8_t getPhysPin(const driver::pin::esp32s3::AdcPin pin) noexcept
 {
-    return static_cast<std::uint8_t>(driver::pin::esp32s3::to_number(pin));
+    return static_cast<std::uint8_t>(driver::pin::esp32s3::toNumber(pin));
 }
 } // namespace
 
@@ -32,7 +32,7 @@ Esp32s3::Esp32s3(driver::pin::esp32s3::AdcPin pin, float referenceVoltage)
     if (!acquirePin(getPhysPin(pin)))
     {
         std::printf("ESP32-S3 ADC init failed: pin %s already in use.\n",
-                    driver::pin::esp32s3::to_string(pin));
+                    driver::pin::esp32s3::toString(pin));
         return;
     }
 
@@ -45,16 +45,13 @@ Esp32s3::Esp32s3(driver::pin::esp32s3::AdcPin pin, float referenceVoltage)
         return;
     }
 
-    adc_unit_t unit = driver::pin::esp32s3::is_adc2(pin) ? ADC_UNIT_2 : ADC_UNIT_1;
+    adc_unit_t unit = driver::pin::esp32s3::isAdc2(pin) ? ADC_UNIT_2 : ADC_UNIT_1;
 
     adc_oneshot_unit_init_cfg_t unit_cfg{};
     unit_cfg.unit_id = unit;
     adc_oneshot_new_unit(&unit_cfg, &myHandle);
 
-    //! @note  jag spar den här till jag jobbar med pins. @TODO
-    //! Note that if you only cast integers, you can mark the methods constexpr.
-    //! The same applies to pin::esp32s3::to_number().
-    adc_oneshot_io_to_channel(driver::pin::esp32s3::to_number(pin), &unit, &myChannel);
+    adc_oneshot_io_to_channel(driver::pin::esp32s3::toNumber(pin), &unit, &myChannel);
 
     adc_oneshot_chan_cfg_t chan_cfg = {};
     if (voltage0_95V >= referenceVoltage)
@@ -92,7 +89,7 @@ Esp32s3::Esp32s3(driver::pin::esp32s3::AdcPin pin, float referenceVoltage)
         std::printf("ESP32-S3 ADC: calibration unavailable, using linear scaling.\n");
     }
 
-    std::printf("ESP32-S3 ADC initialized on pin %s.\n", driver::pin::esp32s3::to_string(pin));
+    std::printf("ESP32-S3 ADC initialized on pin %s.\n", driver::pin::esp32s3::toString(pin));
 }
 
 Esp32s3::~Esp32s3() noexcept
@@ -100,7 +97,7 @@ Esp32s3::~Esp32s3() noexcept
     if (nullptr != myCaliHandle) { adc_cali_delete_scheme_curve_fitting(myCaliHandle); }
     if (nullptr != myHandle) { adc_oneshot_del_unit(myHandle); }
     releasePin(getPhysPin(myPin));
-    std::printf("ESP32-S3 ADC released on pin %s.\n", driver::pin::esp32s3::to_string(myPin));
+    std::printf("ESP32-S3 ADC released on pin %s.\n", driver::pin::esp32s3::toString(myPin));
 }
 
 uint16_t Esp32s3::readValue() noexcept

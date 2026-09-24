@@ -1,13 +1,14 @@
-//! @note File header missing.
+/**
+ * @file the MQTT implementation of the subscribe interface on esp32s3
+ */
 #pragma once
 
 #include <string>
 
-//! @note Sort headers.
-#include "mqtt_client.h"
 #include "communication/mqtt/subscribe/interface.h"
+#include "mqtt_client.h"
 
-namespace communication::mqtt::subscribe
+namespace comm::mqtt::subscribe
 {
 class Esp32s3 final : public Interface
 {
@@ -20,11 +21,9 @@ public:
      *  @param username The username for the MQTT connection.
      *  @param password The password for the MQTT connection.
      */
-    //! @note Same comments here as for communication::mqtt::public::Esp32s3.
-    Esp32s3(std::string url, std::string topic, std::string clientId,
-            std::string username = {}, std::string password = {}) noexcept;
+    explicit Esp32s3(std::string url, std::string topic, std::string clientId, std::string username,
+                     std::string password) noexcept;
     ~Esp32s3() noexcept override;
-
 
     /**
      *  @brief Get the value of the subscribed MQTT topic.
@@ -34,9 +33,9 @@ public:
     bool getValue(std::string& value) noexcept override;
 
     /**
-    *  @brief Check if the MQTT client is connected.
-    *  @return true if connected, false otherwise.
-    */
+     *  @brief Check if the MQTT client is connected.
+     *  @return true if connected, false otherwise.
+     */
     bool isConnected() const noexcept override;
 
     Esp32s3(const Esp32s3&)            = delete;
@@ -45,7 +44,8 @@ public:
     Esp32s3& operator=(Esp32s3&&)      = delete;
 
 private:
-    static void eventHandler(void* arg, esp_event_base_t base, long int eventId, void* eventData) noexcept;
+    static void eventHandler(void* arg, esp_event_base_t base, long int eventId,
+                             void* eventData) noexcept;
 
     std::string myUrl;
     std::string myTopic;
@@ -53,9 +53,7 @@ private:
     std::string myUsername;
     std::string myPassword;
     std::string myLastValue;
-    //! @note Please initialize in the constructor, don't mix it up and initialize some members
-    //!       here and the rest in the constructor.
-    esp_mqtt_client_handle_t myClient = nullptr;
-    bool myConnected = false;
+    esp_mqtt_client_handle_t myClient;
+    bool myConnected;
 };
-} // namespace communication::mqtt::subscribe
+} // namespace comm::mqtt::subscribe

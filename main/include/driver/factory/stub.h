@@ -1,9 +1,12 @@
-//! @note File header missing.
+/**
+ * @file Stub factory
+ */
 #pragma once
 
 #include "driver/adc/stub.h"
 #include "driver/factory/interface.h"
 #include "driver/gpio/stub.h"
+#include "driver/nvs/stub.h"
 #include "driver/serial/stub.h"
 #include "driver/timer/stub.h"
 #include "driver/tempsensor/stub.h"
@@ -59,6 +62,18 @@ public:
     }
 
     /**
+     * @brief Create an NVS storage
+     * 
+     * @param[in] namespaceName 
+     * 
+     * @return unique pointer
+     */
+    std::unique_ptr<driver::nvs::Interface> createNvs(const char* namespaceName) noexcept override
+    {
+        return std::make_unique<driver::nvs::Stub>(namespaceName);
+    }
+
+    /**
      * @brief Create serial object
      * 
      * @param[in] baudRate
@@ -82,7 +97,7 @@ public:
      * 
      * @return unique pointer
      */
-    std::unique_ptr<driver::tempsensor::Interface> createTempsensor(driver::adc::Interface& adc) noexcept override
+    std::unique_ptr<driver::tempsensor::Interface> createTempSensor(driver::adc::Interface& adc) noexcept override
     {
         (void)(adc);
         return std::make_unique<driver::tempsensor::Stub>(static_cast<std::uint16_t>(0));

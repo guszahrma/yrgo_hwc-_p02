@@ -1,51 +1,50 @@
-//! @note Incorrect file header, haha! :)
 /**
- * @brief Stub
+ * @file ESP32-S3 GPIO driver.
  */
+
 #pragma once
 
-#include <cstdio>
+#include <cstdint>
 
 #include "driver/gpio/interface.h"
 
 namespace driver::gpio
 {
 /**
- * @brief ESP32-S3 GPIO class
+ * @brief GPIO driver for the ESP32-S3.
  */
 class Esp32s3 final : public Interface
 {
 public:
-    //! @note The cosntructor should be commented.
+    /**
+     * @brief Construct a GPIO pin.
+     *
+     * @param[in] pinNumber Hardware pin number.
+     * @param[in] direction Pin direction (input or output).
+     */
     explicit Esp32s3(std::uint8_t pinNumber, Direction direction) noexcept;
 
-    ~Esp32s3() noexcept override; 
+    ~Esp32s3() noexcept override = default;
 
     /**
-     * @brief Read function
-     * 
-     * @return true 
-     * @return false 
+     * @brief Read the current pin level.
+     *
+     * @return true if the pin is high, false if it is low.
      */
-    //! @note Mark const.
     bool read() noexcept override;
 
     /**
-     * @brief Write function
-     * 
-     * @param[in] state 
+     * @brief Write a level to the pin.
+     *
+     * @param[in] state true drives the pin high, false drives it low.
      */
-    //! @note Please comment state.
     void write(bool state) noexcept override;
 
-     /**
-      * @brief Toggle function
-      * 
-      *        switches the state of the pin from high to low or from low to high
-      */
+    /**
+     * @brief Toggle an output pin between high and low.
+     */
     void toggle() noexcept override;
 
-    // Delete copy and move constructors
     Esp32s3(const Esp32s3&)            = delete;
     Esp32s3(Esp32s3&&)                 = delete;
     Esp32s3& operator=(const Esp32s3&) = delete;
@@ -53,7 +52,7 @@ public:
 
 private:
     const std::uint8_t myPinNumber;
-    const Direction myDirection;
-    bool myState;
+    const Direction    myDirection;
+    bool               myState;
 };
 } // namespace driver::gpio

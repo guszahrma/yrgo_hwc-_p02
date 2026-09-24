@@ -1,4 +1,6 @@
-//! @note File header missing.
+/**
+ * @file Factory interface
+ */
 #pragma once
 
 #include <cstdint>
@@ -6,6 +8,7 @@
 
 #include "driver/adc/interface.h"
 #include "driver/gpio/interface.h"
+#include "driver/nvs/interface.h"
 #include "driver/serial/interface.h"
 #include "driver/pin/interface.h"
 #include "driver/timer/interface.h"
@@ -15,7 +18,6 @@ namespace driver::factory
 {
 /**
  * @brief Factory interface
- * 
  */
 class Interface
 {
@@ -33,9 +35,6 @@ public:
      *  
      * @return unique pointer
      */
-    //! @note Mark noexcept => the device will reboot if allocation fails. That's good, since
-    //!       the system can't run without all drivers initialized anyway.
-    //!       Also, please use camelCase.
     virtual std::unique_ptr<driver::gpio::Interface> createGpio(std::uint8_t pinNumber, driver::gpio::Direction direction) noexcept = 0;
 
     /**
@@ -46,13 +45,19 @@ public:
      * 
      * @return unique pointer
      */
-    //! @note noexcept and camelCase.
     virtual std::unique_ptr<driver::adc::Interface> createAdc(std::uint8_t pinNumber, float referenceVoltage) noexcept = 0;
 
     /**
-     * @brief Create serial object
+     * @brief Create an NVS storage
      * 
-     * @param[in] baudRate
+     * @param[in] namespaceName 
+     * 
+     * @return unique pointer
+     */
+    virtual std::unique_ptr<driver::nvs::Interface> createNvs(const char* namespaceName) noexcept = 0;
+
+    /**
+     * @brief Create serial object
      * 
      * @return unique pointer
      */
@@ -65,7 +70,7 @@ public:
      * 
      * @return unique pointer
      */
-    virtual std::unique_ptr<driver::tempsensor::Interface> createTempsensor(adc::Interface& adc) noexcept = 0;
+    virtual std::unique_ptr<driver::tempsensor::Interface> createTempSensor(adc::Interface& adc) noexcept = 0;
 
     /**
      * @brief Create a timer object
@@ -73,6 +78,5 @@ public:
      * @return unique pointer 
      */
     virtual std::unique_ptr<driver::timer::Interface> createTimer() noexcept = 0;
-    //! @note noexcept and camelCase. Also consider making the baud rate unsigned (std::uint32_t).
 };
 } // namespace driver::factory

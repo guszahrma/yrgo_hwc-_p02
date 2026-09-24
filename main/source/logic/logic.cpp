@@ -1,27 +1,27 @@
-//! @note File header missing.
+/**
+ * @file Implementation of the Logic class for handling commands and controlling the LED and other components.
+ */
+
 #include <charconv>
-#include <cstdlib>
 #include <cstdint>
 #include <cstdio>
+#include <cstdlib>
 #include <cstring>
 #include <iostream>
 #include <string_view>
-
-//! @note Same comment here, don't include headers with prefix '_' directly.
-#include <sys/_intsup.h>
 #include <sys/unistd.h>
-#include "driver/factory/stub.h"
+
 #include "driver/factory/esp32s3.h"
+#include "driver/factory/stub.h"
 #include "logic/logic.h"
 
-namespace logic::logic 
+namespace logic
 {
 
 // --------------------------------------------------------------------------------
 Logic::Logic() noexcept
-    //! @note Use {} instead of ().
-    : myBlinkState(0) // Initialize blink state to off
-    , myPeriodLengthMs(1000) // Set default blinking period to 1000 ms
+    : myPeriodLengthMs{1000} // Set default blinking period to 1000 ms
+    , myBlinkState{false}    // Initialize blink state to off
 {
     // Create the necessary drivers using the factory and initialize the system state.
     // For example, you might create a serial driver for communication and a GPIO driver for controlling the LED.
@@ -29,10 +29,12 @@ Logic::Logic() noexcept
     driver::factory::Esp32s3 factory{};
     // Example of creating drivers using the factory:   
     mySerialDriver = factory.createSerial();
-    myGpioDriver = factory.createGpio(9U, driver::gpio::Direction::OUTPUT);
-    myAdcDriver = factory.createAdc(7U, 3.3f);
+    myGpioDriver = factory.createGpio(9U , driver::gpio::Direction::OUTPUT);
+    myAdcDriver = factory.createAdc(6U, 3.3f);
+    myTempSensor = factory.createTempSensor(*myAdcDriver);
     myTimerDriver = factory.createTimer();
     myTimerDriver->stop(); // Start the timer for blinking
+    myNvsUserSettingsStorage = factory.createNvs("user_settings");
 
     // Initialize other necessary components and state variables here.
 }
@@ -42,7 +44,11 @@ Logic::~Logic() noexcept
 {
     // Clean up resources, if necessary.
     // For example, you might want to delete any dynamically allocated drivers or other resources here.
-    //! @note Don't forget to add cleanup here later.
+    mySerialDriver.reset();
+    myGpioDriver.reset();
+    myAdcDriver.reset();
+    myTimerDriver->stop(); // Stop the timer when the Logic instance is destroyed
+    myTimerDriver.reset();
 }
 
 // --------------------------------------------------------------------------------
@@ -53,9 +59,13 @@ void Logic::run() noexcept
     // and other components accordingly. It will also handle the blinking logic and period adjustments.
     
     // The loop should be designed to be non-blocking and responsive, allowing for real-time command processing and state updates.
-    //! @note Initialize with {}.
-    constexpr std::size_t bufferSize = 64;
+    constexpr std::size_t bufferSize{64};
+    constexpr std::uint8_t sleepDuration_ms{1};
     char buffer[bufferSize]{};
+
+    loadStoredUserSettings();
+
+    mySerialDriver->print("write relevant command, write help to get a list of available commands\n");
 
     while(true)
     {
@@ -69,7 +79,8 @@ void Logic::run() noexcept
             auto spacePos = input.find(' ');
             auto cmd  = input.substr(0, spacePos);
             auto args = (spacePos != std::string_view::npos) ? input.substr(spacePos + 1) : std::string_view{};
-            if      (cmd == "on")     handleOn();
+            if      ("help"== cmd   || "Help" == cmd ) handleHelp();
+            else if (cmd == "on")     handleOn();
             else if (cmd == "off")    handleOff();
             else if (cmd == "status") handleStatus();
             else if (cmd == "blink") {
@@ -78,20 +89,25 @@ void Logic::run() noexcept
             }
             else if (cmd == "period")
             {
-                //! @note std::uint16_t.
-                uint16_t ms{};
+                std::uint16_t ms{};
 
                 //! @note Please add an inline comment for this; it's always a good thing to do
                 //!       when using lambdas (lambdas = a necessary evil; works fine, but 
                 //!       usually totally unreadable, haha).
+                // I left @note as is since I don't understand the function.
                 auto [ptr, ec] = std::from_chars(args.data(), args.data() + args.size(), ms);
                 if (ec == std::errc{})
                     handlePeriod(ms);
+                else
+                    handleUnknownCommand(cmd);
             }
+            else if (cmd == "store")
+                handleStore();
+            else
+                handleUnknownCommand(cmd);
         }
         else {
-            //! @note constexpr instead of magic number.
-            sleep(1); // Sleep briefly to avoid busy-waiting when no input is available
+            sleep(sleepDuration_ms); // Sleep briefly to avoid busy-waiting when no input is available
         }
 
 
@@ -106,25 +122,43 @@ void Logic::run() noexcept
 #ifndef DRIVER_SERIAL_ESP32S3
         // TEMP: randomize command input for testing
         {
-            //! @note Skip =.
-            static const char* commands[] = {
+            static const char* commands[] {
                 "on", "off", "blink on", "blink off",
                 "period 500", "period 1000", "period 2000", "status"
             };
-            //! @note Initialize with {}.
-            constexpr std::size_t numCommands = sizeof(commands) / sizeof(commands[0]);
+            constexpr std::size_t numCommands{sizeof(commands) / sizeof(commands[0])};
 
-            //! @note Use constexpr.
-            sleep(1);
+            sleep(sleepDuration_ms); // Sleep briefly to avoid busy-waiting when no input is available
             auto* stub = static_cast<driver::serial::Stub*>(mySerialDriver.get());
             // Randomly simulate if random input is generated or not
 
-            //! @note Use Yoda notation and a constexpr instead of 10.
-            if (std::rand() % 10 == 0)
+            if (0 == std::rand() % 10 )
             stub->simulateInputData(commands[std::rand() % numCommands]);
         }
 #endif
     }
+}
+
+// --------------------------------------------------------------------------------
+void Logic::handleHelp() noexcept
+{
+    std::cout << std::endl << "Handling 'Help' command..." << std::endl;
+    std::cout << std::endl << "Available commands:" << std::endl;
+    std::cout << "  on" << std::endl;
+    std::cout << "  off" << std::endl;
+    std::cout << "  blink on" << std::endl;
+    std::cout << "  blink off" << std::endl;
+    std::cout << "  period <ms>" << std::endl;
+    std::cout << "  status" << std::endl;
+    std::cout << "  store" << std::endl;
+    std::cout << "  help" << std::endl;
+}
+
+// --------------------------------------------------------------------------------
+void Logic::handleUnknownCommand(const std::string_view& cmd) noexcept
+{
+    std::cout << std::endl << "Handling unknown command: " << cmd << std::endl;
+    std::cout << "Type 'help' to see the list of available commands." << std::endl;
 }
 
 // --------------------------------------------------------------------------------
@@ -152,8 +186,7 @@ void Logic::handleBlinkOn() noexcept
 
     // Implement the logic to turn blinking on.
     myTimerDriver->start(); // Start the timer for blinking
-    //! @note I think myBlinkState can be converted to bool instead.
-    myBlinkState = 1;
+    myBlinkState = true;
 }
 
 // --------------------------------------------------------------------------------
@@ -163,6 +196,7 @@ void Logic::handleBlinkOff() noexcept
 
     // Implement the logic to turn blinking off.
     myTimerDriver->stop(); // Stop the timer for blinking
+    myBlinkState = 0;
 }
 
 // --------------------------------------------------------------------------------
@@ -171,7 +205,7 @@ void Logic::handlePeriod(uint16_t periodLengthMs) noexcept
     std::cout << std::endl << "Handling 'period' command..." << periodLengthMs << " ms" << std::endl;
 
     // Implement the logic to set the blinking period.
-    myTimerDriver->set_period(periodLengthMs);
+    myTimerDriver->setPeriod(periodLengthMs);
     myPeriodLengthMs = periodLengthMs; // Store the new period length
 }
 
@@ -182,13 +216,55 @@ void Logic::handleStatus() noexcept
     // This is a placeholder implementation - replace with actual status printing logic.
     mySerialDriver->print("Status:\n");
     mySerialDriver->print("Blink State: ");
-    mySerialDriver->print(myBlinkState ? "On\n" : "Off\n");
+    mySerialDriver->print(myBlinkState ? "on\n" : "off\n");
     mySerialDriver->print("Blink Period: ");    
     mySerialDriver->print(std::to_string(myPeriodLengthMs).c_str());
     mySerialDriver->print(" ms\n");
     mySerialDriver->print("Current Temperature: ");
-    // TODO Replace this with a call to the TMP36 class to get actual temperature reading
-    mySerialDriver->print(std::to_string(0).c_str());
+    mySerialDriver->print(std::to_string(myTempSensor->read()).c_str());
     mySerialDriver->print(" °C\n");
+}
+
+// --------------------------------------------------------------------------------
+void Logic::handleStore() noexcept
+{
+    std::cout << std::endl << "Handling 'store' command..." << std::endl;
+
+    myNvsUserSettingsStorage->setString("blink_state", myBlinkState ? "on" : "off");
+    myNvsUserSettingsStorage->setString("blink_period", std::to_string(myPeriodLengthMs));
+
+    // Implement the logic to store the current state to non-volatile memory.
+    // This is a placeholder implementation - replace with actual storage logic.
+    mySerialDriver->print("Storing current state to non-volatile memory...\n");
+}
+
+// --------------------------------------------------------------------------------
+void Logic::loadStoredUserSettings() noexcept
+{
+    std::cout << std::endl << "Loading stored user settings..." << std::endl;
+
+    std::string blinkState;
+    std::string blinkPeriod;
+
+    if (!(myNvsUserSettingsStorage->getString("blink_state", blinkState)))
+        blinkState = "off"; // Default to "off" if not found
+    if (!(myNvsUserSettingsStorage->getString("blink_period", blinkPeriod)))
+        blinkPeriod = "1000"; // Default to 1000 ms if not found
+
+    myBlinkState = (blinkState == "on") ? 1 : 0;
+    myPeriodLengthMs = static_cast<uint16_t>(std::stoi(blinkPeriod));
+
+    // Implement the logic to load the stored state from non-volatile memory.
+    // This is a placeholder implementation - replace with actual loading logic.
+    mySerialDriver->print("Loaded user settings:\n");
+    mySerialDriver->print("Blink State: ");
+    mySerialDriver->print(myBlinkState ? "on\n" : "off\n");
+    mySerialDriver->print("Blink Period: ");
+    mySerialDriver->print(std::to_string(myPeriodLengthMs).c_str());
+    mySerialDriver->print(" ms\n");
+
+    myTimerDriver->setPeriod(myPeriodLengthMs);
+    if (myBlinkState)
+        myTimerDriver->start(); // Start the timer for blinking if it was previously on
 }
 } // namespace logic::logic

@@ -1,35 +1,36 @@
-//! @note File header missing.
+/**
+ * @file the esp32s3 specific WiFi interface
+ */
 #pragma once
 
 #include <cstdint>
 #include <string>
 
-//! @note Sort headers.
 #include "communication/wifi/interface.h"
-//! @note Nice informative inline comment.
-// TODO: replace this by things stored in memory when memory driver is implemented
-// This include file is kept under.gitignore to avoid hardcoding sensitive information in the repository
-// check "communication/wifi/esp32s3_local_config_template.h" for syntax of the file to be created by the user
+
+// @TODO: replace this by things stored in memory when memory driver is implemented
+// This include file is kept under.gitignore to avoid hardcoding sensitive information in the
+// repository check "communication/wifi/esp32s3_local_config_template.h" for syntax of the file to
+// be created by the user
 #include "communication/wifi/esp32s3_local_config.h"
 
-namespace communication::wifi
+namespace comm::wifi
 {
-//! @note Class documentation missing.
+
+namespace
+{
+constexpr std::uint8_t maxNetworkNameLength{32};
+
+}
+/**
+ * @brief wifi driver for the esp32s3
+ */
 class Esp32s3 final : public Interface
 {
 public:
-    //! @note Same comment here as before regarding passing strings by value.
-    Esp32s3(std::string ssid = std::string(defaultSsid), std::string password = std::string(defaultPassword)) noexcept;
+    Esp32s3(std::string ssid     = std::string(defaultSsid),
+            std::string password = std::string(defaultPassword)) noexcept;
     ~Esp32s3() noexcept override = default;
-
-    //! @note I would place these at the bottom of the public segment, but this placement is very
-    //!       common as well. In some ways it's better (I would place these methods here if they
-    //!       were to be implemented), but I prefer placing the deleted stuff at the bottom.
-    //!       First show what you class is "offering", then delete stuff etc.
-    Esp32s3(const Esp32s3&)            = delete;
-    Esp32s3(Esp32s3&&)                 = delete;
-    Esp32s3& operator=(const Esp32s3&) = delete;
-    Esp32s3& operator=(Esp32s3&&)      = delete;
 
     /**
      *  @brief Initialize the ESP32-S3 WiFi module.
@@ -49,11 +50,16 @@ public:
      *  @param maxSsidLength Maximum length of each SSID.
      *  @return Number of detected networks.
      */
-    //! @note std::uint8_t, please avoid magic numbers (use a static constexpr or something).
-    uint8_t detectNetworks(char ssidList[][32], uint8_t maxNetworks, uint8_t maxSsidLength) noexcept;
+    uint8_t detectNetworks(char ssidList[][maxNetworkNameLength], std::uint8_t maxNetworks,
+                           std::uint8_t maxSsidLength) noexcept;
+
+    Esp32s3(const Esp32s3&)            = delete;
+    Esp32s3(Esp32s3&&)                 = delete;
+    Esp32s3& operator=(const Esp32s3&) = delete;
+    Esp32s3& operator=(Esp32s3&&)      = delete;
 
 private:
     std::string mySsid;
     std::string myPassword;
 };
-} // namespace communication::wifi
+} // namespace comm::wifi

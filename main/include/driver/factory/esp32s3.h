@@ -1,4 +1,6 @@
-//! @note File header missing.
+/**
+ * @file Esp32s3 factory header file
+ */
 #pragma once
 
 #include <cstdint>
@@ -45,6 +47,15 @@ public:
     std::unique_ptr<driver::adc::Interface> createAdc(std::uint8_t pinNumber, float referenceVoltage) noexcept override;
 
     /**
+     * @brief Create a real ESP32-S3 NVS storage
+     *
+     * @param[in] namespaceName
+     *
+     * @return unique pointer to the hardware NVS driver
+     */
+    std::unique_ptr<driver::nvs::Interface> createNvs(const char* namespaceName) noexcept override;
+    
+    /**
      * @brief Create a real ESP32-S3 serial object
      *
      * @param[in] baudRate
@@ -60,7 +71,7 @@ public:
      * 
      * @return unique pointer to the hardware tempsensor driver
      */
-    std::unique_ptr<driver::tempsensor::Interface> createTempsensor(adc::Interface& adc) noexcept override;
+    std::unique_ptr<driver::tempsensor::Interface> createTempSensor(adc::Interface& adc) noexcept override;
 
     /**
      * @brief Create a timer object
@@ -69,6 +80,9 @@ public:
      */
     std::unique_ptr<driver::timer::Interface> createTimer() noexcept override;
     
-     //! @note Maybe delete copy and move constructors + assignment operators?
+    Esp32s3(const Esp32s3&)            = delete;
+    Esp32s3(Esp32s3&&)                 = delete;
+    Esp32s3& operator=(const Esp32s3&) = delete;
+    Esp32s3& operator=(Esp32s3&&)      = delete;
 };
 } // namespace driver::factory

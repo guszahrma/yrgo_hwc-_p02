@@ -1,51 +1,51 @@
-//! @note File header missing.
+/**
+ * @file Timer stub driver.
+ */
+
 #pragma once
 
-//! @note Sort headers.
+#include <chrono>
 #include <cstdint>
 #include <cstdio>
-#include <chrono>
 
 #include "driver/timer/interface.h"
 
 namespace driver::timer
 {
 /**
- * @brief Stub class for timer interface. This class is used for testing and debugging purposes.
- * It simulates the behavior of a timer without interacting with actual hardware.
+ * @brief Stub timer for tests. Same interface as the hardware driver, uses the host clock.
  */
 class Stub final : public Interface
 {
 public:
     /**
-     * @brief Construct a new Stub object
+     * @brief Construct a stub timer.
+     *
+     * @param[in] periodMs Timeout period in milliseconds.
+     * @param[in] startRunning If true, the timer starts immediately.
      */
-    //! @note Mark explicit.
-    Stub(std::uint32_t period_ms = 0, bool start_running = false) noexcept
-        : myPeriodMs{period_ms}
-        , myStarted{start_running}
-        , myLastTime{Clock::now()}
+    explicit Stub(std::uint32_t periodMs = 0, bool startRunning = false) noexcept
+        : myLastTime{Clock::now()}
+        , myPeriodMs{periodMs}
+        , myStarted{startRunning}
     {
         std::printf("Stub timer constructed.\n");
     }
 
-    /**
-     * @brief Destroy the Stub object
-     */
     ~Stub() noexcept override = default;
 
     /**
-     * @brief Start timer
+     * @brief Start the stub timer.
      */
     void start() noexcept override
     {
-        myStarted = true;
+        myStarted  = true;
         myLastTime = Clock::now();
         std::printf("Stub timer started.\n");
     }
 
     /**
-     * @brief Stop timer
+     * @brief Stop the stub timer.
      */
     void stop() noexcept override
     {
@@ -54,38 +54,28 @@ public:
     }
 
     /**
-     * @brief Set timeout period in milliseconds
-     * 
-     * @param[in] period_ms timeout period in milliseconds
+     * @brief Set the timeout period.
+     *
+     * @param[in] periodMs Period in milliseconds.
      */
-    //! @note camelCase.
-    void set_period(std::uint32_t period_ms) noexcept override
+    void setPeriod(std::uint32_t periodMs) noexcept override
     {
-        myPeriodMs = period_ms;
+        myPeriodMs = periodMs;
         std::printf("Stub timer period set to %u ms.\n", static_cast<unsigned>(myPeriodMs));
     }
 
     /**
-     * @brief Check if timeout has occurred
-     * 
-     * @return true if timeout occurred, otherwise false
+     * @brief Check whether the timeout has elapsed.
+     *
+     * @return true if a timeout has occurred, otherwise false.
      */
     bool timeout() noexcept override
     {
-        //! @note Can be placed on one line if desired.
-        if (!myStarted)
-        {
-            return false;
-        }
+        if (!myStarted) { return false; }
 
-        //! @note Do not fix auto and {}; as I wrote before, it's hard for the compiler to know if
-        //!       something like {100U} is an integer or an array/a list holding one argument.
-        //!       Since C++17 this has improved (and that's why you can use it here, who wants
-        //!       an array with space for only one argument anyway), but please use auto and =.
-        const auto currentTime{Clock::now()};
-        const auto elapsedMs{
-            std::chrono::duration_cast<std::chrono::milliseconds>(currentTime - myLastTime).count()
-        };
+        const auto currentTime = Clock::now();
+        const auto elapsedMs   =
+            std::chrono::duration_cast<std::chrono::milliseconds>(currentTime - myLastTime).count();
 
         if (elapsedMs >= myPeriodMs)
         {
@@ -98,12 +88,10 @@ public:
     }
 
 private:
-    //! @note Good choice to use an alias here; way easier to read in my opinion.
     using Clock = std::chrono::steady_clock;
 
-    //! @note Sort member variables by size (largest first => myLastTime -> myPeriodMs -> myStarted).
-    std::uint32_t myPeriodMs;
-    bool myStarted;
     Clock::time_point myLastTime;
+    std::uint32_t     myPeriodMs;
+    bool              myStarted;
 };
 } // namespace driver::timer

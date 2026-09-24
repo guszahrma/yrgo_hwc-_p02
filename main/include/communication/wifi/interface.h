@@ -1,9 +1,13 @@
-//! @note File Header missing.
+/**
+ * @file the generic WiFi interface
+ */
 #pragma once
 
-namespace communication::wifi
+namespace comm::wifi
 {
-//! @note Class documentation missing.
+/**
+ * @brief abstract wifi driver
+ */
 class Interface
 {
 public:
@@ -20,4 +24,4 @@ public:
      */
     virtual bool connect() noexcept = 0;
 };
-} // namespace communication::wifi
+} // namespace comm::wifi

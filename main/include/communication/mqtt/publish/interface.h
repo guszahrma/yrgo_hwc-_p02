@@ -1,11 +1,12 @@
-//! @note File header missing.
+/**
+ * @file the generic MQTT publish interface
+ */
 #pragma once
 
 #include <cstdint>
 #include <string>
 
-//! @note How about a shorter namespace and folder name, such as 'comm'?
-namespace communication::mqtt::publish
+namespace comm::mqtt::publish
 {
 class Interface
 {
@@ -19,17 +20,12 @@ public:
      * @param [in] retain   Whether the broker should retain the message.
      * @return True if the message was queued successfully, false otherwise.
      */
-    //! @note Prefer to use std::uint8_t from <cstdint> instead of indirectly included <uint8_t> from <stdint.h>.
-    //!       Usually, default parameters are not encourages for virtual methods, since the code tends
-    //!       to become quite messy (what about default parameters in the overridden method, what if 
-    //!       they're different).
-    virtual bool publish(const std::string& message, uint8_t qos = 0, bool retain = false) noexcept = 0;
+    virtual bool publish(const std::string& message, std::uint8_t qos, bool retain) noexcept = 0;
 
     /**
      * @brief Check if the MQTT client is connected.
      * @return True if connected, false otherwise.
      */
     virtual bool isConnected() const noexcept = 0;
-
 };
-} // namespace communication::mqtt::publish
+} // namespace comm::mqtt::publish

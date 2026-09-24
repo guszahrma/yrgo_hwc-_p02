@@ -3,9 +3,8 @@
  */
 #pragma once
 
-//! @note Sort headers.
-#include <cstdint>
 #include <cstddef>
+#include <cstdint>
 
 #include "driver/serial/interface.h"
 
@@ -19,14 +18,8 @@ class Esp32s3 final : public Interface
 public:
     /**
      * @brief Construct a new Esp32s3 object
-     * 
-     * @param[in] baudRate Baud rate for communication.
      */
-    //! @note How about making baudRate a std::uint32_t? I guess you're using int to be compatible
-    //!       with the ESP32-S3 driver, but I think it's better to keep it unsigned and then
-    //!       cast it to int if needed. Then I can't pass something like -1, which makes no sense.
-    //!       But as long as you check the baud rate in the constructor, I think this is fine.
-    explicit Esp32s3(int baudRate) noexcept;
+    Esp32s3() noexcept;
 
     /**
      * @brief Destroy the Esp32s3 object

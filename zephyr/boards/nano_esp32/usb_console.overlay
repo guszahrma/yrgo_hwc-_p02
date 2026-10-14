@@ -1,0 +1,17 @@
+/*
+ * Arduino Nano ESP32: console on the USB-C port.
+ *
+ * The esp32s3_devkitc board uses uart0 (GPIO43/44 = D1/D0 on the Nano) as console. On the Nano,
+ * USB-C is wired directly to the ESP32-S3's USB-Serial/JTAG peripheral, so use that instead.
+ */
+
+/ {
+	chosen {
+		zephyr,console = &usb_serial;
+		zephyr,shell-uart = &usb_serial;
+	};
+};
+
+&usb_serial {
+	status = "okay";
+};

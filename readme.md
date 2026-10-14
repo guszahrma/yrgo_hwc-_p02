@@ -225,7 +225,7 @@ Configuration (e.g. flash size) is changed with `idf.py menuconfig`.
 ## Flashing and monitoring
 
 ### 1. Attach the board to WSL (PowerShell as administrator)
-
+Run usbipd list first without the esp connected and then with the esp connected to see which device is added and with which VID:PID it appeared. in the example below it appeared with VID:PID 6-4.
 ```powershell
 usbipd list                                    # find the board's BUSID, e.g. 6-4
 usbipd bind --busid 6-4                        # once per device and port

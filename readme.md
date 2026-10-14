@@ -171,7 +171,7 @@ sudo usermod -aG dialout $USER
 ### 3. ESP-IDF 6.0
 
 ESP-IDF is a framework that is built from source together with the project, so it has to be available
-locally. A shallow clone (without history) is enough:
+locally. A shallow clone (without history) is enough, place it at a relevant location for instance ~/esp (if you chose a different location you need to adjust some paths in commands, as described below):
 
 ```bash
 mkdir -p ~/esp

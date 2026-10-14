@@ -180,7 +180,7 @@ cd ~/esp/esp-idf && ./install.sh esp32s3
 ```
 
 `install.sh` downloads the compiler and creates the Python environment in `~/.espressif/`. Adding an alias
-is handy:
+is handy (if you chose a different location for esp you need to adjust the path below) : 
 
 ```bash
 echo "alias get_idf='. ~/esp/esp-idf/export.sh'" >> ~/.bashrc

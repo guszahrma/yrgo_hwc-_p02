@@ -209,7 +209,7 @@ called `COMx` instead of `/dev/ttyACM0`.
 
 ## Building
 
-Always run from the **project root directory** (not inside `~/esp/esp-idf`):
+Always run from the **project root directory** (not inside `~/esp/esp-idf`) (in the example below we assume you have the repo in  ~/yrgo_hwc-_p02, this may need to be adapted to your folder structure):
 
 ```bash
 get_idf                       # once per terminal

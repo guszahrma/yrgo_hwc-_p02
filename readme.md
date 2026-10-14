@@ -329,7 +329,8 @@ Git commands and SSH setup are described in [`docs/git_commands.md`](docs/git_co
 
 ## Zephyr port
 
-Work is in progress to port the drivers to **Zephyr RTOS v4.4.2**. Thanks to the factory pattern,
+This is work is in progress to port the drivers to **Zephyr RTOS v4.4.2**, Do not rely too much on this yet since its will evolve iteratively during the development phase. especially in the begining.
+Thanks to the factory pattern,
 `logic::Logic` does not need to change – instead, Zephyr implementations are added next to the ESP32-S3
 implementations, together with a `factory::Zephyr`.
 

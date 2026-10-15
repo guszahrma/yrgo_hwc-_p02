@@ -406,7 +406,7 @@ root – the root `build/` belongs to ESP-IDF):
 get_zephyr
 cd ~/yrgo_hwc-_p02/zephyr/samples/blinky
 west build -p always -b esp32s3_devkitc/esp32s3/procpu .
-west flash --esp-device /dev/ttyACM0 && sleep 9 && python -m serial.tools.miniterm /dev/ttyACM0 115200
+west flash --esp-device /dev/ttyACM0 && sleep 9 && python -m serial.tools.miniterm --exit-char 24 /dev/ttyACM0 115200
 ```
 
 Expected: the yellow LED blinks and the RGB LED cycles red → green → blue, with one line per second:
@@ -414,6 +414,51 @@ Expected: the yellow LED blinks and the RGB LED cycles red → green → blue, w
 ```
 Yellow: OFF  RGB: green
 Yellow: ON   RGB: blue
+```
+
+By running the following command you can add `build_zephyr_sample` and `flash_zephyr_sample` to available commands from the terminal.
+
+```bash
+cat >> ~/.bashrc << 'EOF'
+_p02_root() {
+  local repo
+  repo=$(git rev-parse --show-toplevel 2>/dev/null) && [ -d "$repo/zephyr/samples" ] ||
+    { echo "Run this from inside the yrgo_hwc-_p02 repo" >&2; return 1; }
+  echo "$repo"
+}
+build_zephyr_sample() {
+  local repo pristine=auto name arg
+  repo=$(_p02_root) || return 1
+  for arg; do
+    case "$arg" in -p) pristine=always ;; *) name="$arg" ;; esac
+  done
+  local app="$repo/zephyr/samples/$name"
+  if [ -z "$name" ] || [ ! -f "$app/CMakeLists.txt" ]; then
+    echo "Usage: build_zephyr_sample [-p] <app>   (-p = pristine build; app one of: $(ls "$repo/zephyr/samples" | tr '\n' ' '))"
+    return 1
+  fi
+  [ -n "$ZEPHYR_BASE" ] || { echo "Run get_zephyr first"; return 1; }
+  west build -p "$pristine" -b esp32s3_devkitc/esp32s3/procpu -s "$app" -d "$app/build"
+}
+flash_zephyr_sample() {
+  build_zephyr_sample "$@" || return 1
+  local repo name arg
+  repo=$(_p02_root) || return 1
+  for arg; do [ "$arg" = "-p" ] || name="$arg"; done
+  west flash -d "$repo/zephyr/samples/$name/build" --esp-device /dev/ttyACM0 &&
+    sleep 9 && python -m serial.tools.miniterm --exit-char 24 /dev/ttyACM0 115200
+}
+EOF
+source ~/.bashrc
+```
+
+Usage:
+
+```bash
+get_zephyr
+build_zephyr_sample blinky   # build only (incremental)
+build_zephyr_sample blinky -p   # pristine build (start from scratch); -p can go first or last, also for flash_zephyr_sample
+flash_zephyr_sample blinky   # build, flash and open the serial monitor (exit with Ctrl+X)
 ```
 
 #### Zephyr's samples
@@ -436,10 +481,10 @@ Flash (attach the board with usbipd first, see [Flashing and monitoring](#flashi
 
 ```bash
 esptool --chip esp32s3 -p /dev/ttyACM0 erase-flash   # once, when switching from ESP-IDF
-west flash --esp-device /dev/ttyACM0 && sleep 9 && python -m serial.tools.miniterm /dev/ttyACM0 115200
+west flash --esp-device /dev/ttyACM0 && sleep 9 && python -m serial.tools.miniterm --exit-char 24 /dev/ttyACM0 115200
 ```
 
-Exit the monitor with `Ctrl+]`. Expected output:
+Exit the monitor with `Ctrl+X` (set by `--exit-char 24`; the default `Ctrl+]` is hard to type on a Swedish keyboard). Expected output:
 
 ```
 *** Booting Zephyr OS build v4.4.2 (delayed boot 10000ms) ***

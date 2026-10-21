@@ -41,24 +41,27 @@ Then anyone (or CI) can get the exact same Zephyr with `west init -l . && west u
 
 ---
 
-## Planned directory structure
+## Directory structure
 
 ```
 zephyr/
 ├── boards/
-│   └── nano_esp32/            ← adapts esp32s3_devkitc to the Nano ESP32, shared by all apps
-│       ├── usb_console.overlay   (done)
-│       └── leds.overlay          (done)
-├── samples/                   ← our own learning exercises
-│   └── blinky/                   (done)
-│       ├── CMakeLists.txt        ← picks up the board overlays
+│   └── arduino/nano_esp32/                   ← our board definition: arduino_nano_esp32 (done)
+│       ├── arduino_nano_esp32_procpu.dts        the board: console, LEDs, aliases, peripherals
+│       ├── arduino_nano_esp32-pinctrl.dtsi      UART/I2C/SPI pins
+│       ├── arduino_nano_connector.dtsi          Nano pin header D0-D13, A0-A7
+│       └── board.yml, Kconfig*, board.cmake, *_defconfig, *.yaml
+├── samples/                                  ← our own learning exercises
+│   └── blinky/                                  (done)
+│       ├── CMakeLists.txt                       ← finds the board with BOARD_ROOT
 │       ├── prj.conf
 │       └── src/main.c
-└── app/                       ← the P02 port itself
+└── app/                                      ← the P02 port itself (next)
+    └── app.overlay                              P02's wiring: LED on D6, TMP36 on A6
 ```
 
-Later, `zephyr/boards/nano_esp32/` becomes a real out-of-tree board definition `arduino_nano_esp32`
-(based on the schematic), and the overlays go away.
+The board describes what is soldered onto every Nano ESP32. What we wire up ourselves (P02's LED and
+TMP36) belongs in the app's `app.overlay`, written with Arduino pin names via `arduino_nano_header`.
 
 ---
 
@@ -77,7 +80,7 @@ first, then apply it to P02 on the real board.
 | 5 | `serial::Zephyr` – or replace our command parser with Zephyr's shell (design decision) | Shell | ⬜ |
 | 6 | `adc::Zephyr` + overlay – TMP36 then works as-is | Devicetree, driver model | ⬜ |
 | 7 | `nvs` via the Settings subsystem | Settings | ⬜ |
-| 8 | Own board definition `arduino_nano_esp32` | Devicetree, bindings | ⬜ |
+| 8 | Own board definition `arduino_nano_esp32` | Devicetree, bindings | ✅ `zephyr/boards/arduino/nano_esp32` – done early, so the port is built on the real board from the start |
 | 9 | Own `west.yml` (T2 workspace) + Zephyr build in CI | West manifest | ⬜ |
 | 10 | Wi-Fi and MQTT | Networking | ⬜ |
 
@@ -106,12 +109,14 @@ first, then apply it to P02 on the real board.
 
 ### Board / hardware
 
-* The Arduino Nano ESP32 is not in Zephyr. We use `esp32s3_devkitc/esp32s3/procpu` + overlays.
+* The Arduino Nano ESP32 is not in Zephyr. We first used `esp32s3_devkitc/esp32s3/procpu` + overlays,
+  now our own board definition `arduino_nano_esp32/esp32s3/procpu`.
 * The console must go over `usb_serial` (USB-Serial/JTAG) – the devkitc uses `uart0`.
 * USB re-enumerates on every reset; with usbipd the board is gone for ~8 s. Use `CONFIG_BOOT_DELAY`.
 * The devkitc definition says 8 MB flash, the Nano has 16 MB. The reason: the devkitc includes
-  `esp32s3_wroom_n8.dtsi` – a WROOM module with 8 MB flash (`n8`).
-* LEDs (verified on the board, defined in `zephyr/boards/nano_esp32/leds.overlay`):
+  `esp32s3_wroom_n8.dtsi` – a WROOM module with 8 MB flash (`n8`). Our board uses
+  `esp32s3_wroom_n16r8.dtsi` (16 MB flash, 8 MB PSRAM), which matches the NORA-W106.
+* LEDs (verified on the board, defined in `arduino_nano_esp32_procpu.dts`):
 
   | Alias | LED | GPIO | Zephyr | Polarity |
   |---|---|---|---|---|
@@ -123,6 +128,39 @@ first, then apply it to P02 on the real board.
   The schematic does not say which RGB pin is which colour – this was found by testing.
 * GPIO number → Zephyr: `gpio0` = GPIO 0–31, `gpio1` = GPIO 32–48 (pin = GPIO − 32).
 * GPIO0 and GPIO46 are boot strapping pins (GPIO0 low at reset = download mode, same as the B1 trick).
+* D13 (GPIO48) is both SPI SCK and the yellow LED – the LED flickers while SPI is in use.
+* A0-A3 are on ADC1, A4-A7 on ADC2. **ADC2 cannot be used while Wi-Fi is active** – P02's TMP36 on A6
+  will have to move to A0-A3 when Wi-Fi is added.
+
+### Board definition
+
+* A board is found by its directory: `<BOARD_ROOT>/boards/<vendor>/<board>/`. Zephyr only searches its
+  own tree, so apps add ours with `list(APPEND BOARD_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/../..)` **before**
+  `find_package(Zephyr)`. `BOARD_ROOT` is the directory that *contains* `boards/`.
+* The boilerplate files (`board.yml`, `Kconfig*`, `board.cmake`, `defconfig`, `.yaml`) can be copied
+  from a board with the same chip and renamed. The interesting part is the devicetree.
+* **When copying from another board, change every board-specific value.** Copying devkitc's SPI pinctrl
+  verbatim put SPI on GPIO11/12 – the same pins as our I2C – and the compiler did not complain.
+  Nothing checks pinctrl groups for overlapping pins.
+* **`gpio-map` vs `pinmux`** – look alike, do different things:
+  * `gpio-map` (connector): "Arduino pin D0 *is* GPIO44" – for apps using a pin as plain GPIO.
+  * `pinmux` (pinctrl): "route the UART0 RX *signal* to GPIO44" – one macro (`UART0_RX_GPIO44`) holds
+    both signal and pin. The ESP32-S3 GPIO matrix can route almost any signal to almost any pin.
+* A pinctrl group holds pins that need the same electrical settings: UART TX `output-high` (idle level),
+  RX `bias-pull-up` (no garbage from a floating pin), I2C `drive-open-drain` + pull-up (devices only
+  pull low), SPI COPI `output-low` (no noise before SPI starts).
+* `pinctrl-0` and `pinctrl-names = "default"` always go together – the binding requires both.
+* **Disabled nodes are not checked against their bindings.** `i2c0` without `pinctrl-names` built fine
+  while disabled and failed as soon as it was enabled. Test the board with each bus enabled (an overlay
+  with `status = "okay"`).
+* Buses are `disabled` in the board and enabled by the app that uses them: unused buses cost no memory or
+  power, and their pins stay free for GPIO or ADC.
+* `arduino_nano_i2c: &i2c0 {};` adds a second label to an existing node, so overlays can use the Arduino
+  name and work on any board with a Nano header.
+* `#include <zephyr/dt-bindings/gpio/arduino-nano-header.h>` + `gpio-map` makes the connector a GPIO
+  nexus: `<&arduino_nano_header 6 ...>` resolves to `<&gpio0 9 ...>` at build time (checked in
+  `devicetree_generated.h`: pin 9 on gpio0).
+* The devicetree compiler reports a missing `;` on the line *after* the real mistake.
 
 ### Devicetree
 

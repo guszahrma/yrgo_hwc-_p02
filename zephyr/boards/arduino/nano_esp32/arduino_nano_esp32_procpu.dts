@@ -1,0 +1,151 @@
+/*
+ * Arduino Nano ESP32 (ABX00083) – PROCPU devicetree.
+ *
+ * u-blox NORA-W106 module (ESP32-S3R8, 8 MB PSRAM) with 16 MB external flash.
+ * Schematic: ABX00083-schematics.pdf. Verified facts are collected in docs/zephyr_port.md.
+ */
+/dts-v1/;
+
+/* Chip with 16 MB flash and 8 MB PSRAM – matches the NORA-W106 (devkitc uses the 8 MB N8). */
+#include <espressif/esp32s3/esp32s3_wroom_n16r8.dtsi>
+#include <espressif/partitions_0x0_amp.dtsi>
+#include <zephyr/dt-bindings/gpio/gpio.h>
+#include "arduino_nano_esp32-pinctrl.dtsi"
+#include "arduino_nano_connector.dtsi"
+
+/ {
+	model = "Arduino Nano ESP32 PROCPU";
+	compatible = "arduino,nano-esp32", "espressif,esp32s3";
+
+	chosen {
+		/* System memory and flash layout (same as esp32s3_devkitc). */
+		zephyr,sram = &sram1;
+		zephyr,flash = &flash0;
+		zephyr,code-partition = &slot0_partition;
+		zephyr,bt-hci = &esp32_bt_hci;
+
+		/* Console and shell on the USB-C port (USB-Serial/JTAG) – the board has no USB-UART chip. */
+		zephyr,console = &usb_serial;
+		zephyr,shell-uart = &usb_serial;
+	};
+
+	aliases {
+		led0 = &yellow_led;
+		led1 = &green_led;
+		led2 = &blue_led;
+		led3 = &red_led;
+		i2c-0 = &i2c0;
+		watchdog0 = &wdt0;
+		uart-0 = &uart0;
+	};
+
+	/*
+	 * On-board LEDs.
+	 *   - Yellow ("SCK LED"): driven through an N-channel MOSFET, gate high = on -> active high.
+	 *     Same pin as D13 / SPI SCK, so it flickers while SPI is in use.
+	 *   - RGB: common anode to 3V3, a pin driven low turns its colour on -> active low.
+	 *     The colour of each pin was found by testing (the schematic does not say).
+	 * GPIO0 (green) and GPIO46 (red) are boot strapping pins (GPIO0 low at reset = download mode).
+	 */
+	leds {
+		compatible = "gpio-leds";
+
+		yellow_led: led_0 {
+			gpios = <&gpio1 16 GPIO_ACTIVE_HIGH>; /* GPIO48 */
+			label = "Yellow LED";
+		};
+
+		green_led: led_1 {
+			gpios = <&gpio0 0 GPIO_ACTIVE_LOW>; /* GPIO0 */
+			label = "Green LED";
+		};
+
+		blue_led: led_2 {
+			gpios = <&gpio1 13 GPIO_ACTIVE_LOW>; /* GPIO45 */
+			label = "Blue LED";
+		};
+
+		red_led: led_3 {
+			gpios = <&gpio1 14 GPIO_ACTIVE_LOW>; /* GPIO46 */
+			label = "Red LED";
+		};
+	};
+};
+
+/* USB-C goes straight to the ESP32-S3's USB-Serial/JTAG peripheral (the console). */
+&usb_serial {
+	status = "okay";
+};
+
+/* UART0 on D0 (RX) / D1 (TX): Arduino's "Serial1" on the header – not the console. */
+&uart0 {
+	status = "okay";
+	current-speed = <115200>;
+	pinctrl-0 = <&uart0_default>;
+	pinctrl-names = "default";
+};
+
+/*
+ * I2C on A4/A5 and SPI on D11-D13 are configured but disabled. An app that uses a bus enables it
+ * in its overlay (status = "okay"). Until then the bus costs no memory or power, and its pins stay
+ * free for GPIO or ADC.
+ */
+&i2c0 {
+	status = "disabled";
+	clock-frequency = <I2C_BITRATE_STANDARD>;
+	pinctrl-0 = <&i2c0_default>;
+	pinctrl-names = "default";
+};
+
+&spi2 {
+	status = "disabled";
+	#address-cells = <1>;
+	#size-cells = <0>;
+	pinctrl-0 = <&spim2_default>;
+	pinctrl-names = "default";
+};
+
+/* ------------------------------------------------------------------------------------------------
+ * System peripherals (same as esp32s3_devkitc – nothing Nano-specific below this line).
+ * --------------------------------------------------------------------------------------------- */
+
+&gpio0 {
+	status = "okay";
+};
+
+&gpio1 {
+	status = "okay";
+};
+
+&wdt0 {
+	status = "okay";
+};
+
+&trng0 {
+	status = "okay";
+};
+
+&esp32_bt_hci {
+	status = "okay";
+};
+
+&wifi {
+	status = "okay";
+};
+
+/* General purpose hardware timers (TIMG): available through the counter API, off by default. */
+&timer0 {
+	status = "disabled";
+};
+
+&timer1 {
+	status = "disabled";
+};
+
+&timer2 {
+	status = "disabled";
+};
+
+&timer3 {
+	status = "disabled";
+};

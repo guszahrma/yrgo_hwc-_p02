@@ -1,0 +1,55 @@
+/*
+ * Arduino Nano ESP32 – the Nano pin header (D0-D13, A0-A7) as a GPIO nexus.
+ *
+ * With this, apps and overlays refer to Arduino pin names instead of ESP32-S3 GPIO numbers:
+ *     gpios = <&arduino_nano_header 6 GPIO_ACTIVE_HIGH>;   D6, instead of <&gpio0 9 ...>
+ * or with the named constants from <zephyr/dt-bindings/gpio/arduino-nano-header.h>:
+ *     gpios = <&arduino_nano_header ARDUINO_NANO_HEADER_D6 GPIO_ACTIVE_HIGH>;
+ *
+ * Binding: zephyr/dts/bindings/gpio/arduino-nano-header.yaml (A0-A7 are D14-D21 in the binding).
+ * ESP32-S3 GPIO controllers: gpio0 = GPIO 0-31, gpio1 = GPIO 32-48 (pin = GPIO - 32).
+ *
+ * Special pins:
+ *   - D13 (GPIO48) is also the on-board yellow LED, so it flickers while SPI is in use.
+ *   - A0-A3 are on ADC1. A4-A7 are on ADC2, which cannot be used while Wi-Fi is active.
+ */
+
+#include <zephyr/dt-bindings/gpio/arduino-nano-header.h>
+
+/ {
+	arduino_nano_header: connector {
+		compatible = "arduino-nano-header";
+		#gpio-cells = <2>;
+		gpio-map-mask = <0xffffffff 0xffffffc0>;
+		gpio-map-pass-thru = <0 0x3f>;
+		gpio-map = <ARDUINO_NANO_HEADER_D0 0 &gpio1 12 0>,  /* D0  / UART RX              = GPIO44 */
+			   <ARDUINO_NANO_HEADER_D1 0 &gpio1 11 0>,  /* D1  / UART TX              = GPIO43 */
+			   <ARDUINO_NANO_HEADER_D2 0 &gpio0 5 0>,   /* D2                         = GPIO5  */
+			   <ARDUINO_NANO_HEADER_D3 0 &gpio0 6 0>,   /* D3                         = GPIO6  */
+			   <ARDUINO_NANO_HEADER_D4 0 &gpio0 7 0>,   /* D4                         = GPIO7  */
+			   <ARDUINO_NANO_HEADER_D5 0 &gpio0 8 0>,   /* D5                         = GPIO8  */
+			   <ARDUINO_NANO_HEADER_D6 0 &gpio0 9 0>,   /* D6                         = GPIO9  */
+			   <ARDUINO_NANO_HEADER_D7 0 &gpio0 10 0>,  /* D7                         = GPIO10 */
+			   <ARDUINO_NANO_HEADER_D8 0 &gpio0 17 0>,  /* D8                         = GPIO17 */
+			   <ARDUINO_NANO_HEADER_D9 0 &gpio0 18 0>,  /* D9                         = GPIO18 */
+			   <ARDUINO_NANO_HEADER_D10 0 &gpio0 21 0>, /* D10 / SPI CS               = GPIO21 */
+			   <ARDUINO_NANO_HEADER_D11 0 &gpio1 6 0>,  /* D11 / SPI COPI             = GPIO38 */
+			   <ARDUINO_NANO_HEADER_D12 0 &gpio1 15 0>, /* D12 / SPI CIPO             = GPIO47 */
+			   <ARDUINO_NANO_HEADER_D13 0 &gpio1 16 0>, /* D13 / SPI SCK / yellow LED = GPIO48 */
+			   <ARDUINO_NANO_HEADER_D14 0 &gpio0 1 0>,  /* A0  / ADC1                 = GPIO1  */
+			   <ARDUINO_NANO_HEADER_D15 0 &gpio0 2 0>,  /* A1  / ADC1                 = GPIO2  */
+			   <ARDUINO_NANO_HEADER_D16 0 &gpio0 3 0>,  /* A2  / ADC1                 = GPIO3  */
+			   <ARDUINO_NANO_HEADER_D17 0 &gpio0 4 0>,  /* A3  / ADC1                 = GPIO4  */
+			   <ARDUINO_NANO_HEADER_D18 0 &gpio0 11 0>, /* A4  / ADC2 / I2C SDA       = GPIO11 */
+			   <ARDUINO_NANO_HEADER_D19 0 &gpio0 12 0>, /* A5  / ADC2 / I2C SCL       = GPIO12 */
+			   <ARDUINO_NANO_HEADER_D20 0 &gpio0 13 0>, /* A6  / ADC2                 = GPIO13 */
+			   <ARDUINO_NANO_HEADER_D21 0 &gpio0 14 0>; /* A7  / ADC2                 = GPIO14 */
+	};
+};
+
+/*
+ * Arduino names for the buses on the header, so overlays and shields can use them without knowing
+ * the ESP32-S3 peripheral names (e.g. &arduino_nano_i2c instead of &i2c0).
+ */
+arduino_nano_i2c: &i2c0 {};
+arduino_nano_spi: &spi2 {};

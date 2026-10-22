@@ -11,14 +11,6 @@
 #include "driver/timer/stub.h"
 #include "driver/tempsensor/stub.h"
 
-//! @note Please remove this later when your real factory is implemented.
-#define DRIVER_SERIAL_ESP32S3
-
-#ifdef DRIVER_SERIAL_ESP32S3
-#include "driver/serial/esp32s3.h"
-#else
-#include "driver/serial/stub.h"
-#endif
 namespace driver::factory
 {
 class Stub final : public Interface
@@ -80,12 +72,7 @@ public:
      */
     std::unique_ptr<driver::serial::Interface> createSerial() noexcept override
     {
-        //! @note This is fine for now, but remove this later when you have a real factory.
-#ifdef DRIVER_SERIAL_ESP32S3
-        return std::make_unique<driver::serial::Esp32s3>();
-#else
         return std::make_unique<driver::serial::Stub>();
-#endif
     }
 
     /**

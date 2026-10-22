@@ -12,7 +12,6 @@
 #include <sys/unistd.h>
 
 #include "driver/factory/esp32s3.h"
-#include "driver/factory/stub.h"
 #include "logic/logic.h"
 
 namespace logic
@@ -118,24 +117,6 @@ void Logic::run() noexcept
             myGpioDriver->toggle();
             myTimerDriver->start(); // Restart the timer for the next period
         }
-
-#ifndef DRIVER_SERIAL_ESP32S3
-        // TEMP: randomize command input for testing
-        {
-            static const char* commands[] {
-                "on", "off", "blink on", "blink off",
-                "period 500", "period 1000", "period 2000", "status"
-            };
-            constexpr std::size_t numCommands{sizeof(commands) / sizeof(commands[0])};
-
-            sleep(sleepDuration_ms); // Sleep briefly to avoid busy-waiting when no input is available
-            auto* stub = static_cast<driver::serial::Stub*>(mySerialDriver.get());
-            // Randomly simulate if random input is generated or not
-
-            if (0 == std::rand() % 10 )
-            stub->simulateInputData(commands[std::rand() % numCommands]);
-        }
-#endif
     }
 }
 

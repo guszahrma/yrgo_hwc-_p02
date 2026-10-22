@@ -13,7 +13,7 @@ Esp32s3::Esp32s3() noexcept
     : myInternalBuf{}
     , myInternalLen{}
 {
-    usb_serial_jtag_driver_config_t cfg = {
+    usb_serial_jtag_driver_config_t cfg{
         .tx_buffer_size{InternalBufLen},
         .rx_buffer_size{InternalBufLen}
     };

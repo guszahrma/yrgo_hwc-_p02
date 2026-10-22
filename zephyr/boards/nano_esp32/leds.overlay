@@ -1,7 +1,8 @@
 /*
  * Arduino Nano ESP32: on-board LEDs.
  *
- * The esp32s3_devkitc board has no LEDs, so samples such as blinky find no "led0". This overlay
+ * The esp32s3_devkitc_procpu.dts (found from -b esp32s3_devkitc/esp32s3/procpu)  has no LEDs, 
+ * so samples such as blinky find no "led0". This overlay
  * adds the Nano's LEDs (schematic ABX00083) and the standard aliases led0-led3.
  *
  * Zephyr GPIO controllers: gpio0 = GPIO 0-31, gpio1 = GPIO 32-48 (pin = GPIO - 32).

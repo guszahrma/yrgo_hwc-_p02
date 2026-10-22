@@ -398,8 +398,11 @@ west blobs fetch hal_espressif                           # Espressif binary blob
 Add an alias to activate the environment:
 
 ```bash
-echo "alias get_zephyr='unset ZEPHYR_TOOLCHAIN_VARIANT; source ~/zephyrproject/.venv/bin/activate && export ZEPHYR_BASE=~/zephyrproject/zephyr && cd ~/zephyrproject/zephyr'" >> ~/.bashrc
+echo "alias get_zephyr='unset ZEPHYR_TOOLCHAIN_VARIANT; source ~/zephyrproject/.venv/bin/activate && export ZEPHYR_BASE=~/zephyrproject/zephyr'" >> ~/.bashrc
 ```
+
+The alias does not change directory, so you stay where you are (e.g. in this repository). If you
+added an older version of the alias, remove it first: `sed -i '/alias get_zephyr=/d' ~/.bashrc`.
 
 > **Never mix environments in one terminal.** Use a fresh terminal for each of:
 >
@@ -441,7 +444,7 @@ Example with `hello_world`:
 
 ```bash
 get_zephyr
-west build -p always -b arduino_nano_esp32/esp32s3/procpu samples/hello_world -- \
+west build -p always -b arduino_nano_esp32/esp32s3/procpu $ZEPHYR_BASE/samples/hello_world -- \
   -DBOARD_ROOT=$HOME/yrgo_hwc-_p02/zephyr \
   -DCONFIG_BOOT_DELAY=10000
 ```

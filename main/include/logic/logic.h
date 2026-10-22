@@ -60,6 +60,10 @@ private:
     void handleBlinkOff() noexcept;
     void handlePeriod(std::uint16_t periodLengthMs) noexcept;
     void handleStatus() noexcept;
+    void handleHelp() noexcept;
+    void handleUnknownCommand(const std::string_view& cmd) noexcept;
+    void handleStore() noexcept;
+    void loadStoredUserSettings() noexcept;
 
     std::uint16_t myPeriodLengthMs;                            // Blinking period in milliseconds
     bool myBlinkState;                                         // false for off, true for on
@@ -72,13 +76,5 @@ private:
     std::unique_ptr<driver::tempsensor::Interface> myTempSensor; // TMP36 temperature sensor driver
     std::unique_ptr<driver::nvs::Interface>
         myNvsUserSettingsStorage; // NVS driver for non-volatile storage of Usersettings
-
-    // Command handler functions
-    //! @note Place private methods above the member variables (no functional difference, just good
-    //! practice).
-    void handleHelp() noexcept;
-    void handleUnknownCommand(const std::string_view& cmd) noexcept;
-    void handleStore() noexcept;
-    void loadStoredUserSettings() noexcept;
 };
 } // namespace logic

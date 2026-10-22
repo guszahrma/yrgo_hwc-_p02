@@ -6,8 +6,7 @@
 #include <cstdint>
 #include <iostream>
 
-//! @note Don't use relative paths, this should be "driver/serial/interface.h".
-#include "interface.h"
+#include "driver/serial/interface.h"
 
 namespace driver::serial
 {
@@ -21,8 +20,7 @@ public:
     /**
      * @brief Construct a new Stub object
      */
-    //! @note Explicit not needed for default constructors, but it doesn't hurt.
-    explicit Stub() noexcept
+    Stub() noexcept
         : myBuf{}
         , myBufLen{}
     {
@@ -42,8 +40,7 @@ public:
      */
     void print(const char* text) noexcept override
     {
-        //! @note Yoda.
-        if (text != nullptr)
+        if (nullptr != text)
         {
             std::cout << text << std::flush;
         }
@@ -100,9 +97,7 @@ public:
 
         // Copy data into our own buffer until we reach a terminating null character.
         // The buffer length is set accordingly.
-        //! @note I think you should copy until you reach \0 or your internal buffer is out of space:
-        //!        for (i = 0U; (data[i] != '\0') && ((BufLen - 1U) > i); ++i).
-        for (i = 0U; data[i] != '\0'; ++i)
+        for (i = 0U; (data[i] != '\0') && ((BufLen - 1U) > i); ++i)
         {
             myBuf[i] = data[i];
         }

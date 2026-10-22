@@ -75,7 +75,8 @@ Pins are handled by `driver::pin`:
 ├── tests/                    # Test suite run on the PC (g++) with mocked hardware
 ├── tools/                    # clang-format scripts
 ├── zephyr/                   # Zephyr port (work in progress)
-│   └── boards/nano_esp32/    # Devicetree overlays adapting esp32s3_devkitc to the Nano ESP32
+│   ├── boards/nano_esp32/    # Devicetree overlays adapting esp32s3_devkitc to the Nano ESP32
+│   └── samples/blinky/       # First Zephyr app: yellow LED + RGB colour cycle
 ├── docs/                     # Additional documentation (git_commands.md, zephyr_port.md)
 └── .github/workflows/ci.yml  # CI: format check + build on Linux and Windows
 ```
@@ -119,7 +120,7 @@ The full pin mapping is in [`main/include/driver/pin/esp32s3.h`](main/include/dr
 | USB | USB-C D+/D− go **directly** to GPIO19/20 (ESP32-S3 USB-Serial/JTAG) – there is no USB-UART chip |
 | UART0 | GPIO43 (TX, D1) / GPIO44 (RX, D0) on the header |
 | Yellow LED ("SCK LED", D13) | GPIO48 via a MOSFET – **active high** |
-| RGB LED | Common anode to 3V3 on GPIO46, GPIO0 and GPIO45 – **active low** |
+| RGB LED | Common anode to 3V3 – **active low**: red = GPIO46, green = GPIO0, blue = GPIO45 (verified on the board) |
 | Boot strapping pins | GPIO0 and GPIO46 – take care when using the RGB LED |
 
 ---
@@ -345,6 +346,7 @@ devicetree overlays in [`zephyr/boards/nano_esp32/`](zephyr/boards/nano_esp32/):
 | Overlay | Purpose |
 |---|---|
 | `usb_console.overlay` | Moves the console from `uart0` (D0/D1 pins) to the USB-C port (`usb_serial`) |
+| `leds.overlay` | Adds the yellow LED (`led0`) and the RGB LED (`led1` green, `led2` blue, `led3` red) |
 
 Board target used for all Zephyr builds:
 
@@ -352,8 +354,8 @@ Board target used for all Zephyr builds:
 esp32s3_devkitc/esp32s3/procpu
 ```
 
-Known differences from the devkitc definition: the devkitc has no LED alias (`led0`) and assumes 8 MB flash
-(the Nano has 16 MB). The long-term plan is an out-of-tree board definition `arduino_nano_esp32` in this
+Known differences from the devkitc definition: the devkitc has no LEDs (added by `leds.overlay`) and
+assumes 8 MB flash (the Nano has 16 MB). The long-term plan is an out-of-tree board definition `arduino_nano_esp32` in this
 repository.
 
 ### Zephyr environment
@@ -379,8 +381,11 @@ west blobs fetch hal_espressif                           # Espressif binary blob
 Add an alias to activate the environment:
 
 ```bash
-echo "alias get_zephyr='unset ZEPHYR_TOOLCHAIN_VARIANT; source ~/zephyrproject/.venv/bin/activate && export ZEPHYR_BASE=~/zephyrproject/zephyr && cd ~/zephyrproject/zephyr'" >> ~/.bashrc
+echo "alias get_zephyr='unset ZEPHYR_TOOLCHAIN_VARIANT; source ~/zephyrproject/.venv/bin/activate && export ZEPHYR_BASE=~/zephyrproject/zephyr'" >> ~/.bashrc
 ```
+
+The alias does not change directory, so you stay where you are (e.g. in this repository). If you
+added an older version of the alias, remove it first: `sed -i '/alias get_zephyr=/d' ~/.bashrc`.
 
 > **Never mix environments in one terminal.** Use a fresh terminal for each of:
 >
@@ -395,12 +400,34 @@ echo "alias get_zephyr='unset ZEPHYR_TOOLCHAIN_VARIANT; source ~/zephyrproject/.
 
 ### Building and flashing with Zephyr
 
-Until we have our own Zephyr application, Zephyr's samples are built with our overlay. Example with
+#### Our own apps (`zephyr/samples/`)
+
+Our apps pick up the board overlays in their own `CMakeLists.txt` and set `CONFIG_BOOT_DELAY` in
+`prj.conf`, so no extra flags are needed. Build from the **app directory** (never from the repository
+root – the root `build/` belongs to ESP-IDF):
+
+```bash
+get_zephyr
+cd ~/yrgo_hwc-_p02/zephyr/samples/blinky
+west build -p always -b esp32s3_devkitc/esp32s3/procpu .
+west flash --esp-device /dev/ttyACM0 && sleep 9 && python -m serial.tools.miniterm /dev/ttyACM0 115200
+```
+
+Expected: the yellow LED blinks and the RGB LED cycles red → green → blue, with one line per second:
+
+```
+Yellow: OFF  RGB: green
+Yellow: ON   RGB: blue
+```
+
+#### Zephyr's samples
+
+Zephyr's own samples are built with our overlays passed on the command line. Example with
 `hello_world`:
 
 ```bash
 get_zephyr
-west build -p always -b esp32s3_devkitc/esp32s3/procpu samples/hello_world -- \
+west build -p always -b esp32s3_devkitc/esp32s3/procpu $ZEPHYR_BASE/samples/hello_world -- \
   -DEXTRA_DTC_OVERLAY_FILE=$HOME/yrgo_hwc-_p02/zephyr/boards/nano_esp32/usb_console.overlay \
   -DCONFIG_BOOT_DELAY=10000
 ```

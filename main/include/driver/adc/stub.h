@@ -31,20 +31,20 @@ public:
         , myValue(defaultValue)
         , myReferenceVoltage(referenceVoltage)
     {
-        if (!acquirePin(static_cast<std::uint8_t>(driver::pin::stub::to_number(pin))))
+        if (!acquirePin(static_cast<std::uint8_t>(driver::pin::stub::toNumber(pin))))
         {
             std::printf("ADC Stub construction failed: pin %s already in use or invalid.\n",
-                        driver::pin::stub::to_string(pin));
+                        driver::pin::stub::toString(pin));
         }
         std::printf("ADC Stub constructed on pin %s, value is set as default to %u.\n",
-                    driver::pin::stub::to_string(pin), myValue);
+                    driver::pin::stub::toString(pin), myValue);
     }
 
     /** @brief Releases the acquired pin. */
     ~Stub() noexcept override
     {
-        releasePin(static_cast<std::uint8_t>(driver::pin::stub::to_number(myPin)));
-        std::printf("ADC Stub destroyed on pin %s.\n", driver::pin::stub::to_string(myPin));
+        releasePin(static_cast<std::uint8_t>(driver::pin::stub::toNumber(myPin)));
+        std::printf("ADC Stub destroyed on pin %s.\n", driver::pin::stub::toString(myPin));
     }
 
     /**

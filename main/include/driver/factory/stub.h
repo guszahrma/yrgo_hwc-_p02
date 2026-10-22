@@ -76,8 +76,6 @@ public:
     /**
      * @brief Create serial object
      * 
-     * @param[in] baudRate
-     * 
      * @return unique pointer
      */
     std::unique_ptr<driver::serial::Interface> createSerial() noexcept override

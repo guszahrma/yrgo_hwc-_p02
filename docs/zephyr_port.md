@@ -120,7 +120,9 @@ first, then apply it to P02 on the real board.
   | `led2` | RGB blue | GPIO45 | `&gpio1 13` | Active low |
   | `led3` | RGB red | GPIO46 | `&gpio1 14` | Active low |
 
-  The schematic does not say which RGB pin is which colour – this was found by testing.
+  The schematic does not show which RGB pin is which colour. Found by testing, and matches Arduino's
+  pin definitions for the Nano ESP32 (`LED_RED = 46`, `LED_GREEN = 0`, `LED_BLUE = 45` in
+  `variants/arduino_nano_nora/pins_arduino.h` in espressif/arduino-esp32).
 * GPIO number → Zephyr: `gpio0` = GPIO 0–31, `gpio1` = GPIO 32–48 (pin = GPIO − 32).
 * GPIO0 and GPIO46 are boot strapping pins (GPIO0 low at reset = download mode, same as the B1 trick).
 

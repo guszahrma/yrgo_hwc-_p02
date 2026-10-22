@@ -1,4 +1,4 @@
-/** 
+/**
  * @file Pin manager for tracking physical pin usage.
  */
 #pragma once
@@ -32,25 +32,24 @@ public:
         return pinsInUse[physicalPin];
     }
 
-    PhysicalPinManager(const PhysicalPinManager&) = delete;
+    PhysicalPinManager(const PhysicalPinManager&)            = delete;
     PhysicalPinManager& operator=(const PhysicalPinManager&) = delete;
-    PhysicalPinManager(PhysicalPinManager&&) = delete;
-    PhysicalPinManager& operator=(PhysicalPinManager&&) = delete;
+    PhysicalPinManager(PhysicalPinManager&&)                 = delete;
+    PhysicalPinManager& operator=(PhysicalPinManager&&)      = delete;
 
     bool acquire(std::uint8_t physicalPin)
     {
-        if ( (MaxPins <= physicalPin ) || pinsInUse[physicalPin]  ) return false;
+        if ((MaxPins <= physicalPin) || pinsInUse[physicalPin]) return false;
         pinsInUse[physicalPin] = true;
         return true;
     }
 
     void release(std::uint8_t physicalPin)
     {
-        if ( MaxPins > physicalPin) pinsInUse[physicalPin] = false;
+        if (MaxPins > physicalPin) pinsInUse[physicalPin] = false;
     }
 
-    private:
-
+private:
     std::array<bool, MaxPins> pinsInUse{};
     PhysicalPinManager() { pinsInUse.fill(false); }
 };

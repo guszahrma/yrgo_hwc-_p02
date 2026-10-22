@@ -172,7 +172,7 @@ sudo usermod -aG dialout $USER
 ### 3. ESP-IDF 6.0
 
 ESP-IDF is a framework that is built from source together with the project, so it has to be available
-locally. A shallow clone (without history) is enough:
+locally. A shallow clone (without history) is enough, place it at a relevant location for instance ~/esp (if you chose a different location you need to adjust some paths in commands, as described below):
 
 ```bash
 mkdir -p ~/esp
@@ -181,7 +181,7 @@ cd ~/esp/esp-idf && ./install.sh esp32s3
 ```
 
 `install.sh` downloads the compiler and creates the Python environment in `~/.espressif/`. Adding an alias
-is handy:
+is handy (if you chose a different location for esp you need to adjust the path below) : 
 
 ```bash
 echo "alias get_idf='. ~/esp/esp-idf/export.sh'" >> ~/.bashrc
@@ -210,7 +210,7 @@ called `COMx` instead of `/dev/ttyACM0`.
 
 ## Building
 
-Always run from the **project root directory** (not inside `~/esp/esp-idf`):
+Always run from the **project root directory** (not inside `~/esp/esp-idf`) (in the example below we assume you have the repo in  ~/yrgo_hwc-_p02, this may need to be adapted to your folder structure):
 
 ```bash
 get_idf                       # once per terminal
@@ -226,7 +226,7 @@ Configuration (e.g. flash size) is changed with `idf.py menuconfig`.
 ## Flashing and monitoring
 
 ### 1. Attach the board to WSL (PowerShell as administrator)
-
+Run usbipd list first without the esp connected and then with the esp connected to see which device is added and with which VID:PID it appeared. in the example below it appeared with VID:PID 6-4.
 ```powershell
 usbipd list                                    # find the board's BUSID, e.g. 6-4
 usbipd bind --busid 6-4                        # once per device and port
@@ -330,7 +330,8 @@ Git commands and SSH setup are described in [`docs/git_commands.md`](docs/git_co
 
 ## Zephyr port
 
-Work is in progress to port the drivers to **Zephyr RTOS v4.4.2**. Thanks to the factory pattern,
+This is work is in progress to port the drivers to **Zephyr RTOS v4.4.2**, Do not rely too much on this yet since its will evolve iteratively during the development phase. especially in the begining.
+Thanks to the factory pattern,
 `logic::Logic` does not need to change – instead, Zephyr implementations are added next to the ESP32-S3
 implementations, together with a `factory::Zephyr`.
 

@@ -1,4 +1,6 @@
-//! @note File header missing.
+/**
+ * @file Serial interface
+ */
 #pragma once
 
 #include <cstddef>
@@ -14,15 +16,13 @@ public:
     /**
      * @brief Destructor
      */
-    //! @note Missing noexcept.
-    virtual ~Interface() = default;
+    virtual ~Interface() noexcept = default;
 
     /**
      * @brief Print function
      * 
-     * @param[in] text 
+     * @param[in] text Text to print
      */
-    //! @note Missing documentation of 'text'.
     virtual void print(const char* text) noexcept = 0;
 
     /**

@@ -35,8 +35,11 @@ public:
      * @brief Constructs a new Logic instance.
      * Uses the factory to create the necessary drivers and initializes the system state.
      * Initialises Led as off and Blink as off, and sets a default blinking period (e.g., 1000 ms).
+     *
+     * @param[in] factory Factory that creates the drivers for the current platform
+     *                    (e.g. driver::factory::Esp32s3 or driver::factory::Stub).
      */
-    Logic() noexcept;
+    explicit Logic(driver::factory::Interface& factory) noexcept;
     ~Logic() noexcept;
 
     /**

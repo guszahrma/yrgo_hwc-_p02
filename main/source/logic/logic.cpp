@@ -11,21 +11,19 @@
 #include <string_view>
 #include <sys/unistd.h>
 
-#include "driver/factory/esp32s3.h"
 #include "logic/logic.h"
 
 namespace logic
 {
 
 // --------------------------------------------------------------------------------
-Logic::Logic() noexcept
+Logic::Logic(driver::factory::Interface& factory) noexcept
     : myPeriodLengthMs{1000} // Set default blinking period to 1000 ms
     , myBlinkState{false}    // Initialize blink state to off
 {
     // Create the necessary drivers using the factory and initialize the system state.
     // For example, you might create a serial driver for communication and a GPIO driver for controlling the LED.
     // Initialize the LED as off, set the blink state to off, and set a default blinking period (e.g., 1000 ms).
-    driver::factory::Esp32s3 factory{};
     // Example of creating drivers using the factory:   
     mySerialDriver = factory.createSerial();
     myGpioDriver = factory.createGpio(9U , driver::gpio::Direction::OUTPUT);

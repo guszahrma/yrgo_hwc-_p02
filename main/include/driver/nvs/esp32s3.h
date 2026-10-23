@@ -1,14 +1,15 @@
-//! @note File header missing.
+/**
+ * @file the esp32s3 specific nvs interface
+ */
 #pragma once
 
-#include <cstdio>
 #include <cstdint>
+#include <cstdio>
 #include <type_traits>
 
-//! @note Sort headers.
-#include "nvs.h"
-#include "esp_err.h"
 #include "driver/nvs/interface.h"
+#include "esp_err.h"
+#include "nvs.h"
 
 namespace driver::nvs
 {
@@ -38,19 +39,15 @@ public:
     /** @brief Close the NVS namespace handle. */
     ~Esp32s3() noexcept override;
 
-    //! @note I would place these at the bottom of the public segment, but OK.
-    Esp32s3(const Esp32s3&)            = delete;
-    Esp32s3(Esp32s3&&)                 = delete;
-    Esp32s3& operator=(const Esp32s3&) = delete;
-    Esp32s3& operator=(Esp32s3&&)      = delete;
-
     /** @brief Store a string value.
      *  @param [in] key         Key to store under (max 15 characters).
      *  @param [in] value       Value to store.
-     *  @param [in] autoCommit  If true, commit to flash immediately after writing, else caller must call commit() to persist changes.
+     *  @param [in] autoCommit  If true, commit to flash immediately after writing, else caller must
+     * call commit() to persist changes.
      *  @return True if successful, false otherwise.
      */
-    bool setString(const char* key, const std::string& value, const bool autoCommit = true) noexcept override;
+    bool setString(const char* key, const std::string& value,
+                   const bool autoCommit = true) noexcept override;
 
     /** @brief Retrieve a string value.
      *  @param [in]  key    Key to look up.
@@ -64,28 +61,50 @@ public:
      *                                   int8_t,  int16_t,  int32_t,  int64_t.
      *  @param [in] key         Key to store under (max 15 characters).
      *  @param [in] value       Value to store.
-     *  @param [in] autoCommit  If true, commit to flash immediately after writing, else caller must call commit() to persist changes.
+     *  @param [in] autoCommit  If true, commit to flash immediately after writing, else caller must
+     * call commit() to persist changes.
      *  @return True if successful, false otherwise.
      */
     template<typename T>
     bool set(const char* key, const T value, const bool autoCommit = true) noexcept
     {
-        //! @note Please use { return false; } for safety (it's easy to miss something).
-        if (!myValid || !isValidKey(key)) return false;
+        if ((!myValid) || (!isValidKey(key))) { return false; }
 
-        //! @note Initialize this variable.
-        esp_err_t err;
+        esp_err_t err{ESP_FAIL};
 
-        //! @note Please use std::uint8_t, std::uint16_t etc, and {} around the conditions, but OK.
-        if constexpr      (std::is_same_v<T, uint8_t>)  err = nvs_set_u8 (myHandle, key, value);
-        else if constexpr (std::is_same_v<T, uint16_t>) err = nvs_set_u16(myHandle, key, value);
-        else if constexpr (std::is_same_v<T, uint32_t>) err = nvs_set_u32(myHandle, key, value);
-        else if constexpr (std::is_same_v<T, uint64_t>) err = nvs_set_u64(myHandle, key, value);
-        else if constexpr (std::is_same_v<T, int8_t>)   err = nvs_set_i8 (myHandle, key, value);
-        else if constexpr (std::is_same_v<T, int16_t>)  err = nvs_set_i16(myHandle, key, value);
-        else if constexpr (std::is_same_v<T, int32_t>)  err = nvs_set_i32(myHandle, key, value);
-        else if constexpr (std::is_same_v<T, int64_t>)  err = nvs_set_i64(myHandle, key, value);
-        else static_assert(false, "Unsupported type for NVS set");
+        if constexpr (std::is_same_v<T, std::uint8_t>) { err = nvs_set_u8(myHandle, key, value); }
+        else if constexpr (std::is_same_v<T, std::uint16_t>)
+        {
+            err = nvs_set_u16(myHandle, key, value);
+        }
+        else if constexpr (std::is_same_v<T, std::uint32_t>)
+        {
+            err = nvs_set_u32(myHandle, key, value);
+        }
+        else if constexpr (std::is_same_v<T, std::uint64_t>)
+        {
+            err = nvs_set_u64(myHandle, key, value);
+        }
+        else if constexpr (std::is_same_v<T, std::int8_t>)
+        {
+            err = nvs_set_i8(myHandle, key, value);
+        }
+        else if constexpr (std::is_same_v<T, std::int16_t>)
+        {
+            err = nvs_set_i16(myHandle, key, value);
+        }
+        else if constexpr (std::is_same_v<T, std::int32_t>)
+        {
+            err = nvs_set_i32(myHandle, key, value);
+        }
+        else if constexpr (std::is_same_v<T, std::int64_t>)
+        {
+            err = nvs_set_i64(myHandle, key, value);
+        }
+        else
+        {
+            static_assert(false, "Unsupported type for NVS set");
+        }
 
         if (ESP_OK != err)
         {
@@ -105,18 +124,29 @@ public:
     template<typename T>
     bool get(const char* key, T& value) noexcept
     {
-        //! @note Same here as above.
-        if (!myValid || !isValidKey(key)) return false;
+        if ((!myValid) || (!isValidKey(key))) return false;
         esp_err_t err;
-        if constexpr      (std::is_same_v<T, uint8_t>)  err = nvs_get_u8 (myHandle, key, &value);
-        else if constexpr (std::is_same_v<T, uint16_t>) err = nvs_get_u16(myHandle, key, &value);
-        else if constexpr (std::is_same_v<T, uint32_t>) err = nvs_get_u32(myHandle, key, &value);
-        else if constexpr (std::is_same_v<T, uint64_t>) err = nvs_get_u64(myHandle, key, &value);
-        else if constexpr (std::is_same_v<T, int8_t>)   err = nvs_get_i8 (myHandle, key, &value);
-        else if constexpr (std::is_same_v<T, int16_t>)  err = nvs_get_i16(myHandle, key, &value);
-        else if constexpr (std::is_same_v<T, int32_t>)  err = nvs_get_i32(myHandle, key, &value);
-        else if constexpr (std::is_same_v<T, int64_t>)  err = nvs_get_i64(myHandle, key, &value);
-        else static_assert(false, "Unsupported type for NVS get");
+        if constexpr (std::is_same_v<T, uint8_t>) { err = nvs_get_u8(myHandle, key, &value); }
+        else if constexpr (std::is_same_v<T, uint16_t>)
+        {
+            err = nvs_get_u16(myHandle, key, &value);
+        }
+        else if constexpr (std::is_same_v<T, uint32_t>)
+        {
+            err = nvs_get_u32(myHandle, key, &value);
+        }
+        else if constexpr (std::is_same_v<T, uint64_t>)
+        {
+            err = nvs_get_u64(myHandle, key, &value);
+        }
+        else if constexpr (std::is_same_v<T, int8_t>) { err = nvs_get_i8(myHandle, key, &value); }
+        else if constexpr (std::is_same_v<T, int16_t>) { err = nvs_get_i16(myHandle, key, &value); }
+        else if constexpr (std::is_same_v<T, int32_t>) { err = nvs_get_i32(myHandle, key, &value); }
+        else if constexpr (std::is_same_v<T, int64_t>) { err = nvs_get_i64(myHandle, key, &value); }
+        else
+        {
+            static_assert(false, "Unsupported type for NVS get");
+        }
         if (ESP_OK != err)
         {
             printf("nvs: get('%s') failed: %s\n", key, esp_err_to_name(err));
@@ -141,10 +171,15 @@ public:
      */
     bool eraseAll() noexcept override;
 
+    Esp32s3(const Esp32s3&)            = delete;
+    Esp32s3(Esp32s3&&)                 = delete;
+    Esp32s3& operator=(const Esp32s3&) = delete;
+    Esp32s3& operator=(Esp32s3&&)      = delete;
+
 private:
     static bool isValidKey(const char* key) noexcept;
 
     nvs_handle_t myHandle;
-    bool         myValid;
+    bool myValid;
 };
 } // namespace driver::nvs

@@ -4,6 +4,10 @@
  * Status LED on D6 (GPIO9): D6 -> 330 ohm -> LED anode, LED cathode -> GND.
  * The pin drives the LED directly, so it is active high.
  *
+ * TMP36 temperature sensor on A6 (GPIO13 = ADC2 channel 2): Vout -> A6, Vs -> 3V3, GND -> GND.
+ * Note: ADC2 cannot be used while Wi-Fi is active - move the TMP36 to A0-A3 (ADC1) when Wi-Fi
+ * is added.
+ *
  * Only P02's own wiring belongs here. The LEDs on the board itself (led0-led3) are defined by the
  * board (zephyr/boards/arduino/nano_esp32/arduino_nano_esp32_procpu.dts).
  */
@@ -22,5 +26,24 @@
 			gpios = <&arduino_nano_header 6 GPIO_ACTIVE_HIGH>; /* D6 */
 			label = "P02 status LED (D6)";
 		};
+	};
+
+	zephyr,user {
+		io-channels = <&adc1 2>; /* adc1 = the chip's ADC2, channel 2 = GPIO13 = A6 */
+	};
+};
+
+&adc1 {
+	status = "okay";
+	#address-cells = <1>;
+	#size-cells = <0>;
+
+	/* A6: 12dB attentuation (ADC_GAIN_1_4), range up to ~3.1 V - enough for TMP36 */
+	channel@2 {
+		reg = <2>;
+		zephyr,gain = "ADC_GAIN_1_4";
+		zephyr,reference = "ADC_REF_INTERNAL";
+		zephyr,acquisition-time = <ADC_ACQ_TIME_DEFAULT>;
+		zephyr,resolution = <12>;
 	};
 };

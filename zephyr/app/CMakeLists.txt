@@ -16,4 +16,6 @@ target_sources(app PRIVATE
     src/main.cpp
     ${P02_MAIN}/source/driver/timer/zephyr.cpp
     ${P02_MAIN}/source/driver/gpio/zephyr.cpp
+    ${P02_MAIN}/source/driver/adc/zephyr.cpp
+    ${P02_MAIN}/source/driver/tempsensor/tmp36.cpp
 )

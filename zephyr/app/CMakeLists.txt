@@ -15,4 +15,5 @@ target_include_directories(app PRIVATE ${P02_MAIN}/include)
 target_sources(app PRIVATE
     src/main.cpp
     ${P02_MAIN}/source/driver/timer/zephyr.cpp
+    ${P02_MAIN}/source/driver/gpio/zephyr.cpp
 )

@@ -1,0 +1,26 @@
+/*
+ * P02 wiring on the breadboard for the Zephyr app.
+ *
+ * Status LED on D6 (GPIO9): D6 -> 330 ohm -> LED anode, LED cathode -> GND.
+ * The pin drives the LED directly, so it is active high.
+ *
+ * Only P02's own wiring belongs here. The LEDs on the board itself (led0-led3) are defined by the
+ * board (zephyr/boards/arduino/nano_esp32/arduino_nano_esp32_procpu.dts).
+ */
+
+#include <zephyr/dt-bindings/gpio/gpio.h>
+
+/ {
+	aliases {
+		p02-led = &p02_led;
+	};
+
+	p02-leds {
+		compatible = "gpio-leds";
+
+		p02_led: led-d6 {
+			gpios = <&arduino_nano_header 6 GPIO_ACTIVE_HIGH>; /* D6 */
+			label = "P02 status LED (D6)";
+		};
+	};
+};

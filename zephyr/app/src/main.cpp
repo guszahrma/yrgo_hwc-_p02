@@ -1,23 +1,30 @@
+/**
+ * @file Test of serial::Zephyr: echoes each line typed in the terminal.
+ */
+
+#include <zephyr/device.h>
 #include <zephyr/kernel.h>
 
-#include "driver/adc/zephyr.h"
-#include "driver/tempsensor/tmp36.h"
-
-// TMP36 on A6: index 0 in io-channels of zephyr,user (app.overlay).
-static const adc_dt_spec tempSpec = ADC_DT_SPEC_GET(DT_PATH(zephyr_user));
+#include "driver/serial/zephyr.h"
 
 int main()
 {
-    driver::adc::Zephyr adc{tempSpec};
-    driver::tempsensor::Tmp36 tempSensor{adc};
+    // The console device: USB-C on the Nano ESP32 (zephyr,console in the board).
+    driver::serial::Zephyr serial{DEVICE_DT_GET(DT_CHOSEN(zephyr_console))};
+    serial.print("Type a line and press Enter:\n");
+
+    char line[64]{};
 
     while (true)
     {
-        const std::uint16_t raw{adc.readValue()};
-        const float voltage{adc.readVoltage()};
-        printk("raw %u  voltage %d mV  temperature %d C\n", static_cast<unsigned>(raw),
-               static_cast<int>(voltage * 1000.0f), static_cast<int>(tempSensor.read()));
-        k_msleep(1000);
+        // Non-blocking: returns true only when a whole line has been received.
+        if (serial.readLine(line, sizeof(line)))
+        {
+            serial.print("You wrote: ");
+            serial.print(line);
+            serial.print("\n");
+        }
+        k_msleep(10);
     }
     return 0;
 }

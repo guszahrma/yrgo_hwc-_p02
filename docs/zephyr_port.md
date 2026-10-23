@@ -41,24 +41,27 @@ Then anyone (or CI) can get the exact same Zephyr with `west init -l . && west u
 
 ---
 
-## Planned directory structure
+## Directory structure
 
 ```
 zephyr/
 ├── boards/
-│   └── nano_esp32/            ← adapts esp32s3_devkitc to the Nano ESP32, shared by all apps
-│       ├── usb_console.overlay   (done)
-│       └── leds.overlay          (exercise)
-├── samples/                   ← our own learning exercises
-│   └── blinky/
-│       ├── CMakeLists.txt
+│   └── arduino/nano_esp32/                   ← our board definition: arduino_nano_esp32 (done)
+│       ├── arduino_nano_esp32_procpu.dts        the board: console, LEDs, aliases, peripherals
+│       ├── arduino_nano_esp32-pinctrl.dtsi      UART/I2C/SPI pins
+│       ├── arduino_nano_connector.dtsi          Nano pin header D0-D13, A0-A7
+│       └── board.yml, Kconfig*, board.cmake, *_defconfig, *.yaml
+├── samples/                                  ← our own learning exercises
+│   └── blinky/                                  (done)
+│       ├── CMakeLists.txt                       ← finds the board with BOARD_ROOT
 │       ├── prj.conf
 │       └── src/main.c
-└── app/                       ← the P02 port itself
+└── app/                                      ← the P02 port itself (next)
+    └── app.overlay                              P02's wiring: LED on D6, TMP36 on A6
 ```
 
-Later, `zephyr/boards/nano_esp32/` becomes a real out-of-tree board definition `arduino_nano_esp32`
-(based on the schematic), and the overlays go away.
+The board describes what is soldered onto every Nano ESP32. What we wire up ourselves (P02's LED and
+TMP36) belongs in the app's `app.overlay`, written with Arduino pin names via `arduino_nano_header`.
 
 ---
 
@@ -70,14 +73,14 @@ first, then apply it to P02 on the real board.
 | # | Step | Course topic | Status |
 |---|---|---|---|
 | 0 | Environment, hello_world on the board | – | ✅ |
-| 1 | Blinky on the yellow LED with our own overlay | Devicetree, GPIO | ⬜ |
+| 1 | Blinky on the yellow LED with our own overlay | Devicetree, GPIO | ✅ `zephyr/samples/blinky`: yellow LED + RGB colour cycle |
 | 2 | Own Zephyr app skeleton: `Logic` builds and runs with **only stubs** | West, build, Kconfig | ⬜ |
 | 3 | `timer::Zephyr` | Time, timers, work queues | ⬜ |
 | 4 | `gpio::Zephyr`, then pins from devicetree (`gpio_dt_spec`) instead of `9U` | Devicetree, GPIO | ⬜ |
 | 5 | `serial::Zephyr` – or replace our command parser with Zephyr's shell (design decision) | Shell | ⬜ |
 | 6 | `adc::Zephyr` + overlay – TMP36 then works as-is | Devicetree, driver model | ⬜ |
 | 7 | `nvs` via the Settings subsystem | Settings | ⬜ |
-| 8 | Own board definition `arduino_nano_esp32` | Devicetree, bindings | ⬜ |
+| 8 | Own board definition `arduino_nano_esp32` | Devicetree, bindings | ✅ `zephyr/boards/arduino/nano_esp32` – done early, so the port is built on the real board from the start |
 | 9 | Own `west.yml` (T2 workspace) + Zephyr build in CI | West manifest | ⬜ |
 | 10 | Wi-Fi and MQTT | Networking | ⬜ |
 
@@ -106,10 +109,60 @@ first, then apply it to P02 on the real board.
 
 ### Board / hardware
 
-* The Arduino Nano ESP32 is not in Zephyr. We use `esp32s3_devkitc/esp32s3/procpu` + overlays.
+* The Arduino Nano ESP32 is not in Zephyr. We first used `esp32s3_devkitc/esp32s3/procpu` + overlays,
+  now our own board definition `arduino_nano_esp32/esp32s3/procpu`.
 * The console must go over `usb_serial` (USB-Serial/JTAG) – the devkitc uses `uart0`.
 * USB re-enumerates on every reset; with usbipd the board is gone for ~8 s. Use `CONFIG_BOOT_DELAY`.
-* The devkitc definition says 8 MB flash, the Nano has 16 MB.
+* The devkitc definition says 8 MB flash, the Nano has 16 MB. The reason: the devkitc includes
+  `esp32s3_wroom_n8.dtsi` – a WROOM module with 8 MB flash (`n8`). Our board uses
+  `esp32s3_wroom_n16r8.dtsi` (16 MB flash, 8 MB PSRAM), which matches the NORA-W106.
+* LEDs (verified on the board, defined in `arduino_nano_esp32_procpu.dts`):
+
+  | Alias | LED | GPIO | Zephyr | Polarity |
+  |---|---|---|---|---|
+  | `led0` | Yellow ("SCK LED", D13) | GPIO48 | `&gpio1 16` | Active high (N-MOSFET, gate high = on) |
+  | `led1` | RGB green | GPIO0 | `&gpio0 0` | Active low (common anode to 3V3) |
+  | `led2` | RGB blue | GPIO45 | `&gpio1 13` | Active low |
+  | `led3` | RGB red | GPIO46 | `&gpio1 14` | Active low |
+
+  The schematic does not show which RGB pin is which colour. Found by testing, and matches Arduino's
+  pin definitions for the Nano ESP32 (`LED_RED = 46`, `LED_GREEN = 0`, `LED_BLUE = 45` in
+  `variants/arduino_nano_nora/pins_arduino.h` in espressif/arduino-esp32).
+* GPIO number → Zephyr: `gpio0` = GPIO 0–31, `gpio1` = GPIO 32–48 (pin = GPIO − 32).
+* GPIO0 and GPIO46 are boot strapping pins (GPIO0 low at reset = download mode, same as the B1 trick).
+* D13 (GPIO48) is both SPI SCK and the yellow LED – the LED flickers while SPI is in use.
+* A0-A3 are on ADC1, A4-A7 on ADC2. **ADC2 cannot be used while Wi-Fi is active** – P02's TMP36 on A6
+  will have to move to A0-A3 when Wi-Fi is added.
+
+### Board definition
+
+* A board is found by its directory: `<BOARD_ROOT>/boards/<vendor>/<board>/`. Zephyr only searches its
+  own tree, so apps add ours with `list(APPEND BOARD_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/../..)` **before**
+  `find_package(Zephyr)`. `BOARD_ROOT` is the directory that *contains* `boards/`.
+* The boilerplate files (`board.yml`, `Kconfig*`, `board.cmake`, `defconfig`, `.yaml`) can be copied
+  from a board with the same chip and renamed. The interesting part is the devicetree.
+* **When copying from another board, change every board-specific value.** Copying devkitc's SPI pinctrl
+  verbatim put SPI on GPIO11/12 – the same pins as our I2C – and the compiler did not complain.
+  Nothing checks pinctrl groups for overlapping pins.
+* **`gpio-map` vs `pinmux`** – look alike, do different things:
+  * `gpio-map` (connector): "Arduino pin D0 *is* GPIO44" – for apps using a pin as plain GPIO.
+  * `pinmux` (pinctrl): "route the UART0 RX *signal* to GPIO44" – one macro (`UART0_RX_GPIO44`) holds
+    both signal and pin. The ESP32-S3 GPIO matrix can route almost any signal to almost any pin.
+* A pinctrl group holds pins that need the same electrical settings: UART TX `output-high` (idle level),
+  RX `bias-pull-up` (no garbage from a floating pin), I2C `drive-open-drain` + pull-up (devices only
+  pull low), SPI COPI `output-low` (no noise before SPI starts).
+* `pinctrl-0` and `pinctrl-names = "default"` always go together – the binding requires both.
+* **Disabled nodes are not checked against their bindings.** `i2c0` without `pinctrl-names` built fine
+  while disabled and failed as soon as it was enabled. Test the board with each bus enabled (an overlay
+  with `status = "okay"`).
+* Buses are `disabled` in the board and enabled by the app that uses them: unused buses cost no memory or
+  power, and their pins stay free for GPIO or ADC.
+* `arduino_nano_i2c: &i2c0 {};` adds a second label to an existing node, so overlays can use the Arduino
+  name and work on any board with a Nano header.
+* `#include <zephyr/dt-bindings/gpio/arduino-nano-header.h>` + `gpio-map` makes the connector a GPIO
+  nexus: `<&arduino_nano_header 6 ...>` resolves to `<&gpio0 9 ...>` at build time (checked in
+  `devicetree_generated.h`: pin 9 on gpio0).
+* The devicetree compiler reports a missing `;` on the line *after* the real mistake.
 
 ### Devicetree
 
@@ -117,12 +170,66 @@ first, then apply it to P02 on the real board.
   `.dts` + automatically found overlays (`boards/<board>.overlay`, `app.overlay`) + `EXTRA_DTC_OVERLAY_FILE`.
 * A sample's `boards/<board_name_with_underscores>.overlay` is only used when building for exactly that
   board.
+* **Label vs alias** – two different names with different rules:
+
+  | | Label (`yellow_led: led_0 {...}`) | Alias (`aliases { led0 = &yellow_led; }`) |
+  |---|---|---|
+  | Characters | Like C: letters, digits, `_` | Lowercase letters, digits, `-` |
+  | Used by | Devicetree only (`&yellow_led`) | C code (`DT_ALIAS(led0)`; `-` becomes `_`) |
+  | Name | Free choice | What the code looks for (`led0` for blinky) |
+
+* `devicetree error: /aliases: undefined node label 'led0'` = something refers to `&led0` but no node has
+  that label. Read the **first** line of a devicetree error – the CMake lines after it are follow-up noise.
+  Devicetree errors happen during `find_package(Zephyr)`, before any C code is compiled.
+* Defining the same property twice in one node is **not** an error – the last one silently wins. One LED
+  = one child node with one `gpios`; an RGB LED is three LEDs.
+* `gpios = <&controller pin flags>` – the flags (`GPIO_ACTIVE_HIGH/LOW`) say what "active" means
+  electrically, so the C code can say "on" without knowing the wiring.
+* `GPIO_ACTIVE_HIGH` works in an overlay without `#include`, because the board's `.dts` and all overlays
+  are concatenated into one file before the C preprocessor runs, and the board includes
+  `dt-bindings/gpio/gpio.h` indirectly (via `esp32s3_common.dtsi`). Include it explicitly anyway, so the
+  overlay does not depend on what the board happens to include.
 
 ### Kconfig
 
 * `-DCONFIG_X=y` on the command line works, but belongs in `prj.conf` so everyone builds the same way.
+* **No spaces around `=`**: `CONFIG_GPIO = y` is read as the symbol `GPIO ` (with a space), which does
+  not exist, and the build fails.
+* Check the result in the build's own `build/zephyr/.config` – every app/build has its own. Grepping
+  another build directory shows that build's settings, not yours.
+* `CONFIG_BOOT_DELAY` is in milliseconds: `1000` = 1 s, too short for usbipd (~8 s). We use `10000`.
+
+### CMake (application `CMakeLists.txt`)
+
+* Overlays are set with `set(EXTRA_DTC_OVERLAY_FILE file1 file2)` – a CMake list, one value per line, no
+  `;` needed. `find_package` is for finding packages, not for setting variables.
+* It must come **before** `find_package(Zephyr ...)`, because that is where the devicetree is generated.
+* `DTC_OVERLAY_FILE` **replaces** automatically found overlays (`app.overlay`, `boards/<board>.overlay`);
+  `EXTRA_DTC_OVERLAY_FILE` **adds** to them.
+* Use paths relative to `${CMAKE_CURRENT_SOURCE_DIR}`, not `$HOME/...` (bash syntax that CMake does not
+  understand, and it breaks for anyone who clones the repo elsewhere, including CI).
+* Build from the app directory (`zephyr/samples/blinky`), never from the repository root – the root
+  `build/` belongs to ESP-IDF.
+
+### C / Zephyr API
+
+* A Zephyr app builds and runs even **without** a `main()`: `kernel/main_weak.c` has
+  `int __weak main(void)` that does nothing. A weak symbol is used only if nobody else defines it.
+* `#define X DT_ALIAS(led0);` is wrong – `#define` is plain text replacement, so the `;` ends up inside
+  `GPIO_DT_SPEC_GET(...)`. A `#define` never ends with `;`.
+* `GPIO_DT_SPEC_GET` is evaluated at **compile time**, so it can initialise a `static const` array of
+  `struct gpio_dt_spec`. A missing alias is a compile error, not a runtime error.
+* `&rgb[i]` is a pointer to **one** element (what `gpio_is_ready_dt` wants); `&rgb` is a pointer to the
+  whole array – a different type.
+* `ARRAY_SIZE(arr)` (from `zephyr/kernel.h`) gives the number of elements; `(i + 1) % ARRAY_SIZE(arr)`
+  wraps an index around.
+* `gpio_pin_set_dt(&spec, 1)` means "active" (on), not "high". The polarity flag in devicetree decides
+  the electrical level – the RGB LED is active low, yet the code writes `1` to turn it on.
+* In C, `int main(void)` means "no arguments"; `int main()` means "unspecified arguments".
+* Always `printk` the reason (and the error code) before returning on an error – a silent `return` only
+  leaves an LED that does not blink.
 
 ### Open questions
 
 * Keep our own command parser or use Zephyr's shell?
-* Why does the USB connection sometimes drop right after boot?
+* Why does the USB connection sometimes drop right after boot? (Not seen with blinky.)

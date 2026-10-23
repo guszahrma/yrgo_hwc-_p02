@@ -1,0 +1,10 @@
+# Arduino Nano ESP32 – defaults when building with sysbuild (--sysbuild), same as esp32s3_devkitc.
+# Not used by our normal builds, which flash the app with Zephyr's simple boot.
+
+choice BOOTLOADER
+	default BOOTLOADER_MCUBOOT
+endchoice
+
+choice BOOT_SIGNATURE_TYPE
+	default BOOT_SIGNATURE_TYPE_NONE
+endchoice

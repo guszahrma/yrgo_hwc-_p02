@@ -20,10 +20,9 @@ Esp32s3::Esp32s3(std::string url, std::string topic, std::string clientId, std::
     , myClient(nullptr)
     , myConnected(false)
 {
-    //! @note Same comments here as for the publisher; the logic looks good though.
-    esp_mqtt_client_config_t config = {};
-    config.broker.address.uri       = myUrl.c_str();
-    config.credentials.client_id    = myClientId.c_str();
+    esp_mqtt_client_config_t config{};
+    config.broker.address.uri    = myUrl.c_str();
+    config.credentials.client_id = myClientId.c_str();
     if (!myUsername.empty()) { config.credentials.username = myUsername.c_str(); }
     if (!myPassword.empty()) { config.credentials.authentication.password = myPassword.c_str(); }
     myClient = esp_mqtt_client_init(&config);

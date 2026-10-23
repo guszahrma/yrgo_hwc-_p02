@@ -27,10 +27,11 @@ Logic::Logic(driver::factory::Interface& factory) noexcept
     // controlling the LED. Initialize the LED as off, set the blink state to off, and set a default
     // blinking period (e.g., 1000 ms). Example of creating drivers using the factory:
     mySerialDriver = factory.createSerial();
-    myGpioDriver   = factory.createGpio(9U, driver::gpio::Direction::OUTPUT);
-    myAdcDriver    = factory.createAdc(6U, 3.3f);
-    myTempSensor   = factory.createTempSensor(*myAdcDriver);
-    myTimerDriver  = factory.createTimer();
+    myGpioDriver =
+        factory.createGpio(driver::factory::GpioId::StatusLed, driver::gpio::Direction::OUTPUT);
+    myAdcDriver   = factory.createAdc(driver::factory::AdcId::TempSensor, 3.3f);
+    myTempSensor  = factory.createTempSensor(*myAdcDriver);
+    myTimerDriver = factory.createTimer();
     myTimerDriver->stop(); // Start the timer for blinking
     myNvsUserSettingsStorage = factory.createNvs("user_settings");
 

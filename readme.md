@@ -21,7 +21,7 @@
 * [Tests](#tests)
 * [Code style and CI](#code-style-and-ci)
 * [Zephyr port](#zephyr-port)
-  * [The board is not in Zephyr](#the-board-is-not-in-zephyr)
+  * [Our board definition](#our-board-definition)
   * [Zephyr environment](#zephyr-environment)
   * [Building and flashing with Zephyr](#building-and-flashing-with-zephyr)
   * [Zephyr troubleshooting](#zephyr-troubleshooting)
@@ -75,8 +75,8 @@ Pins are handled by `driver::pin`:
 ├── tests/                    # Test suite run on the PC (g++) with mocked hardware
 ├── tools/                    # clang-format scripts
 ├── zephyr/                   # Zephyr port (work in progress)
-│   ├── boards/nano_esp32/    # Devicetree overlays adapting esp32s3_devkitc to the Nano ESP32
-│   └── samples/blinky/       # First Zephyr app: yellow LED + RGB colour cycle
+│   ├── boards/arduino/nano_esp32/  # Our Zephyr board definition: arduino_nano_esp32
+│   └── samples/blinky/             # First Zephyr app: yellow LED + RGB colour cycle
 ├── docs/                     # Additional documentation (git_commands.md, zephyr_port.md)
 └── .github/workflows/ci.yml  # CI: format check + build on Linux and Windows
 ```
@@ -337,26 +337,44 @@ implementations, together with a `factory::Zephyr`.
 
 The plan, the division of work and our notes are in [`docs/zephyr_port.md`](docs/zephyr_port.md).
 
-### The board is not in Zephyr
+### Our board definition
 
-**The Arduino Nano ESP32 is not a supported board in Zephyr** (checked in v4.4.2 and on `main`). It uses
-the same chip as Espressif's `esp32s3_devkitc`, so we build for that board and adapt it to the Nano with
-devicetree overlays in [`zephyr/boards/nano_esp32/`](zephyr/boards/nano_esp32/):
+**The Arduino Nano ESP32 is not a supported board in Zephyr** (checked in v4.4.2 and on `main`), so this
+repository has its own out-of-tree board definition in
+[`zephyr/boards/arduino/nano_esp32/`](zephyr/boards/arduino/nano_esp32/), based on the ABX00083 schematic.
+Board target for all Zephyr builds:
 
-| Overlay | Purpose |
+```
+arduino_nano_esp32/esp32s3/procpu
+```
+
+What the board provides:
+
+| Feature | Details |
 |---|---|
-| `usb_console.overlay` | Moves the console from `uart0` (D0/D1 pins) to the USB-C port (`usb_serial`) |
-| `leds.overlay` | Adds the yellow LED (`led0`) and the RGB LED (`led1` green, `led2` blue, `led3` red) |
+| Chip | ESP32-S3 with 16 MB flash and 8 MB PSRAM (`esp32s3_wroom_n16r8`) |
+| Console and shell | USB-C port (`usb_serial`, the ESP32-S3 USB-Serial/JTAG) |
+| LEDs | `led0` yellow, `led1` RGB green, `led2` RGB blue, `led3` RGB red |
+| Pin header | `arduino_nano_header`: Arduino pin names D0-D13 and A0-A7 (A0-A7 = 14-21) |
+| UART | `uart0` on D0 (RX) / D1 (TX), enabled – Arduino's `Serial1`, not the console |
+| I2C | `i2c0` on A4 (SDA) / A5 (SCL), also named `arduino_nano_i2c` – disabled, enable in the app |
+| SPI | `spi2` on D11 (COPI) / D12 (CIPO) / D13 (SCK), also named `arduino_nano_spi` – disabled |
 
-Board target used for all Zephyr builds:
+Thanks to the pin header, app overlays describe wiring with Arduino pin names instead of ESP32-S3 GPIO
+numbers:
 
+```dts
+gpios = <&arduino_nano_header 6 GPIO_ACTIVE_HIGH>;   /* D6 (= GPIO9) */
 ```
-esp32s3_devkitc/esp32s3/procpu
-```
 
-Known differences from the devkitc definition: the devkitc has no LEDs (added by `leds.overlay`) and
-assumes 8 MB flash (the Nano has 16 MB). The long-term plan is an out-of-tree board definition `arduino_nano_esp32` in this
-repository.
+| File | Contents |
+|---|---|
+| `arduino_nano_esp32_procpu.dts` | The board: console, LEDs, aliases, peripherals |
+| `arduino_nano_esp32-pinctrl.dtsi` | Which GPIOs UART, I2C and SPI use |
+| `arduino_nano_connector.dtsi` | The Nano pin header: D0-D13, A0-A7 → GPIO |
+| `board.yml`, `Kconfig*`, `board.cmake`, `*_defconfig`, `*.yaml` | Board name, chip variant, flash runner, default Kconfig, Twister metadata |
+
+Zephyr only looks for boards in its own tree, so apps point it to ours with `BOARD_ROOT` (see below).
 
 ### Zephyr environment
 
@@ -402,14 +420,14 @@ added an older version of the alias, remove it first: `sed -i '/alias get_zephyr
 
 #### Our own apps (`zephyr/samples/`)
 
-Our apps pick up the board overlays in their own `CMakeLists.txt` and set `CONFIG_BOOT_DELAY` in
-`prj.conf`, so no extra flags are needed. Build from the **app directory** (never from the repository
-root – the root `build/` belongs to ESP-IDF):
+Our apps find the board through `list(APPEND BOARD_ROOT ...)` in their own `CMakeLists.txt` and set
+`CONFIG_BOOT_DELAY` in `prj.conf`, so no extra flags are needed. Build from the **app directory** (never
+from the repository root – the root `build/` belongs to ESP-IDF):
 
 ```bash
 get_zephyr
 cd ~/yrgo_hwc-_p02/zephyr/samples/blinky
-west build -p always -b esp32s3_devkitc/esp32s3/procpu .
+west build -p always -b arduino_nano_esp32/esp32s3/procpu .
 west flash --esp-device /dev/ttyACM0 && sleep 9 && python -m serial.tools.miniterm /dev/ttyACM0 115200
 ```
 
@@ -422,18 +440,18 @@ Yellow: ON   RGB: blue
 
 #### Zephyr's samples
 
-Zephyr's own samples are built with our overlays passed on the command line. Example with
-`hello_world`:
+Zephyr's own samples don't know about our board, so `BOARD_ROOT` is passed on the command line.
+Example with `hello_world`:
 
 ```bash
 get_zephyr
-west build -p always -b esp32s3_devkitc/esp32s3/procpu $ZEPHYR_BASE/samples/hello_world -- \
-  -DEXTRA_DTC_OVERLAY_FILE=$HOME/yrgo_hwc-_p02/zephyr/boards/nano_esp32/usb_console.overlay \
+west build -p always -b arduino_nano_esp32/esp32s3/procpu $ZEPHYR_BASE/samples/hello_world -- \
+  -DBOARD_ROOT=$HOME/yrgo_hwc-_p02/zephyr \
   -DCONFIG_BOOT_DELAY=10000
 ```
 
 * `-p always` – pristine build (start from scratch)
-* `EXTRA_DTC_OVERLAY_FILE` – our board overlays; separate several with `;`
+* `BOARD_ROOT` – the directory that contains `boards/`, i.e. the repository's `zephyr/` directory
 * `CONFIG_BOOT_DELAY=10000` – waits 10 s before booting, see below
 
 Flash (attach the board with usbipd first, see [Flashing and monitoring](#flashing-and-monitoring)):
@@ -447,7 +465,7 @@ Exit the monitor with `Ctrl+]`. Expected output:
 
 ```
 *** Booting Zephyr OS build v4.4.2 (delayed boot 10000ms) ***
-Hello World! esp32s3_devkitc/esp32s3/procpu
+Hello World! arduino_nano_esp32/esp32s3/procpu
 ```
 
 **Why `BOOT_DELAY`?** The console runs over the ESP32-S3's built-in USB. Every reset disconnects USB, and
@@ -466,7 +484,8 @@ Useful files after a build:
 
 | Error | Cause / fix |
 |---|---|
-| `No board named 'arduino_nano_esp32' found` | The board does not exist in Zephyr. Use `esp32s3_devkitc/esp32s3/procpu` + overlays. |
+| `No board named 'arduino_nano_esp32' found` | Zephyr cannot find our board. Our apps: `list(APPEND BOARD_ROOT ...)` must come before `find_package(Zephyr)` in `CMakeLists.txt`. Zephyr's samples: add `-- -DBOARD_ROOT=$HOME/yrgo_hwc-_p02/zephyr`. |
+| `devicetree error: ... 'pinctrl-names' is marked as required` (after enabling `i2c0`/`spi2`) | Disabled nodes are not checked against their bindings – errors only show when a node is enabled. Test the board with each bus enabled. |
 | `CMake was unable to find a build program corresponding to "Ninja"` | `pip install ninja` in the Zephyr venv, or `sudo apt install ninja-build`. |
 | `west blobs fetch` fails with `504 Gateway Time-out` | Temporary GitHub error. Run `west blobs fetch hal_espressif` again. |
 | Flashing works but the monitor shows nothing | Boot output was printed before the monitor connected. Build with `-DCONFIG_BOOT_DELAY=10000`. |

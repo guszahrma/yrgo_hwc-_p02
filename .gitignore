@@ -13,6 +13,10 @@
 # Don't ignore license files.
 !LICENSE
 
+# Don't ignore Zephyr files without an extension (board Kconfig and defconfig).
+!Kconfig
+!*_defconfig
+
 # Ignore .txt files.
 *.txt
 

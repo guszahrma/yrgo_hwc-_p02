@@ -2,8 +2,9 @@
  * @file Blinky for the Arduino Nano ESP32.
  *
  * Toggles the yellow LED and cycles the RGB LED red -> green -> blue once per second.
- * All pin information comes from devicetree (aliases led0-led3 in boards/nano_esp32/leds.overlay),
- * so the code contains no pin numbers.
+ * All pin information comes from devicetree: the aliases led0-led3 are defined by the board
+ * (zephyr/boards/arduino/nano_esp32/arduino_nano_esp32_procpu.dts), so the code contains no pin
+ * numbers.
  */
 
 #include <zephyr/drivers/gpio.h>
@@ -11,7 +12,7 @@
 
 #define SLEEP_TIME_MS 1000
 
-/* Yellow LED: alias led0 in leds.overlay. */
+/* Yellow LED: alias led0, defined by the board. */
 static const struct gpio_dt_spec led = GPIO_DT_SPEC_GET(DT_ALIAS(led0), gpios);
 
 /* RGB LED, in the order the colours are shown: red -> green -> blue. */

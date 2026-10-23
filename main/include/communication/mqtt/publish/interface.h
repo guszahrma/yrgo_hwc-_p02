@@ -8,6 +8,9 @@
 
 namespace comm::mqtt::publish
 {
+/**
+ * @brief Publisher interface for mqtt
+ */
 class Interface
 {
 public:

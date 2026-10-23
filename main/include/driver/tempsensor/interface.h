@@ -20,14 +20,14 @@ public:
 
     /**
      * @brief Check if the temperature sensor is initialized.
-     * 
+     *
      * @return True if initialized, false otherwise.
      */
     virtual bool isInitialized() const noexcept = 0;
 
     /**
      * @brief Read temperature.
-     * 
+     *
      * @return Temperature in degrees Celsius.
      */
     virtual std::int16_t read() const noexcept = 0;

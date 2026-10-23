@@ -79,7 +79,9 @@ public:
      * @return unique pointer
      */
     std::unique_ptr<driver::nvs::Interface> createNvs(const char* namespaceName) noexcept override
-    { return std::make_unique<driver::nvs::Stub>(namespaceName); }
+    {
+        return std::make_unique<driver::nvs::Stub>(namespaceName);
+    }
 
     /**
      * @brief Create serial object
@@ -87,7 +89,9 @@ public:
      * @return unique pointer
      */
     std::unique_ptr<driver::serial::Interface> createSerial() noexcept override
-    { return std::make_unique<driver::serial::Stub>(); }
+    {
+        return std::make_unique<driver::serial::Stub>();
+    }
 
     /**
      * @brief Create a tempsensor object
@@ -109,6 +113,8 @@ public:
      * @return unique pointer
      */
     std::unique_ptr<driver::timer::Interface> createTimer() noexcept override
-    { return std::make_unique<driver::timer::Stub>(); }
+    {
+        return std::make_unique<driver::timer::Stub>();
+    }
 };
 } // namespace driver::factory

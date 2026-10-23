@@ -1,4 +1,6 @@
-//! @note File header missing.
+/**
+ * @file the stub nvs interface
+ */
 #pragma once
 
 #include <cstdint>
@@ -16,7 +18,8 @@ namespace driver::nvs
 /**
  * @brief Stub class for the NVS interface. Used for testing and debugging.
  *        Stores all key-value pairs in RAM instead of flash.
- *        Behaviour mirrors driver::nvs::Esp32s3 without any hardware dependency, but it does not persist data across resets.
+ *        Behaviour mirrors driver::nvs::Esp32s3 without any hardware dependency, but it does not
+ * persist data across resets.
  */
 class Stub final : public Interface
 {
@@ -26,18 +29,10 @@ public:
      */
     explicit Stub(const char* namespaceName) noexcept
         : myNamespace{namespaceName}
-    {
-        std::printf("nvs::Stub '%s' constructed.\n", namespaceName);
-    }
+    { std::printf("nvs::Stub '%s' constructed.\n", namespaceName); }
 
     /** @brief Destroy the stub and release RAM storage. */
     ~Stub() noexcept override = default;
-
-    //! @note Same comment here as for the ESP32-S3 class.
-    Stub(const Stub&)            = delete;
-    Stub(Stub&&)                 = delete;
-    Stub& operator=(const Stub&) = delete;
-    Stub& operator=(Stub&&)      = delete;
 
     /** @brief Store a string value in RAM.
      *  @param [in] key         Key to store under (max 15 characters).
@@ -45,10 +40,10 @@ public:
      *  @param [in] autoCommit  Accepted for interface compatibility; always a no-op.
      *  @return True if successful, false if key is invalid.
      */
-    bool setString(const char* key, const std::string& value, const bool autoCommit = true) noexcept override
+    bool setString(const char* key, const std::string& value,
+                   const bool autoCommit = true) noexcept override
     {
-        //! @note I would place brackets around return false.
-        if (!isValidKey(key)) return false;
+        if (!isValidKey(key)) { return false; }
         myStrings[key] = value;
         std::printf("nvs::Stub '%s': setString('%s', '%s')\n", myNamespace, key, value.c_str());
         return autoCommit ? commit() : true;
@@ -61,8 +56,7 @@ public:
      */
     bool getString(const char* key, std::string& value) noexcept override
     {
-        //! Same comment about brackets here.
-        if (!isValidKey(key)) return false;
+        if (!isValidKey(key)) { return false; }
         const auto it = myStrings.find(key);
         if (myStrings.end() == it)
         {
@@ -85,12 +79,10 @@ public:
     template<typename T>
     bool set(const char* key, const T value, const bool autoCommit = true) noexcept
     {
-        //! @note Good work with the template implementation here!
         static_assert(std::is_integral_v<T>, "nvs::Stub::set only supports integral types");
         if (!isValidKey(key)) return false;
 
-        //! @note std::uint8_t
-        std::vector<uint8_t> bytes(sizeof(T));
+        std::vector<std::uint8_t> bytes(sizeof(T));
         std::memcpy(bytes.data(), &value, sizeof(T));
         myBlobs[key] = std::move(bytes);
         std::printf("nvs::Stub '%s': set('%s')\n", myNamespace, key);
@@ -108,11 +100,11 @@ public:
     bool get(const char* key, T& value) noexcept
     {
         static_assert(std::is_integral_v<T>, "nvs::Stub::get only supports integral types");
-        //! @note { return false; }
-        if (!isValidKey(key)) return false;
+
+        if (!isValidKey(key)) { return false; }
 
         const auto it = myBlobs.find(key);
-        if (myBlobs.end() == it || sizeof(T) != it->second.size())
+        if ( (myBlobs.end() == it) || (sizeof(T) != it->second.size()) )
         {
             std::printf("nvs::Stub '%s': get('%s') not found\n", myNamespace, key);
             return false;
@@ -137,8 +129,7 @@ public:
      */
     bool eraseKey(const char* key) noexcept override
     {
-        //! @note { return false; }
-        if (!isValidKey(key)) return false;
+        if (!isValidKey(key)) { return false; }
         myStrings.erase(key);
         myBlobs.erase(key);
         std::printf("nvs::Stub '%s': eraseKey('%s')\n", myNamespace, key);
@@ -156,13 +147,17 @@ public:
         return true;
     }
 
+    Stub(const Stub&)            = delete;
+    Stub(Stub&&)                 = delete;
+    Stub& operator=(const Stub&) = delete;
+    Stub& operator=(Stub&&)      = delete;
+
 private:
     static bool isValidKey(const char* key) noexcept
     {
-        //! @note Prefer to use {} when the type is specified.
-        constexpr std::size_t maxKeyLength = 15;
+        constexpr std::size_t maxKeyLength{15};
 
-        if (nullptr == key || maxKeyLength < std::strlen(key))
+        if ( (nullptr == key) || (maxKeyLength < std::strlen(key)) )
         {
             std::printf("nvs: key is null or exceeds %zu characters\n", maxKeyLength);
             return false;
@@ -170,8 +165,8 @@ private:
         return true;
     }
 
-    const char*                             myNamespace;
-    std::map<std::string, std::string>      myStrings;
+    const char* myNamespace;
+    std::map<std::string, std::string> myStrings;
     std::map<std::string, std::vector<uint8_t>> myBlobs;
 };
 } // namespace driver::nvs

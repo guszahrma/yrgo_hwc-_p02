@@ -1,5 +1,6 @@
 #include <cstdio>
 #include <cstring>
+#include <memory>
 #include <stdint.h>
 #include <utility>
 
@@ -71,15 +72,14 @@ void Esp32s3::init() noexcept
 // --------------------------------------------------------------------------------
 bool Esp32s3::connect() noexcept
 {
-    constexpr std::uint8_t maxNetworks{10};
-    constexpr std::uint8_t maxSsidLen{32};
-    constexpr std::uint16_t wifiConnectionInitialWaitTime{5000};
-    constexpr std::uint16_t wifiConnectionAttempts{5};
-    constexpr std::uint16_t wifiConnectionAdditionalWaitTime{1000};
+    constexpr std::uint8_t maxNetworks{10U};
+    constexpr std::uint16_t wifiConnectionInitialWaitTime{5000U};
+    constexpr std::uint16_t wifiConnectionAttempts{5U};
+    constexpr std::uint16_t wifiConnectionAdditionalWaitTime{1000U};
 
-    char ssidsAvailable[maxNetworks][maxSsidLen]{};
+    char ssidsAvailable[maxNetworks][maxNetworkNameLength]{};
 
-    std::uint8_t found = detectNetworks(ssidsAvailable, maxNetworks, maxSsidLen);
+    std::uint8_t found = detectNetworks(ssidsAvailable, maxNetworks, maxNetworkNameLength);
 
     for (std::uint8_t i{}; i < found; i++)
     {
@@ -88,7 +88,6 @@ bool Esp32s3::connect() noexcept
         std::printf("wifi: found target network: %s\n", mySsid.c_str());
         wifi_config_t wifi_config{};
 
-        // @TOD blir detta rätt? uint8 eller char?
         std::strncpy(reinterpret_cast<char*>(wifi_config.sta.ssid), mySsid.c_str(),
                      sizeof(wifi_config.sta.ssid));
         std::strncpy(reinterpret_cast<char*>(wifi_config.sta.password), myPassword.c_str(),
@@ -130,19 +129,16 @@ uint8_t Esp32s3::detectNetworks(char ssidList[][maxNetworkNameLength], std::uint
     esp_wifi_scan_get_ap_num(&found);
     if (found > maxNetworks) found = maxNetworks;
 
-    //! @note How about using a std::unique_ptr here?
-    wifi_ap_record_t* records = new wifi_ap_record_t[found];
-    esp_wifi_scan_get_ap_records(&found, records);
+    auto records = std::make_unique<wifi_ap_record_t[]>(found);
+    esp_wifi_scan_get_ap_records(&found, records.get());
 
     for (uint16_t i = 0; i < found; i++)
     {
-        strncpy(ssidList[i], (char*)records[i].ssid, maxSsidLength - 1);
+        strncpy(ssidList[i], reinterpret_cast<char*>(records[i].ssid), maxSsidLength - 1);
         ssidList[i][maxSsidLength - 1] = '\0';
         printf("wifi: detected network: %s\n", ssidList[i]);
     }
 
-    //! @note Good work! I still would prefer a std::unique_ptr, but you handled it correctly.
-    delete[] records;
     return static_cast<uint8_t>(found);
 }
 } // namespace comm::wifi

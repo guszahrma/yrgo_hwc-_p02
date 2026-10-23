@@ -2,16 +2,16 @@
  * @brief TMP36 driver implementation details.
  */
 #include <cstdint>
+#include <cstdio>
 
-//! @note Sort headers.
-#include "driver/tempsensor/tmp36.h"
 #include "driver/adc/interface.h"
+#include "driver/tempsensor/tmp36.h"
 
 namespace driver::tempsensor
 {
 // -----------------------------------------------------------------------------
 Tmp36::Tmp36(adc::Interface& adc) noexcept
-    : myAdc{adc}  
+    : myAdc{adc}
 {}
 
 // -----------------------------------------------------------------------------

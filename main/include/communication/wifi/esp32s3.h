@@ -19,9 +19,10 @@ namespace comm::wifi
 
 namespace
 {
-constexpr std::uint8_t maxNetworkNameLength{32};
+// 32-byte SSID (802.11) + null terminator
+constexpr std::uint8_t maxNetworkNameLength{32U + 1U};
 
-}
+} // namespace
 /**
  * @brief wifi driver for the esp32s3
  */

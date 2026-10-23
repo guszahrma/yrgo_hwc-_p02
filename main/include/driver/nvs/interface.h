@@ -1,4 +1,6 @@
-//! @note File header missing.
+/**
+ * @file the generic nvs interface
+ */
 #pragma once
 
 #include <cstdint>
@@ -6,7 +8,9 @@
 
 namespace driver::nvs
 {
-//! @note Interface doc missing.
+/**
+ *  @brief abstract Non-Volatile Storage (nvs) interface class
+ */
 class Interface
 {
 public:
@@ -15,8 +19,8 @@ public:
     /**
      * @note Concrete implementations are expected to provide:
      *
-     *   template<typename T> bool set(const char* key, const T value, const bool autoCommit = true) noexcept;
-     *   template<typename T> bool get(const char* key, T& value) noexcept;
+     *   template<typename T> bool set(const char* key, const T value, const bool autoCommit = true)
+     * noexcept; template<typename T> bool get(const char* key, T& value) noexcept;
      *
      * Supporting at minimum: uint8_t, uint16_t, uint32_t, uint64_t,
      *                          int8_t,  int16_t,  int32_t,  int64_t.
@@ -31,8 +35,8 @@ public:
      *  @param [in] autoCommit  If true, commit to flash immediately after writing.
      *  @return True if successful, false otherwise.
      */
-    virtual bool setString(const char* key, const std::string& value, 
-        const bool autoCommit = true) noexcept = 0;
+    virtual bool setString(const char* key, const std::string& value,
+                           const bool autoCommit = true) noexcept = 0;
 
     /** @brief Retrieve a string value.
      *  @param [in]  key    Key to look up.

@@ -29,7 +29,9 @@ public:
      */
     explicit Stub(const char* namespaceName) noexcept
         : myNamespace{namespaceName}
-    { std::printf("nvs::Stub '%s' constructed.\n", namespaceName); }
+    {
+        std::printf("nvs::Stub '%s' constructed.\n", namespaceName);
+    }
 
     /** @brief Destroy the stub and release RAM storage. */
     ~Stub() noexcept override = default;
@@ -104,7 +106,7 @@ public:
         if (!isValidKey(key)) { return false; }
 
         const auto it = myBlobs.find(key);
-        if ( (myBlobs.end() == it) || (sizeof(T) != it->second.size()) )
+        if ((myBlobs.end() == it) || (sizeof(T) != it->second.size()))
         {
             std::printf("nvs::Stub '%s': get('%s') not found\n", myNamespace, key);
             return false;
@@ -157,7 +159,7 @@ private:
     {
         constexpr std::size_t maxKeyLength{15};
 
-        if ( (nullptr == key) || (maxKeyLength < std::strlen(key)) )
+        if ((nullptr == key) || (maxKeyLength < std::strlen(key)))
         {
             std::printf("nvs: key is null or exceeds %zu characters\n", maxKeyLength);
             return false;

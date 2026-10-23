@@ -72,15 +72,39 @@ public:
 
         esp_err_t err{ESP_FAIL};
 
-        if constexpr      (std::is_same_v<T, std::uint8_t>)  { err = nvs_set_u8 (myHandle, key, value); }
-        else if constexpr (std::is_same_v<T, std::uint16_t>) { err = nvs_set_u16(myHandle, key, value); }
-        else if constexpr (std::is_same_v<T, std::uint32_t>) { err = nvs_set_u32(myHandle, key, value); }
-        else if constexpr (std::is_same_v<T, std::uint64_t>) { err = nvs_set_u64(myHandle, key, value); }
-        else if constexpr (std::is_same_v<T, std::int8_t>)   { err = nvs_set_i8 (myHandle, key, value); }
-        else if constexpr (std::is_same_v<T, std::int16_t>)  { err = nvs_set_i16(myHandle, key, value); }
-        else if constexpr (std::is_same_v<T, std::int32_t>)  { err = nvs_set_i32(myHandle, key, value); }
-        else if constexpr (std::is_same_v<T, std::int64_t>)  { err = nvs_set_i64(myHandle, key, value); }
-        else { static_assert(false, "Unsupported type for NVS set"); }
+        if constexpr (std::is_same_v<T, std::uint8_t>) { err = nvs_set_u8(myHandle, key, value); }
+        else if constexpr (std::is_same_v<T, std::uint16_t>)
+        {
+            err = nvs_set_u16(myHandle, key, value);
+        }
+        else if constexpr (std::is_same_v<T, std::uint32_t>)
+        {
+            err = nvs_set_u32(myHandle, key, value);
+        }
+        else if constexpr (std::is_same_v<T, std::uint64_t>)
+        {
+            err = nvs_set_u64(myHandle, key, value);
+        }
+        else if constexpr (std::is_same_v<T, std::int8_t>)
+        {
+            err = nvs_set_i8(myHandle, key, value);
+        }
+        else if constexpr (std::is_same_v<T, std::int16_t>)
+        {
+            err = nvs_set_i16(myHandle, key, value);
+        }
+        else if constexpr (std::is_same_v<T, std::int32_t>)
+        {
+            err = nvs_set_i32(myHandle, key, value);
+        }
+        else if constexpr (std::is_same_v<T, std::int64_t>)
+        {
+            err = nvs_set_i64(myHandle, key, value);
+        }
+        else
+        {
+            static_assert(false, "Unsupported type for NVS set");
+        }
 
         if (ESP_OK != err)
         {
@@ -102,15 +126,27 @@ public:
     {
         if ((!myValid) || (!isValidKey(key))) return false;
         esp_err_t err;
-        if      constexpr (std::is_same_v<T, uint8_t>)  { err = nvs_get_u8(myHandle, key, &value); }
-        else if constexpr (std::is_same_v<T, uint16_t>) { err = nvs_get_u16(myHandle, key, &value); }
-        else if constexpr (std::is_same_v<T, uint32_t>) { err = nvs_get_u32(myHandle, key, &value); }
-        else if constexpr (std::is_same_v<T, uint64_t>) { err = nvs_get_u64(myHandle, key, &value); }
-        else if constexpr (std::is_same_v<T, int8_t>)   { err = nvs_get_i8(myHandle, key, &value); }
-        else if constexpr (std::is_same_v<T, int16_t>)  { err = nvs_get_i16(myHandle, key, &value);} 
-        else if constexpr (std::is_same_v<T, int32_t>)  { err = nvs_get_i32(myHandle, key, &value); }
-        else if constexpr (std::is_same_v<T, int64_t>)  { err = nvs_get_i64(myHandle, key, &value); }
-        else { static_assert(false, "Unsupported type for NVS get"); }
+        if constexpr (std::is_same_v<T, uint8_t>) { err = nvs_get_u8(myHandle, key, &value); }
+        else if constexpr (std::is_same_v<T, uint16_t>)
+        {
+            err = nvs_get_u16(myHandle, key, &value);
+        }
+        else if constexpr (std::is_same_v<T, uint32_t>)
+        {
+            err = nvs_get_u32(myHandle, key, &value);
+        }
+        else if constexpr (std::is_same_v<T, uint64_t>)
+        {
+            err = nvs_get_u64(myHandle, key, &value);
+        }
+        else if constexpr (std::is_same_v<T, int8_t>) { err = nvs_get_i8(myHandle, key, &value); }
+        else if constexpr (std::is_same_v<T, int16_t>) { err = nvs_get_i16(myHandle, key, &value); }
+        else if constexpr (std::is_same_v<T, int32_t>) { err = nvs_get_i32(myHandle, key, &value); }
+        else if constexpr (std::is_same_v<T, int64_t>) { err = nvs_get_i64(myHandle, key, &value); }
+        else
+        {
+            static_assert(false, "Unsupported type for NVS get");
+        }
         if (ESP_OK != err)
         {
             printf("nvs: get('%s') failed: %s\n", key, esp_err_to_name(err));

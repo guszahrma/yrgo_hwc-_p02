@@ -8,8 +8,8 @@
 #include "driver/gpio/stub.h"
 #include "driver/nvs/stub.h"
 #include "driver/serial/stub.h"
-#include "driver/timer/stub.h"
 #include "driver/tempsensor/stub.h"
+#include "driver/timer/stub.h"
 
 namespace driver::factory
 {
@@ -28,26 +28,26 @@ public:
 
     /**
      * @brief Create a gpio object
-     * 
-     * @param[in] pinNumber 
+     *
+     * @param[in] pinNumber
      * @param[in] direction
-     *  
+     *
      * @return unique pointer
      */
-    std::unique_ptr<driver::gpio::Interface> createGpio(std::uint8_t pinNumber, driver::gpio::Direction direction) noexcept override
-    {
-        return std::make_unique<driver::gpio::Stub>(pinNumber, direction);
-    }
+    std::unique_ptr<driver::gpio::Interface>
+    createGpio(std::uint8_t pinNumber, driver::gpio::Direction direction) noexcept override
+    { return std::make_unique<driver::gpio::Stub>(pinNumber, direction); }
 
     /**
      * @brief Create a adc object
-     * 
-     * @param[in] pinNumber 
-     * @param[in] referenceVoltage 
-     * 
+     *
+     * @param[in] pinNumber
+     * @param[in] referenceVoltage
+     *
      * @return unique pointer
      */
-    std::unique_ptr<driver::adc::Interface> createAdc(std::uint8_t pinNumber, float referenceVoltage) noexcept override
+    std::unique_ptr<driver::adc::Interface> createAdc(std::uint8_t pinNumber,
+                                                      float referenceVoltage) noexcept override
     {
         auto stubAdcPin = static_cast<driver::pin::stub::AdcPin>(pinNumber);
         return std::make_unique<driver::adc::Stub>(stubAdcPin, referenceVoltage);
@@ -55,34 +55,31 @@ public:
 
     /**
      * @brief Create an NVS storage
-     * 
-     * @param[in] namespaceName 
-     * 
+     *
+     * @param[in] namespaceName
+     *
      * @return unique pointer
      */
     std::unique_ptr<driver::nvs::Interface> createNvs(const char* namespaceName) noexcept override
-    {
-        return std::make_unique<driver::nvs::Stub>(namespaceName);
-    }
+    { return std::make_unique<driver::nvs::Stub>(namespaceName); }
 
     /**
      * @brief Create serial object
-     * 
+     *
      * @return unique pointer
      */
     std::unique_ptr<driver::serial::Interface> createSerial() noexcept override
-    {
-        return std::make_unique<driver::serial::Stub>();
-    }
+    { return std::make_unique<driver::serial::Stub>(); }
 
     /**
      * @brief Create a tempsensor object
-     * 
-     * @param[in] adc 
-     * 
+     *
+     * @param[in] adc
+     *
      * @return unique pointer
      */
-    std::unique_ptr<driver::tempsensor::Interface> createTempSensor(driver::adc::Interface& adc) noexcept override
+    std::unique_ptr<driver::tempsensor::Interface>
+    createTempSensor(driver::adc::Interface& adc) noexcept override
     {
         (void)(adc);
         return std::make_unique<driver::tempsensor::Stub>(static_cast<std::uint16_t>(0));
@@ -90,12 +87,10 @@ public:
 
     /**
      * @brief Create a timer object
-     * 
+     *
      * @return unique pointer
      */
     std::unique_ptr<driver::timer::Interface> createTimer() noexcept override
-    {
-        return std::make_unique<driver::timer::Stub>();
-    }
+    { return std::make_unique<driver::timer::Stub>(); }
 };
 } // namespace driver::factory

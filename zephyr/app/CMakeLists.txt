@@ -19,4 +19,6 @@ target_sources(app PRIVATE
     ${P02_MAIN}/source/driver/adc/zephyr.cpp
     ${P02_MAIN}/source/driver/serial/zephyr.cpp
     ${P02_MAIN}/source/driver/tempsensor/tmp36.cpp
+    ${P02_MAIN}/source/driver/factory/zephyr.cpp
+    ${P02_MAIN}/source/logic/logic.cpp
 )

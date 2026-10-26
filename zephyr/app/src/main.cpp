@@ -1,30 +1,15 @@
 /**
- * @file Test of serial::Zephyr: echoes each line typed in the terminal.
+ * @file P02 on Zephyr: application entry point.
  */
 
-#include <zephyr/device.h>
-#include <zephyr/kernel.h>
-
-#include "driver/serial/zephyr.h"
+#include "driver/factory/zephyr.h"
+#include "logic/logic.h"
 
 int main()
 {
-    // The console device: USB-C on the Nano ESP32 (zephyr,console in the board).
-    driver::serial::Zephyr serial{DEVICE_DT_GET(DT_CHOSEN(zephyr_console))};
-    serial.print("Type a line and press Enter:\n");
-
-    char line[64]{};
-
-    while (true)
-    {
-        // Non-blocking: returns true only when a whole line has been received.
-        if (serial.readLine(line, sizeof(line)))
-        {
-            serial.print("You wrote: ");
-            serial.print(line);
-            serial.print("\n");
-        }
-        k_msleep(10);
-    }
+    // The Zephyr build uses the Zephyr drivers (NVS is still a stub).
+    driver::factory::Zephyr factory{};
+    logic::Logic logic{factory};
+    logic.run();
     return 0;
 }

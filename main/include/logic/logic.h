@@ -71,9 +71,9 @@ private:
     std::uint16_t myPeriodLengthMs;                            // Blinking period in milliseconds
     bool myBlinkState;                                         // false for off, true for on
     std::unique_ptr<driver::serial::Interface> mySerialDriver; // Serial driver for communication
-    std::unique_ptr<driver::gpio::Interface> myGpioDriver; // GPIO driver for controlling the LED
+    std::unique_ptr<driver::gpio::Interface> myStatusLed; // Status LED (role GpioId::StatusLed)
     std::unique_ptr<driver::adc::Interface>
-        myAdcDriver; // ADC driver for reading temperature or other analog values
+        myTempSensorAdc; // ADC for the temperature sensor (role AdcId::TempSensor)
     std::unique_ptr<driver::timer::Interface>
         myTimerDriver; // Timer driver for handling blinking timing
     std::unique_ptr<driver::tempsensor::Interface> myTempSensor; // TMP36 temperature sensor driver

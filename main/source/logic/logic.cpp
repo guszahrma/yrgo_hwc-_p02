@@ -27,11 +27,11 @@ Logic::Logic(driver::factory::Interface& factory) noexcept
     // controlling the LED. Initialize the LED as off, set the blink state to off, and set a default
     // blinking period (e.g., 1000 ms). Example of creating drivers using the factory:
     mySerialDriver = factory.createSerial();
-    myGpioDriver =
+    myStatusLed =
         factory.createGpio(driver::factory::GpioId::StatusLed, driver::gpio::Direction::OUTPUT);
-    myAdcDriver   = factory.createAdc(driver::factory::AdcId::TempSensor, 3.3f);
-    myTempSensor  = factory.createTempSensor(*myAdcDriver);
-    myTimerDriver = factory.createTimer();
+    myTempSensorAdc = factory.createAdc(driver::factory::AdcId::TempSensor, 3.3f);
+    myTempSensor    = factory.createTempSensor(*myTempSensorAdc);
+    myTimerDriver   = factory.createTimer();
     myTimerDriver->stop(); // Start the timer for blinking
     myNvsUserSettingsStorage = factory.createNvs("user_settings");
 
@@ -45,8 +45,8 @@ Logic::~Logic() noexcept
     // For example, you might want to delete any dynamically allocated drivers or other resources
     // here.
     mySerialDriver.reset();
-    myGpioDriver.reset();
-    myAdcDriver.reset();
+    myStatusLed.reset();
+    myTempSensorAdc.reset();
     myTimerDriver->stop(); // Stop the timer when the Logic instance is destroyed
     myTimerDriver.reset();
 }
@@ -128,7 +128,7 @@ void Logic::run() noexcept
         if (myTimerDriver->timeout())
         {
             // Toggle the LED state
-            myGpioDriver->toggle();
+            myStatusLed->toggle();
             myTimerDriver->start(); // Restart the timer for the next period
         }
     }
@@ -162,7 +162,7 @@ void Logic::handleOn() noexcept
     std::cout << std::endl << "Handling 'on' command..." << std::endl;
 
     // Implement the logic to turn the LED on.
-    myGpioDriver->write(true);
+    myStatusLed->write(true);
 }
 
 // --------------------------------------------------------------------------------
@@ -171,7 +171,7 @@ void Logic::handleOff() noexcept
     std::cout << std::endl << "Handling 'off' command..." << std::endl;
 
     // Implement the logic to turn the LED off.
-    myGpioDriver->write(false);
+    myStatusLed->write(false);
 }
 
 // --------------------------------------------------------------------------------

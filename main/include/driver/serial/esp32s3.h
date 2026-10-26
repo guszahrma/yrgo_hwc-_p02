@@ -28,18 +28,19 @@ public:
 
     /**
      * @brief Print function
-     * 
+     *
      * @param[in] text Pointer to the C-string to be printed.
      */
     void print(const char* text) noexcept override;
-    
+
     /**
      * @brief Non-blocking ReadLine function.
-     * 
+     *
      * @param[out] buffer Pointer to the buffer where the completed string will be stored.
      * @param[in] maxSize Maximum number of bytes to read into the buffer.
-     * 
-     * @return true If a full line (terminated by \n or \r) was successfully buffered and copied else return false.
+     *
+     * @return true If a full line (terminated by \n or \r) was successfully buffered and copied
+     * else return false.
      */
     bool readLine(char* buffer, std::size_t maxSize) noexcept override;
 
@@ -50,10 +51,10 @@ public:
 
 private:
     static constexpr std::size_t InternalBufLen{256U};
-    
+
     /** Internal buffer to accumulate incoming characters. */
     char myInternalBuf[InternalBufLen];
-    
+
     /** Current number of bytes stored in the internal buffer. */
     std::size_t myInternalLen;
 };

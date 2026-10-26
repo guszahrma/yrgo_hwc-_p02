@@ -21,23 +21,36 @@ tells the build where they are. This is why Zephyr is not added as a git submodu
 
 | Topology | Manifest repository | Example |
 |---|---|---|
-| T1 | Zephyr itself | `~/zephyrproject` (what we use today) |
-| T2 ("star") | The application | The course repository `~/zephyr` |
+| T1 | Zephyr itself | `~/zephyrproject` (what we used at first) |
+| T2 ("star") | The application | This repository, the course repository `~/zephyr` |
 | T3 | A separate manifest repository | Large organisations with many applications |
 
-**Today:** we build against the T1 workspace in `~/zephyrproject`.
-
-**Planned:** make this repository a T2 workspace, like the course repository:
+**This repository is a T2 workspace** (done in step 9):
 
 ```
 yrgo_hwc-_p02/
 ├── west.yml       ← Zephyr v4.4.2 + name-allowlist: [hal_espressif]
-├── .west/         ← created locally by `west init -l .`, not committed
-├── deps/          ← created by `west update`, in .gitignore
+├── .west/config   ← written by tools/zephyr_setup.sh, not committed
+├── .venv/         ← west and Zephyr's Python tools, not committed
+├── deps/          ← Zephyr and hal_espressif, fetched by `west update`, not committed
 └── zephyr/        ← our Zephyr code
 ```
 
-Then anyone (or CI) can get the exact same Zephyr with `west init -l . && west update`.
+Anyone (or CI) gets the exact same Zephyr with `tools/zephyr_setup.sh`, then
+`source tools/zephyr_env.sh` in each terminal.
+
+Things we learned setting it up:
+
+* **`west init -l` was not used.** It makes the *parent* of the manifest repository the workspace, i.e.
+  `~` – which would collide with the course workspace in `~/zephyr`. Instead the script writes
+  `.west/config` with `path = .`, so the repository itself is the workspace.
+* **`name-allowlist`** fetches only `hal_espressif` instead of all ~80 modules (~800 MB instead of
+  several GB).
+* **`path-prefix: deps` also applies to the zephyr project itself**, so it is declared with
+  `path: zephyr` and ends up in `deps/zephyr`. With `path: deps/zephyr` it landed in
+  `deps/deps/zephyr`.
+* The SDK (compiler) is per user (`~/zephyr-sdk-<version>`), not per workspace; the script only
+  installs it if the ESP32-S3 toolchain is missing.
 
 ---
 
@@ -60,7 +73,7 @@ zephyr/
     ├── CMakeLists.txt                           BOARD_ROOT, main/include, driver sources from main/
     ├── prj.conf                                 C++17, full libstdc++, POSIX API, ADC
     ├── app.overlay                              P02's wiring: status LED on D6, TMP36 on A6
-    └── src/main.cpp                             currently tests the drivers directly (no factory yet)
+    └── src/main.cpp                             runs logic::Logic with factory::Zephyr
 ```
 
 The Zephyr drivers live next to the ESP32 ones in `main/`, same pattern as `esp32s3` and `stub`:
@@ -86,14 +99,14 @@ first, then apply it to P02 on the real board.
 |---|---|---|---|
 | 0 | Environment, hello_world on the board | – | ✅ |
 | 1 | Blinky on the yellow LED with our own overlay | Devicetree, GPIO | ✅ `zephyr/samples/blinky`: yellow LED + RGB colour cycle |
-| 2 | Own Zephyr app skeleton: `Logic` builds and runs with **only stubs** | West, build, Kconfig | 🟡 `zephyr/app` exists (C++, drivers tested directly); `Logic` waits for #52 (factory injection) and `factory::Zephyr` |
+| 2 | Own Zephyr app skeleton: `Logic` builds and runs with **only stubs** | West, build, Kconfig | ✅ `zephyr/app` runs the unchanged `logic::Logic` with `factory::Zephyr` (real drivers, `nvs::Stub`) |
 | 3 | `timer::Zephyr` | Time, timers, work queues | ✅ `k_uptime_get()`, tested: 500 ms period |
 | 4 | `gpio::Zephyr`, then pins from devicetree (`gpio_dt_spec`) instead of `9U` | Devicetree, GPIO | ✅ takes a `gpio_dt_spec`; LED on D6 toggles with `timer::Zephyr`. How `9U` maps to a pin is decided in `factory::Zephyr` |
-| 5 | `serial::Zephyr` – or replace our command parser with Zephyr's shell (design decision) | Shell | ⬜ |
+| 5 | `serial::Zephyr` – or replace our command parser with Zephyr's shell (design decision) | Shell | ✅ our parser kept; `serial::Zephyr` uses the console UART (USB) with `uart_poll_in/out` |
 | 6 | `adc::Zephyr` + overlay – TMP36 then works as-is | Devicetree, driver model | ✅ takes an `adc_dt_spec`; P02's unchanged `Tmp36` reads ~21 °C |
 | 7 | `nvs` via the Settings subsystem | Settings | ⬜ |
 | 8 | Own board definition `arduino_nano_esp32` | Devicetree, bindings | ✅ `zephyr/boards/arduino/nano_esp32` – done early, so the port is built on the real board from the start |
-| 9 | Own `west.yml` (T2 workspace) + Zephyr build in CI | West manifest | ⬜ |
+| 9 | Own `west.yml` (T2 workspace) + Zephyr build in CI | West manifest | ✅ `west.yml`, `tools/zephyr_setup.sh`, `tools/zephyr_env.sh`, CI job `zephyr-build` |
 | 10 | Wi-Fi and MQTT | Networking | ⬜ |
 
 ---
@@ -123,7 +136,7 @@ first, then apply it to P02 on the real board.
 |---|---|---|
 | Where the Zephyr drivers live | Next to the ESP32 ones in `main/` (`driver/<name>/zephyr.h/.cpp`) | Each driver's interface, ESP32, stub and Zephyr versions stay together; both build systems list their own files |
 | Where pins come from | Devicetree: the drivers take a `gpio_dt_spec` / `adc_dt_spec` | Pin **and** polarity/attenuation come from `app.overlay`; no GPIO numbers in Zephyr code |
-| How `createGpio(9U)` / `createAdc(6U)` map to devicetree | **Open** – decided when `factory::Zephyr` is written | **B:** the Zephyr factory looks the number up in a table (no change to existing code). **C:** the interface takes a role (`GpioId::StatusLed`) instead of a number (cleaner, changes `Logic` and both factories). B now and C later is possible – the drivers are the same either way |
+| How the factory maps hardware to devicetree | **C:** the factory takes a role (`GpioId::StatusLed`, `AdcId::TempSensor`) instead of a pin number (#60) | Each factory decides what a role means: `factory::Esp32s3` maps it to a pin, `factory::Zephyr` to a devicetree node (`DT_ALIAS(p02_led)`, `zephyr,user` `io-channels`). The roles stay in `driver::factory` |
 | ADC attenuation | From `zephyr,gain` in devicetree; `referenceVoltage` is not used | In Zephyr the channel is configured from devicetree, not at runtime |
 | Timer | Polled `timeout()` kept, restarts from "now" | `Logic` stays unchanged. A `k_timer` with a callback would be more idiomatic but changes the interface |
 | `std::cout` in `Logic` | Kept, via `CONFIG_POSIX_API` | `Logic` stays unchanged. Costs ~225 KB flash; Zephyr logging would be a later improvement |

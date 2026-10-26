@@ -1,0 +1,30 @@
+# The west manifest: pins the Zephyr release (and the modules it needs) that P02's Zephyr port is
+# built against.
+#
+# The repository itself is the west workspace (tools/zephyr_setup.sh writes .west/config), so Zephyr
+# and its modules land in deps/ inside the repository, not next to it. Only the modules the port needs
+# are fetched: Zephyr's full manifest lists about eighty HALs and libraries.
+#
+# To change Zephyr version: update `revision`, run tools/zephyr_setup.sh again, and rebuild.
+
+manifest:
+  remotes:
+    - name: zephyrproject-rtos
+      url-base: https://github.com/zephyrproject-rtos
+
+  projects:
+    - name: zephyr
+      remote: zephyrproject-rtos
+      revision: v4.4.2
+      # path-prefix below applies to zephyr itself too, so this ends up in deps/zephyr.
+      path: zephyr
+      clone-depth: 1
+      west-commands: scripts/west-commands.yml
+      import:
+        # Zephyr and the modules from its manifest are placed under deps/.
+        path-prefix: deps
+        name-allowlist:
+          - hal_espressif # ESP32-S3 drivers and binary blobs
+
+  self:
+    path: .

@@ -73,8 +73,10 @@ Pins are handled by `driver::pin`:
 │   │   └── ml/               # Linear regression
 │   └── source/               # Implementations, same layout as include/
 ├── tests/                    # Test suite run on the PC (g++) with mocked hardware
-├── tools/                    # clang-format scripts
+├── tools/                    # clang-format scripts, Zephyr setup (zephyr_setup.sh, zephyr_env.sh)
+├── west.yml                  # Zephyr manifest: pins the Zephyr version for the port
 ├── zephyr/                   # Zephyr port (work in progress)
+│   ├── app/                        # P02 on Zephyr: logic::Logic with factory::Zephyr
 │   ├── boards/arduino/nano_esp32/  # Our Zephyr board definition: arduino_nano_esp32
 │   └── samples/blinky/             # First Zephyr app: yellow LED + RGB colour cycle
 ├── docs/                     # Additional documentation (git_commands.md, zephyr_port.md)
@@ -331,9 +333,16 @@ clang-format -i --style=file $(git ls-files '*.c' '*.cpp' '*.h')                
 
 On Windows, the equivalent scripts are `tools/clang-format-check.ps1` and `tools/clang-format-fix.ps1`.
 
+> **Use the same clang-format version as CI (18, from Ubuntu 24.04's `apt install clang-format`).**
+> Other versions format some lines differently, so CI can fail even though the file looks formatted
+> locally. The Zephyr venv installs a newer clang-format that comes first in `PATH` while the
+> environment is active – run `/usr/bin/clang-format` explicitly there. Check with
+> `clang-format --version`.
+
 CI (`.github/workflows/ci.yml`) runs on every push and pull request:
 * format check with clang-format
 * build with ESP-IDF 6.0 on Ubuntu (Docker image `espressif/idf:release-v6.0`) and Windows
+* build of the Zephyr apps (`zephyr/app`, `zephyr/samples/blinky`) with the Zephyr version from `west.yml`
 
 Git commands and SSH setup are described in [`docs/git_commands.md`](docs/git_commands.md).
 
@@ -389,39 +398,44 @@ Zephyr only looks for boards in its own tree, so apps point it to ours with `BOA
 
 ### Zephyr environment
 
-The Zephyr workspace lives in `~/zephyrproject` (a separate west workspace, see
-[`docs/zephyr_port.md`](docs/zephyr_port.md) for why Zephyr is not a git submodule). It needs the packages
-from [step 2](#2-packages-in-ubuntu) above.
+The Zephyr version is pinned in [`west.yml`](west.yml) (the west manifest), and the repository itself is
+the west workspace: Zephyr and the modules it needs are fetched into `deps/` inside the repository
+(ignored by git). See [`docs/zephyr_port.md`](docs/zephyr_port.md) for why Zephyr is not a git submodule.
+
+Set up once (needs the packages from [step 2](#2-packages-in-ubuntu) above, ~800 MB, a few minutes):
 
 ```bash
-python3 -m venv ~/zephyrproject/.venv
-source ~/zephyrproject/.venv/bin/activate
-pip install west ninja
-west init -m https://github.com/zephyrproject-rtos/zephyr --mr v4.4.2 ~/zephyrproject
-cd ~/zephyrproject
-west update --narrow -o=--depth=1
-west zephyr-export
-west packages pip --install
-cd zephyr
-west sdk install -t xtensa-espressif_esp32s3_zephyr-elf   # Zephyr SDK with the ESP32-S3 compiler
-west blobs fetch hal_espressif                           # Espressif binary blobs (Wi-Fi, BT, PHY)
+cd ~/yrgo_hwc-_p02
+tools/zephyr_setup.sh
 ```
 
-Add an alias to activate the environment:
+The script creates `.venv/` (west and Zephyr's Python tools), `.west/config` and `deps/` (Zephyr and
+`hal_espressif`), installs the Zephyr SDK with the ESP32-S3 compiler in `~/zephyr-sdk-<version>` if it is
+not there yet, and fetches Espressif's binary blobs. Run it again after `west.yml` has changed (e.g. a new
+Zephyr version) – it only updates what is needed.
+
+Then, in **every new terminal**:
 
 ```bash
-echo "alias get_zephyr='unset ZEPHYR_TOOLCHAIN_VARIANT; source ~/zephyrproject/.venv/bin/activate && export ZEPHYR_BASE=~/zephyrproject/zephyr'" >> ~/.bashrc
+source tools/zephyr_env.sh
 ```
 
-The alias does not change directory, so you stay where you are (e.g. in this repository). If you
-added an older version of the alias, remove it first: `sed -i '/alias get_zephyr=/d' ~/.bashrc`.
+It activates `.venv` and sets `ZEPHYR_BASE` to `deps/zephyr`. Optionally add an alias:
+
+```bash
+echo "alias get_zephyr='source ~/yrgo_hwc-_p02/tools/zephyr_env.sh'" >> ~/.bashrc
+```
+
+If you have an older `get_zephyr` alias that points to `~/zephyrproject`, remove it first:
+`sed -i '/alias get_zephyr=/d' ~/.bashrc`. `~/zephyrproject` itself is no longer needed and can be
+deleted.
 
 > **Never mix environments in one terminal.** Use a fresh terminal for each of:
 >
 > | Environment | Activate with | Used for |
 > |---|---|---|
 > | ESP-IDF | `get_idf` | This project as it is today |
-> | Zephyr (board) | `get_zephyr` | The Zephyr port, flashing the board |
+> | Zephyr (board) | `source tools/zephyr_env.sh` | The Zephyr port, flashing the board |
 > | Zephyr course | `source ~/zephyr/env.sh` | Course exercises on `native_sim` |
 >
 > The course's `env.sh` sets `ZEPHYR_TOOLCHAIN_VARIANT=host` (the PC's own GCC), which breaks builds for
@@ -429,14 +443,30 @@ added an older version of the alias, remove it first: `sed -i '/alias get_zephyr
 
 ### Building and flashing with Zephyr
 
-#### Our own apps (`zephyr/samples/`)
+#### P02 on Zephyr (`zephyr/app/`)
 
-Our apps find the board through `list(APPEND BOARD_ROOT ...)` in their own `CMakeLists.txt` and set
-`CONFIG_BOOT_DELAY` in `prj.conf`, so no extra flags are needed. Build from the **app directory** (never
-from the repository root – the root `build/` belongs to ESP-IDF):
+`zephyr/app` runs the same `logic::Logic` as the ESP-IDF build, with `driver::factory::Zephyr` instead
+of `factory::Esp32s3`. Build from the **app directory** (never from the repository root – the root
+`build/` belongs to ESP-IDF):
 
 ```bash
-get_zephyr
+source ~/yrgo_hwc-_p02/tools/zephyr_env.sh
+cd ~/yrgo_hwc-_p02/zephyr/app
+west build -p always -b arduino_nano_esp32/esp32s3/procpu .
+west flash --esp-device /dev/ttyACM0 && sleep 9 && python -m serial.tools.miniterm /dev/ttyACM0 115200
+```
+
+The [serial commands](#serial-commands) work over the USB port as on ESP-IDF. Wiring: LED on D6, TMP36
+on A6 (`zephyr/app/app.overlay`). Not ported yet: NVS (settings are not saved, `nvs::Stub`), Wi-Fi and
+MQTT.
+
+#### Our own samples (`zephyr/samples/`)
+
+Our apps find the board through `list(APPEND BOARD_ROOT ...)` in their own `CMakeLists.txt` and set
+`CONFIG_BOOT_DELAY` in `prj.conf`, so no extra flags are needed:
+
+```bash
+source ~/yrgo_hwc-_p02/tools/zephyr_env.sh
 cd ~/yrgo_hwc-_p02/zephyr/samples/blinky
 west build -p always -b arduino_nano_esp32/esp32s3/procpu .
 west flash --esp-device /dev/ttyACM0 && sleep 9 && python -m serial.tools.miniterm /dev/ttyACM0 115200
@@ -455,7 +485,7 @@ Zephyr's own samples don't know about our board, so `BOARD_ROOT` is passed on th
 Example with `hello_world`:
 
 ```bash
-get_zephyr
+source ~/yrgo_hwc-_p02/tools/zephyr_env.sh
 west build -p always -b arduino_nano_esp32/esp32s3/procpu $ZEPHYR_BASE/samples/hello_world -- \
   -DBOARD_ROOT=$HOME/yrgo_hwc-_p02/zephyr \
   -DCONFIG_BOOT_DELAY=10000
@@ -501,4 +531,6 @@ Useful files after a build:
 | `west blobs fetch` fails with `504 Gateway Time-out` | Temporary GitHub error. Run `west blobs fetch hal_espressif` again. |
 | Flashing works but the monitor shows nothing | Boot output was printed before the monitor connected. Build with `-DCONFIG_BOOT_DELAY=10000`. |
 | `SerialException: device reports readiness to read but returned no data` | The board disconnected from USB (reset/re-attach). Start the monitor again. |
-| Strange compiler errors when building for the ESP32-S3 | The course's `env.sh` is active in the terminal. Open a new terminal and run `get_zephyr`. |
+| Strange compiler errors when building for the ESP32-S3 | The course's `env.sh` is active in the terminal. Open a new terminal and run `source tools/zephyr_env.sh`. |
+| `error: the Zephyr workspace is not set up` | Run `tools/zephyr_setup.sh` first (once per clone). |
+| `west: unknown command "build"` | `ZEPHYR_BASE` is not set. Run `source tools/zephyr_env.sh`. |

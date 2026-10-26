@@ -536,5 +536,6 @@ Useful files after a build:
 | Strange compiler errors when building for the ESP32-S3 | The course's `env.sh` is active in the terminal. Open a new terminal and run `source tools/zephyr_env.sh`. |
 | `error: the Zephyr workspace is not set up` | Run `tools/zephyr_setup.sh` first (once per clone). |
 | `tools/zephyr_setup.sh: Permission denied`, or `git status` shows the script as modified with no changes (`git diff --summary`: `mode change 100755 => 100644`) | The file lost its executable bit (e.g. edited or created from Windows). `chmod +x tools/zephyr_setup.sh`. |
+| `CMake Error: Not a file: .../zephyrproject/zephyr/cmake/pristine.cmake` | The app's `build/` was made with the old `~/zephyrproject` workspace, and `-p always` cleans it with the Zephyr it was built with. Delete it once: `rm -rf build`. |
 | The build prints `Zephyr version: ... (~/zephyrproject/zephyr)` | An old `get_zephyr` alias is active. Remove it (see [Zephyr environment](#zephyr-environment)) and open a new terminal. |
 | `west: unknown command "build"` | `ZEPHYR_BASE` is not set. Run `source tools/zephyr_env.sh`. |

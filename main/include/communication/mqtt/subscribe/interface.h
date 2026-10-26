@@ -10,6 +10,9 @@ namespace comm::mqtt::subscribe
 //! @note Class documentation missing.
 class Interface
 {
+    /**
+     * @brief Subscription interface for mqtt
+     */
 public:
     virtual ~Interface() noexcept = default;
 

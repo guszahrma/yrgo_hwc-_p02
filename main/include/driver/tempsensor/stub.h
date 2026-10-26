@@ -18,7 +18,7 @@ class Stub final : public Interface
 public:
     /**
      * @brief constructor
-     * 
+     *
      * @param[in] initialTemp Initial temperature (default = 0).
      */
     explicit Stub(std::int16_t initialTemp = 0) noexcept
@@ -33,17 +33,17 @@ public:
 
     /**
      * @brief Check if the temperature sensor is initialized.
-     * 
+     *
      * @return True if initialized, false otherwise.
      */
-    bool isInitialized() const noexcept override{ return myInitialized; }
+    bool isInitialized() const noexcept override { return myInitialized; }
 
     /**
      * @brief Read temperature.
-     * 
+     *
      * @return Temperature in degrees Celsius.
      */
-    std::int16_t read() const noexcept override 
+    std::int16_t read() const noexcept override
     {
         // Return simulated temperature if initialized, else 0.
         return myInitialized ? myTemp : 0;
@@ -52,10 +52,9 @@ public:
     /**
      * @brief simulate a temperature.
      */
-    //! @note Should be marked noexcept.
-    void simulateTemperature(const std::int16_t temp)
+    void simulateTemperature(const std::int16_t temp) noexcept
     {
-        if(myInitialized)
+        if (myInitialized)
         {
             myTemp = temp;
             std::printf("The temperature is %d degrees.\n", myTemp);
@@ -64,20 +63,17 @@ public:
 
     /**
      * @brief Simulate initialization state.
-     * 
+     *
      * @param[in] initialized True if initialized, false otherwise.
      */
-    void simulateInitialized(const bool initialized) noexcept
-    {
-        myInitialized = initialized;
-    }
+    void simulateInitialized(const bool initialized) noexcept { myInitialized = initialized; }
 
-    Stub()                         = delete;
-    Stub(const Stub&)              = delete;
-    Stub(Stub&&)                   = delete;
-    Stub& operator=(const Stub&)   = delete;
-    Stub& operator=(Stub&&)        = delete;
-    
+    Stub()                       = delete;
+    Stub(const Stub&)            = delete;
+    Stub(Stub&&)                 = delete;
+    Stub& operator=(const Stub&) = delete;
+    Stub& operator=(Stub&&)      = delete;
+
 private:
     /** Simulated temperature. */
     std::int16_t myTemp;

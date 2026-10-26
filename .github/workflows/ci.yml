@@ -16,6 +16,19 @@ jobs:
       - name: Check code formatting
         run: tools/clang-format/check.sh
 
+  windows-format-check:
+    name: Check code formatting on Windows
+    runs-on: windows-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Install clang-format
+        shell: pwsh
+        run: tools/clang-format/run.ps1 --version
+      - name: Check code formatting
+        shell: pwsh
+        run: tools/clang-format/check.ps1
+
   firmware-build:
     name: Build ESP32-S3 firmware on Ubuntu
     runs-on: ubuntu-latest

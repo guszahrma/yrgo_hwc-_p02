@@ -351,7 +351,7 @@ git config blame.ignoreRevsFile .git-blame-ignore-revs
 ```
 
 CI (`.github/workflows/ci.yml`) runs on every push and pull request:
-* format check with clang-format
+* format check with clang-format on Ubuntu and Windows (via the scripts in `tools/clang-format/`)
 * build with ESP-IDF 6.0 on Ubuntu (Docker image `espressif/idf:release-v6.0`) and Windows
 
 Git commands and SSH setup are described in [`docs/git_commands.md`](docs/git_commands.md).

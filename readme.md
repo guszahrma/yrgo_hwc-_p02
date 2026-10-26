@@ -427,8 +427,10 @@ echo "alias get_zephyr='source ~/yrgo_hwc-_p02/tools/zephyr_env.sh'" >> ~/.bashr
 ```
 
 If you have an older `get_zephyr` alias that points to `~/zephyrproject`, remove it first:
-`sed -i '/alias get_zephyr=/d' ~/.bashrc`. `~/zephyrproject` itself is no longer needed and can be
-deleted.
+`sed -i '/alias get_zephyr=/d' ~/.bashrc`, then open a new terminal. `~/zephyrproject` itself is no
+longer needed: delete it (`rm -rf ~/zephyrproject`) once a build shows
+`Zephyr version: 4.4.2 (.../yrgo_hwc-_p02/deps/zephyr)`. Keep `~/zephyr-sdk-<version>` – it is the
+compiler, and the new setup uses it too.
 
 > **Never mix environments in one terminal.** Use a fresh terminal for each of:
 >
@@ -533,4 +535,6 @@ Useful files after a build:
 | `SerialException: device reports readiness to read but returned no data` | The board disconnected from USB (reset/re-attach). Start the monitor again. |
 | Strange compiler errors when building for the ESP32-S3 | The course's `env.sh` is active in the terminal. Open a new terminal and run `source tools/zephyr_env.sh`. |
 | `error: the Zephyr workspace is not set up` | Run `tools/zephyr_setup.sh` first (once per clone). |
+| `tools/zephyr_setup.sh: Permission denied`, or `git status` shows the script as modified with no changes (`git diff --summary`: `mode change 100755 => 100644`) | The file lost its executable bit (e.g. edited or created from Windows). `chmod +x tools/zephyr_setup.sh`. |
+| The build prints `Zephyr version: ... (~/zephyrproject/zephyr)` | An old `get_zephyr` alias is active. Remove it (see [Zephyr environment](#zephyr-environment)) and open a new terminal. |
 | `west: unknown command "build"` | `ZEPHYR_BASE` is not set. Run `source tools/zephyr_env.sh`. |

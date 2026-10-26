@@ -73,7 +73,7 @@ Pins are handled by `driver::pin`:
 │   │   └── ml/               # Linear regression
 │   └── source/               # Implementations, same layout as include/
 ├── tests/                    # Test suite run on the PC (g++) with mocked hardware
-├── tools/                    # clang-format scripts
+├── tools/clang-format/       # Pinned clang-format version and scripts
 ├── zephyr/                   # Zephyr port (work in progress)
 │   ├── boards/arduino/nano_esp32/  # Our Zephyr board definition: arduino_nano_esp32
 │   └── samples/blinky/             # First Zephyr app: yellow LED + RGB colour cycle
@@ -168,7 +168,7 @@ Restart the computer and open Ubuntu from the Start menu.
 ### 2. Packages in Ubuntu
 
 ```bash
-sudo apt update && sudo apt install -y --no-install-recommends git cmake ninja-build gperf ccache dfu-util device-tree-compiler wget flex bison python3-dev python3-pip python3-venv xz-utils file make gcc g++ gcc-multilib g++-multilib libffi-dev libssl-dev libusb-1.0-0 libsdl2-dev libmagic1 usbutils clang-format
+sudo apt update && sudo apt install -y --no-install-recommends git cmake ninja-build gperf ccache dfu-util device-tree-compiler wget flex bison python3-dev python3-pip python3-venv xz-utils file make gcc g++ gcc-multilib g++-multilib libffi-dev libssl-dev libusb-1.0-0 libsdl2-dev libmagic1 usbutils
 ```
 
 Give your user access to serial ports (takes effect after running `wsl --shutdown` in PowerShell):
@@ -321,15 +321,27 @@ The tests run automatically as part of the build (target `run`).
 
 ## Code style and CI
 
-The code is formatted with `clang-format` according to `.clang-format`.
+The code is formatted with `clang-format` according to `.clang-format`. Everyone, including CI, uses the
+version in `tools/clang-format/version.txt`, since different versions format the code differently.
 
 ```bash
 # Linux / WSL
-clang-format --dry-run --Werror --style=file $(git ls-files '*.c' '*.cpp' '*.h')   # check
-clang-format -i --style=file $(git ls-files '*.c' '*.cpp' '*.h')                    # format
+tools/clang-format/check.sh # check
+tools/clang-format/fix.sh   # format
 ```
 
-On Windows, the equivalent scripts are `tools/clang-format-check.ps1` and `tools/clang-format-fix.ps1`.
+On Windows, the equivalent scripts are `tools/clang-format/check.ps1` and `tools/clang-format/fix.ps1`.
+
+The scripts install the pinned version into `.venv/` in the repo root the first time they run (and again if the
+version changes), so no system-wide clang-format is needed. To run it on single files, use `tools/clang-format/run.sh`
+(`tools/clang-format/run.ps1` on Windows) the same way as `clang-format`.
+
+To make VS Code format with the same version, add this to `.vscode/settings.json` (run one of the scripts first so
+that `.venv/` exists; on Windows the path is `${workspaceFolder}/.venv/Scripts/clang-format.exe`):
+
+```json
+"C_Cpp.clang_format_path": "${workspaceFolder}/.venv/bin/clang-format"
+```
 
 CI (`.github/workflows/ci.yml`) runs on every push and pull request:
 * format check with clang-format

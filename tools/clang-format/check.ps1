@@ -9,5 +9,5 @@ if ($files.Count -eq 0) {
     exit 1
 }
 
-& clang-format --dry-run --Werror --style=file -- $files
+& (Join-Path $PSScriptRoot 'run.ps1') --dry-run --Werror --style=file $files
 exit $LASTEXITCODE

@@ -47,6 +47,6 @@ public:
 private:
     std::uint64_t myLastTimeUs;
     std::uint32_t myPeriodMs;
-    bool          myStarted;
+    bool myStarted;
 };
 } // namespace driver::timer

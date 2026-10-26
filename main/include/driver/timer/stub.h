@@ -28,9 +28,7 @@ public:
         : myLastTime{Clock::now()}
         , myPeriodMs{periodMs}
         , myStarted{startRunning}
-    {
-        std::printf("Stub timer constructed.\n");
-    }
+    { std::printf("Stub timer constructed.\n"); }
 
     ~Stub() noexcept override = default;
 
@@ -74,7 +72,7 @@ public:
         if (!myStarted) { return false; }
 
         const auto currentTime = Clock::now();
-        const auto elapsedMs   =
+        const auto elapsedMs =
             std::chrono::duration_cast<std::chrono::milliseconds>(currentTime - myLastTime).count();
 
         if (elapsedMs >= myPeriodMs)
@@ -91,7 +89,7 @@ private:
     using Clock = std::chrono::steady_clock;
 
     Clock::time_point myLastTime;
-    std::uint32_t     myPeriodMs;
-    bool              myStarted;
+    std::uint32_t myPeriodMs;
+    bool myStarted;
 };
 } // namespace driver::timer

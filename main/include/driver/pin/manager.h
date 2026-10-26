@@ -63,13 +63,9 @@ class PinManagerDriverAccess
 {
 protected:
     static bool acquirePin(std::uint8_t physicalPin) noexcept
-    {
-        return PhysicalPinManager::instance().acquire(physicalPin);
-    }
+    { return PhysicalPinManager::instance().acquire(physicalPin); }
 
     static void releasePin(std::uint8_t physicalPin) noexcept
-    {
-        PhysicalPinManager::instance().release(physicalPin);
-    }
+    { PhysicalPinManager::instance().release(physicalPin); }
 };
 } // namespace driver::pin

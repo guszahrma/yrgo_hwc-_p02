@@ -13,9 +13,7 @@ namespace driver::timer
 namespace
 {
 constexpr std::uint64_t microseconds(std::uint32_t periodMs) noexcept
-{
-    return static_cast<std::uint64_t>(periodMs) * 1000ULL;
-}
+{ return static_cast<std::uint64_t>(periodMs) * 1000ULL; }
 } // namespace
 
 // --------------------------------------------------------------------------------
@@ -23,9 +21,7 @@ Esp32s3::Esp32s3() noexcept
     : myLastTimeUs{0}
     , myPeriodMs{500}
     , myStarted{false}
-{
-    std::printf("ESP32-S3 timer initialized.\n");
-}
+{ std::printf("ESP32-S3 timer initialized.\n"); }
 
 // --------------------------------------------------------------------------------
 Esp32s3::~Esp32s3() noexcept = default;

@@ -12,12 +12,22 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
       - name: Install clang-format
-        run: sudo apt-get update && sudo apt-get install -y clang-format
+        run: tools/clang-format/run.sh --version
       - name: Check code formatting
-        run: |
-          files=$(git ls-files '*.c' '*.cc' '*.cpp' '*.cxx' '*.h' '*.hh' '*.hpp' '*.hxx')
-          test -n "$files"
-          clang-format --dry-run --Werror --style=file $files
+        run: tools/clang-format/check.sh
+
+  windows-format-check:
+    name: Check code formatting on Windows
+    runs-on: windows-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Install clang-format
+        shell: pwsh
+        run: tools/clang-format/run.ps1 --version
+      - name: Check code formatting
+        shell: pwsh
+        run: tools/clang-format/check.ps1
 
   firmware-build:
     name: Build ESP32-S3 firmware on Ubuntu

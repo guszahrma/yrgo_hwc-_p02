@@ -52,27 +52,19 @@ std::unique_ptr<driver::adc::Interface> Esp32s3::createAdc(AdcId id,
 
 // -----------------------------------------------------------------------------
 std::unique_ptr<driver::nvs::Interface> Esp32s3::createNvs(const char* namespaceName) noexcept
-{
-    return std::make_unique<driver::nvs::Esp32s3>(namespaceName);
-}
+{ return std::make_unique<driver::nvs::Esp32s3>(namespaceName); }
 
 // -----------------------------------------------------------------------------
 std::unique_ptr<driver::serial::Interface> Esp32s3::createSerial() noexcept
-{
-    return std::make_unique<driver::serial::Esp32s3>();
-}
+{ return std::make_unique<driver::serial::Esp32s3>(); }
 
 // -----------------------------------------------------------------------------
 std::unique_ptr<driver::tempsensor::Interface>
 Esp32s3::createTempSensor(adc::Interface& adc) noexcept
-{
-    return std::make_unique<driver::tempsensor::Tmp36>(adc);
-}
+{ return std::make_unique<driver::tempsensor::Tmp36>(adc); }
 
 // -----------------------------------------------------------------------------
 std::unique_ptr<driver::timer::Interface> Esp32s3::createTimer() noexcept
-{
-    return std::make_unique<driver::timer::Esp32s3>();
-}
+{ return std::make_unique<driver::timer::Esp32s3>(); }
 
 } // namespace driver::factory

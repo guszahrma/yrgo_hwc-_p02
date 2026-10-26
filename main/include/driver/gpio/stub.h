@@ -95,7 +95,7 @@ public:
 
 private:
     const std::uint8_t myPinNumber;
-    const Direction    myDirection;
-    bool               myState;
+    const Direction myDirection;
+    bool myState;
 };
 } // namespace driver::gpio

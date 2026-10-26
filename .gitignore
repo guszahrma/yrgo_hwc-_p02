@@ -55,11 +55,12 @@ managed_components/
 # Ignore the Zephyr workspace (reproducible from west.yml with tools/zephyr_setup.sh)
 .west/
 deps/
-.venv/
 
 # Ignore local WiFi credentials
 main/include/communication/wifi/esp32s3_local_config.h
-# Ignore the Python virtual environment (holds the pinned clang-format, see tools/clang-format/run.sh)
+
+# Ignore the Python virtual environment (west and Zephyr's Python tools from tools/zephyr_setup.sh,
+# and the pinned clang-format from tools/clang-format/run.sh)
 .venv/
 
 # Track the pinned clang-format version despite the *.txt rule above.

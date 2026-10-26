@@ -77,7 +77,5 @@ Zephyr::createTempSensor(adc::Interface& adc) noexcept
 
 // -----------------------------------------------------------------------------
 std::unique_ptr<driver::timer::Interface> Zephyr::createTimer() noexcept
-{
-    return std::make_unique<driver::timer::Zephyr>();
-}
+{ return std::make_unique<driver::timer::Zephyr>(); }
 } // namespace driver::factory

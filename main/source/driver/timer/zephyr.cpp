@@ -14,9 +14,7 @@ Zephyr::Zephyr() noexcept
     : myLastTimeMs{0}
     , myPeriodMs{500}
     , myStarted{false}
-{
-    printk("Zephyr timer initialized.\n");
-}
+{ printk("Zephyr timer initialized.\n"); }
 
 // --------------------------------------------------------------------------------
 Zephyr::~Zephyr() noexcept = default;

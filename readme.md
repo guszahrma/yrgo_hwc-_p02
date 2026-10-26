@@ -343,6 +343,13 @@ that `.venv/` exists; on Windows the path is `${workspaceFolder}/.venv/Scripts/c
 "C_Cpp.clang_format_path": "${workspaceFolder}/.venv/bin/clang-format"
 ```
 
+Commits that only reformat code are listed in `.git-blame-ignore-revs`, so `git blame` shows who last changed
+the code rather than who reformatted it. GitHub uses the file automatically; locally, run this once per clone:
+
+```bash
+git config blame.ignoreRevsFile .git-blame-ignore-revs
+```
+
 CI (`.github/workflows/ci.yml`) runs on every push and pull request:
 * format check with clang-format
 * build with ESP-IDF 6.0 on Ubuntu (Docker image `espressif/idf:release-v6.0`) and Windows

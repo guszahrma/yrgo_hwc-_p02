@@ -4,13 +4,14 @@
  */
 
 #include <charconv>
+#include <chrono>
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #include <iostream>
 #include <string_view>
-#include <sys/unistd.h>
+#include <thread>
 
 #include "logic/logic.h"
 
@@ -119,8 +120,9 @@ void Logic::run() noexcept
         }
         else
         {
-            sleep(
-                sleepDuration_ms); // Sleep briefly to avoid busy-waiting when no input is available
+            std::this_thread::sleep_for(
+                std::chrono::milliseconds(sleepDuration_ms)); // Sleep briefly to avoid busy-waiting
+                                                              // when no input is available
         }
 
         // timeout can retrurn true if timer is running and the set period has elapsed, otherwise

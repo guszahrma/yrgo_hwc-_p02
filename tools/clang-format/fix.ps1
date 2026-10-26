@@ -9,5 +9,5 @@ if ($files.Count -eq 0) {
     exit 1
 }
 
-& clang-format -i --style=file -- $files
+& (Join-Path $PSScriptRoot 'run.ps1') -i --style=file $files
 exit $LASTEXITCODE

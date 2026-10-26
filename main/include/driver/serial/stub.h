@@ -23,35 +23,30 @@ public:
     Stub() noexcept
         : myBuf{}
         , myBufLen{}
-    {
-        std::cout << "Stub constructed!" << std::endl;
-    }
+    { std::cout << "Stub constructed!" << std::endl; }
 
     /**
      * @brief Destroy the Stub object
-     * 
+     *
      */
     ~Stub() noexcept override = default;
 
     /**
      * @brief Print function
-     * 
+     *
      * @param[in] text Pointer to the C-string to be printed.
      */
     void print(const char* text) noexcept override
     {
-        if (nullptr != text)
-        {
-            std::cout << text << std::flush;
-        }
+        if (nullptr != text) { std::cout << text << std::flush; }
     }
 
     /**
      * @brief ReadLine function
-     * 
+     *
      * @param[out] buffer Pointer to the buffer where the string will be stored.
      * @param[in] maxSize Maximum number of bytes to read.
-     * 
+     *
      * @return True if a simulated line was successfully copied else return false
      */
     bool readLine(char* buffer, std::size_t maxSize) noexcept override
@@ -75,7 +70,10 @@ public:
         // Add terminating null character. Add it last if we have maxed the buffer.
         // Else add it to the end of the string.
         if (maxSize == bytesToCopy) { buffer[bytesToCopy - 1U] = '\0'; }
-        else { buffer[bytesToCopy] = '\0'; }
+        else
+        {
+            buffer[bytesToCopy] = '\0';
+        }
 
         // Clear the internal buffer length so we don't read the same simulated line again.
         myBufLen = 0U;
@@ -86,7 +84,7 @@ public:
 
     /**
      * @brief Simulate input data.
-     * 
+     *
      * @param[in] data Simulated input data.
      */
     void simulateInputData(const char* data) noexcept
@@ -101,7 +99,7 @@ public:
         {
             myBuf[i] = data[i];
         }
-        myBufLen = i;
+        myBufLen        = i;
         myBuf[myBufLen] = '\0';
     }
 

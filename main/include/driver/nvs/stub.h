@@ -29,9 +29,7 @@ public:
      */
     explicit Stub(const char* namespaceName) noexcept
         : myNamespace{namespaceName}
-    {
-        std::printf("nvs::Stub '%s' constructed.\n", namespaceName);
-    }
+    { std::printf("nvs::Stub '%s' constructed.\n", namespaceName); }
 
     /** @brief Destroy the stub and release RAM storage. */
     ~Stub() noexcept override = default;
@@ -82,7 +80,7 @@ public:
     bool set(const char* key, const T value, const bool autoCommit = true) noexcept
     {
         static_assert(std::is_integral_v<T>, "nvs::Stub::set only supports integral types");
-        if (!isValidKey(key))  { return false; }
+        if (!isValidKey(key)) { return false; }
 
         std::vector<std::uint8_t> bytes(sizeof(T));
         std::memcpy(bytes.data(), &value, sizeof(T));

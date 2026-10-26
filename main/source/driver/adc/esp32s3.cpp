@@ -15,9 +15,7 @@ constexpr float voltage1_75V{1.75f};
 constexpr float voltage3_10V{3.1f};
 
 constexpr std::uint8_t getPhysPin(const driver::pin::esp32s3::AdcPin pin) noexcept
-{
-    return static_cast<std::uint8_t>(driver::pin::esp32s3::toNumber(pin));
-}
+{ return static_cast<std::uint8_t>(driver::pin::esp32s3::toNumber(pin)); }
 } // namespace
 
 namespace driver::adc

@@ -62,6 +62,7 @@ private:
     static constexpr float MaxRawValue{4095.0f};
     static constexpr float DefaultVref{3.3f};
     static constexpr float MaxVoltage{3.3f};
+    static constexpr std::uint8_t AdcSamples{5U};
 
     const driver::pin::esp32s3::AdcPin myPin;
 

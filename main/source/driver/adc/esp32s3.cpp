@@ -101,16 +101,22 @@ Esp32s3::~Esp32s3() noexcept
 uint16_t Esp32s3::readValue() noexcept
 {
     if (nullptr == myHandle) { return 0U; }
-    int raw{};
-    adc_oneshot_read(myHandle, myChannel, &raw);
-    return static_cast<std::uint16_t>(raw);
+    int raw{}, sumRaw{};
+
+    // read the value multiple times and average them to avoid distortions
+    for (std::uint8_t i{}; i < AdcSamples; i++)
+    {
+        adc_oneshot_read(myHandle, myChannel, &raw);
+        sumRaw += raw;
+    }
+
+    return static_cast<std::uint16_t>(sumRaw / AdcSamples);
 }
 
 float Esp32s3::readVoltage() noexcept
 {
     if (nullptr == myHandle) { return 0.0f; }
-    int raw{};
-    adc_oneshot_read(myHandle, myChannel, &raw);
+    const int raw{readValue()};
 
     if (nullptr != myCaliHandle)
     {

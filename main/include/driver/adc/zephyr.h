@@ -54,6 +54,8 @@ public:
     Zephyr& operator=(Zephyr&&)      = delete;
 
 private:
+    static constexpr std::uint8_t AdcSamples{5U};
+
     /**
      * @brief Read a raw sample from the ADC channel.
      *

@@ -472,8 +472,9 @@ west flash --esp-device /dev/ttyACM0 && sleep 9 && python -m serial.tools.minite
 ```
 
 The [serial commands](#serial-commands) work over the USB port as on ESP-IDF. Wiring: LED on D6, TMP36
-on A6 (`zephyr/app/app.overlay`). Not ported yet: NVS (settings are not saved, `nvs::Stub`), Wi-Fi and
-MQTT.
+on A6 (`zephyr/app/app.overlay`). `store` saves the blink state and period with `nvs::Zephyr` (Zephyr's
+Settings subsystem, in the board's `storage_partition`), so they are loaded again after a reset or a new
+`west flash`. Not ported yet: Wi-Fi and MQTT.
 
 #### Our own samples (`zephyr/samples/`)
 

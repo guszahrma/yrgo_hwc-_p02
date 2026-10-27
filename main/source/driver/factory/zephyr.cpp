@@ -7,12 +7,10 @@
 #include "driver/adc/zephyr.h"
 #include "driver/factory/zephyr.h"
 #include "driver/gpio/zephyr.h"
+#include "driver/nvs/zephyr.h"
 #include "driver/serial/zephyr.h"
 #include "driver/tempsensor/tmp36.h"
 #include "driver/timer/zephyr.h"
-
-// Not ported to Zephyr yet
-#include "driver/nvs/stub.h"
 
 namespace driver::factory
 {
@@ -57,7 +55,7 @@ std::unique_ptr<driver::adc::Interface> Zephyr::createAdc(AdcId id, float refere
 std::unique_ptr<driver::nvs::Interface> Zephyr::createNvs(const char* namespaceName) noexcept
 {
     // TODO, nvs::Zephyr (zephyr settings subsystem). Values are not kept after a reset
-    return std::make_unique<driver::nvs::Stub>(namespaceName);
+    return std::make_unique<driver::nvs::Zephyr>(namespaceName);
 }
 
 // -----------------------------------------------------------------------------

@@ -5,6 +5,7 @@
 
 #include <cstdint>
 #include <cstdio>
+#include <string>
 #include <type_traits>
 
 #include "driver/nvs/interface.h"

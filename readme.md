@@ -416,10 +416,11 @@ The Zephyr version is pinned in [`west.yml`](west.yml) (the west manifest), and 
 the west workspace: Zephyr and the modules it needs are fetched into `deps/` inside the repository
 (ignored by git). See [`docs/zephyr_port.md`](docs/zephyr_port.md) for why Zephyr is not a git submodule.
 
+All commands in this section run from the **repository root**, wherever you cloned it.
+
 Set up once (needs the packages from [step 2](#2-packages-in-ubuntu) above, ~800 MB, a few minutes):
 
 ```bash
-cd ~/yrgo_hwc-_p02
 tools/zephyr_setup.sh
 ```
 
@@ -434,17 +435,15 @@ Then, in **every new terminal**:
 source tools/zephyr_env.sh
 ```
 
-It activates `.venv` and sets `ZEPHYR_BASE` to `deps/zephyr`. Optionally add an alias:
+It activates `.venv`, sets `ZEPHYR_BASE` to `deps/zephyr` and exports `P02_ROOT` (the repository
+root), which commands and scripts can use instead of a hard-coded path.
+
+Optionally add an alias. Run this from the repository root: `$(pwd)` is replaced with the repository's
+path when the line is written to `~/.bashrc`, so the alias works from any directory:
 
 ```bash
-echo "alias get_zephyr='source ~/yrgo_hwc-_p02/tools/zephyr_env.sh'" >> ~/.bashrc
+echo "alias get_zephyr='source $(pwd)/tools/zephyr_env.sh'" >> ~/.bashrc
 ```
-
-If you have an older `get_zephyr` alias that points to `~/zephyrproject`, remove it first:
-`sed -i '/alias get_zephyr=/d' ~/.bashrc`, then open a new terminal. `~/zephyrproject` itself is no
-longer needed: delete it (`rm -rf ~/zephyrproject`) once a build shows
-`Zephyr version: 4.4.2 (.../yrgo_hwc-_p02/deps/zephyr)`. Keep `~/zephyr-sdk-<version>` – it is the
-compiler, and the new setup uses it too.
 
 > **Never mix environments in one terminal.** Use a fresh terminal for each of:
 >
@@ -462,12 +461,12 @@ compiler, and the new setup uses it too.
 #### P02 on Zephyr (`zephyr/app/`)
 
 `zephyr/app` runs the same `logic::Logic` as the ESP-IDF build, with `driver::factory::Zephyr` instead
-of `factory::Esp32s3`. Build from the **app directory** (never from the repository root – the root
-`build/` belongs to ESP-IDF):
+of `factory::Esp32s3`. Start in the repository root, then build from the **app directory** (never from
+the repository root – the root `build/` belongs to ESP-IDF):
 
 ```bash
-source ~/yrgo_hwc-_p02/tools/zephyr_env.sh
-cd ~/yrgo_hwc-_p02/zephyr/app
+source tools/zephyr_env.sh
+cd zephyr/app
 west build -p always -b arduino_nano_esp32/esp32s3/procpu .
 west flash --esp-device /dev/ttyACM0 && sleep 9 && python -m serial.tools.miniterm /dev/ttyACM0 115200
 ```
@@ -479,11 +478,11 @@ MQTT.
 #### Our own samples (`zephyr/samples/`)
 
 Our apps find the board through `list(APPEND BOARD_ROOT ...)` in their own `CMakeLists.txt` and set
-`CONFIG_BOOT_DELAY` in `prj.conf`, so no extra flags are needed:
+`CONFIG_BOOT_DELAY` in `prj.conf`, so no extra flags are needed. From the repository root:
 
 ```bash
-source ~/yrgo_hwc-_p02/tools/zephyr_env.sh
-cd ~/yrgo_hwc-_p02/zephyr/samples/blinky
+source tools/zephyr_env.sh
+cd zephyr/samples/blinky
 west build -p always -b arduino_nano_esp32/esp32s3/procpu .
 west flash --esp-device /dev/ttyACM0 && sleep 9 && python -m serial.tools.miniterm /dev/ttyACM0 115200
 ```
@@ -501,9 +500,9 @@ Zephyr's own samples don't know about our board, so `BOARD_ROOT` is passed on th
 Example with `hello_world`:
 
 ```bash
-source ~/yrgo_hwc-_p02/tools/zephyr_env.sh
+source tools/zephyr_env.sh
 west build -p always -b arduino_nano_esp32/esp32s3/procpu $ZEPHYR_BASE/samples/hello_world -- \
-  -DBOARD_ROOT=$HOME/yrgo_hwc-_p02/zephyr \
+  -DBOARD_ROOT=$P02_ROOT/zephyr \
   -DCONFIG_BOOT_DELAY=10000
 ```
 
@@ -541,7 +540,7 @@ Useful files after a build:
 
 | Error | Cause / fix |
 |---|---|
-| `No board named 'arduino_nano_esp32' found` | Zephyr cannot find our board. Our apps: `list(APPEND BOARD_ROOT ...)` must come before `find_package(Zephyr)` in `CMakeLists.txt`. Zephyr's samples: add `-- -DBOARD_ROOT=$HOME/yrgo_hwc-_p02/zephyr`. |
+| `No board named 'arduino_nano_esp32' found` | Zephyr cannot find our board. Our apps: `list(APPEND BOARD_ROOT ...)` must come before `find_package(Zephyr)` in `CMakeLists.txt`. Zephyr's samples: add `-- -DBOARD_ROOT=$P02_ROOT/zephyr`. |
 | `devicetree error: ... 'pinctrl-names' is marked as required` (after enabling `i2c0`/`spi2`) | Disabled nodes are not checked against their bindings – errors only show when a node is enabled. Test the board with each bus enabled. |
 | `CMake was unable to find a build program corresponding to "Ninja"` | `pip install ninja` in the Zephyr venv, or `sudo apt install ninja-build`. |
 | `west blobs fetch` fails with `504 Gateway Time-out` | Temporary GitHub error. Run `west blobs fetch hal_espressif` again. |
@@ -551,5 +550,5 @@ Useful files after a build:
 | `error: the Zephyr workspace is not set up` | Run `tools/zephyr_setup.sh` first (once per clone). |
 | `tools/zephyr_setup.sh: Permission denied`, or `git status` shows the script as modified with no changes (`git diff --summary`: `mode change 100755 => 100644`) | The file lost its executable bit (e.g. edited or created from Windows). `chmod +x tools/zephyr_setup.sh`. |
 | `CMake Error: Not a file: .../zephyrproject/zephyr/cmake/pristine.cmake` | The app's `build/` was made with the old `~/zephyrproject` workspace, and `-p always` cleans it with the Zephyr it was built with. Delete it once: `rm -rf build`. |
-| The build prints `Zephyr version: ... (~/zephyrproject/zephyr)` | An old `get_zephyr` alias is active. Remove it (see [Zephyr environment](#zephyr-environment)) and open a new terminal. |
+| The build prints `Zephyr version: ... (~/zephyrproject/zephyr)` | An old `get_zephyr` alias from before `west.yml` is active. Remove it with `sed -i '/alias get_zephyr=/d' ~/.bashrc`, add the new one (see [Zephyr environment](#zephyr-environment)) and open a new terminal. The old `~/zephyrproject` can then be deleted; keep `~/zephyr-sdk-<version>` (the compiler). |
 | `west: unknown command "build"` | `ZEPHYR_BASE` is not set. Run `source tools/zephyr_env.sh`. |

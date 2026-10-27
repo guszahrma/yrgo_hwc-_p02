@@ -76,11 +76,11 @@ Pins are handled by `driver::pin`:
 ├── tools/                    # Zephyr setup (zephyr_setup.sh, zephyr_env.sh)
 │   └── clang-format/         # Pinned clang-format version and scripts
 ├── west.yml                  # Zephyr manifest: pins the Zephyr version for the port
-├── zephyr/                   # Zephyr port (work in progress)
+├── zephyr/                   # Zephyr port
 │   ├── app/                        # P02 on Zephyr: logic::Logic with factory::Zephyr
 │   ├── boards/arduino/nano_esp32/  # Our Zephyr board definition: arduino_nano_esp32
 │   └── samples/blinky/             # First Zephyr app: yellow LED + RGB colour cycle
-├── docs/                     # Additional documentation (git_commands.md, zephyr_port.md)
+├── docs/                     # Additional documentation (git_commands.md, zephyr_design.md)
 └── .github/workflows/ci.yml  # CI: format check + build on Linux and Windows
 ```
 
@@ -364,12 +364,11 @@ Git commands and SSH setup are described in [`docs/git_commands.md`](docs/git_co
 
 ## Zephyr port
 
-This is work is in progress to port the drivers to **Zephyr RTOS v4.4.2**, Do not rely too much on this yet since its will evolve iteratively during the development phase. especially in the begining.
-Thanks to the factory pattern,
-`logic::Logic` does not need to change – instead, Zephyr implementations are added next to the ESP32-S3
-implementations, together with a `factory::Zephyr`.
+The application also runs on **Zephyr RTOS v4.4.2**. Thanks to the factory pattern, `logic::Logic` does
+not change – Zephyr implementations of the drivers live next to the ESP32-S3 implementations, together
+with a `factory::Zephyr`. Wi-Fi and MQTT are not ported yet.
 
-The plan, the division of work and our notes are in [`docs/zephyr_port.md`](docs/zephyr_port.md).
+Design decisions and lessons learned are in [`docs/zephyr_design.md`](docs/zephyr_design.md).
 
 ### Our board definition
 
@@ -414,7 +413,7 @@ Zephyr only looks for boards in its own tree, so apps point it to ours with `BOA
 
 The Zephyr version is pinned in [`west.yml`](west.yml) (the west manifest), and the repository itself is
 the west workspace: Zephyr and the modules it needs are fetched into `deps/` inside the repository
-(ignored by git). See [`docs/zephyr_port.md`](docs/zephyr_port.md) for why Zephyr is not a git submodule.
+(ignored by git). See [`docs/zephyr_design.md`](docs/zephyr_design.md) for why Zephyr is not a git submodule.
 
 All commands in this section run from the **repository root**, wherever you cloned it.
 

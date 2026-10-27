@@ -87,3 +87,34 @@ jobs:
             build/*.map
           if-no-files-found: error
           retention-days: 3
+
+  zephyr-build:
+    name: Build Zephyr apps for the Arduino Nano ESP32
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Install host tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends ninja-build gperf device-tree-compiler
+      - name: Set up the Zephyr workspace (Zephyr version from west.yml)
+        run: tools/zephyr_setup.sh
+      - name: Build the P02 app
+        run: |
+          source tools/zephyr_env.sh
+          west build -p always -d build-zephyr/app -b arduino_nano_esp32/esp32s3/procpu zephyr/app
+      - name: Build blinky
+        run: |
+          source tools/zephyr_env.sh
+          west build -p always -d build-zephyr/blinky -b arduino_nano_esp32/esp32s3/procpu zephyr/samples/blinky
+      - name: Upload Zephyr firmware artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: firmware-zephyr
+          path: |
+            build-zephyr/app/zephyr/zephyr.bin
+            build-zephyr/app/zephyr/zephyr.elf
+            build-zephyr/blinky/zephyr/zephyr.bin
+          if-no-files-found: error
+          retention-days: 3

@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
       - name: Install clang-format
         run: tools/clang-format/run.sh --version
       - name: Check code formatting
@@ -21,7 +21,7 @@ jobs:
     runs-on: windows-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
       - name: Install clang-format
         shell: pwsh
         run: tools/clang-format/run.ps1 --version
@@ -36,7 +36,7 @@ jobs:
 #    needs: format-check
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           submodules: recursive
       - name: Build firmware
@@ -47,7 +47,7 @@ jobs:
           idf.py set-target esp32s3
           idf.py build
       - name: Upload firmware artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: firmware
           path: |
@@ -63,7 +63,7 @@ jobs:
 #    needs: format-check
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           submodules: recursive
       - name: Install ESP-IDF 6.0 for ESP32-S3
@@ -78,7 +78,7 @@ jobs:
           idf.py set-target esp32s3
           idf.py build
       - name: Upload Windows firmware artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: firmware-windows
           path: |
@@ -93,7 +93,7 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
       - name: Install host tools
         run: |
           sudo apt-get update
@@ -109,7 +109,7 @@ jobs:
           source tools/zephyr_env.sh
           west build -p always -d build-zephyr/blinky -b arduino_nano_esp32/esp32s3/procpu zephyr/samples/blinky
       - name: Upload Zephyr firmware artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: firmware-zephyr
           path: |

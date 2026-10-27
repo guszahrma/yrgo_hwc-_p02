@@ -4,13 +4,14 @@
  */
 
 #include <charconv>
+#include <chrono>
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #include <iostream>
 #include <string_view>
-#include <sys/unistd.h>
+#include <thread>
 
 #include "logic/logic.h"
 
@@ -61,8 +62,13 @@ void Logic::run() noexcept
 
     // The loop should be designed to be non-blocking and responsive, allowing for real-time command
     // processing and state updates.
+
     constexpr std::size_t bufferSize{64};
-    constexpr std::uint8_t sleepDuration_ms{1};
+
+    // Must be at least one FreeRTOS tick (10 ms with CONFIG_FREERTOS_HZ=100): shorter sleeps
+    // busy-wait in ESP-IDF, so the idle task never runs and the task watchdog fires
+    constexpr std::uint8_t sleepDuration_ms{10};
+
     char buffer[bufferSize]{};
 
     loadStoredUserSettings();
@@ -119,8 +125,9 @@ void Logic::run() noexcept
         }
         else
         {
-            sleep(
-                sleepDuration_ms); // Sleep briefly to avoid busy-waiting when no input is available
+            std::this_thread::sleep_for(
+                std::chrono::milliseconds(sleepDuration_ms)); // Sleep briefly to avoid busy-waiting
+                                                              // when no input is available
         }
 
         // timeout can retrurn true if timer is running and the set period has elapsed, otherwise

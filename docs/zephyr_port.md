@@ -99,12 +99,12 @@ first, then apply it to P02 on the real board.
 |---|---|---|---|
 | 0 | Environment, hello_world on the board | – | ✅ |
 | 1 | Blinky on the yellow LED with our own overlay | Devicetree, GPIO | ✅ `zephyr/samples/blinky`: yellow LED + RGB colour cycle |
-| 2 | Own Zephyr app skeleton: `Logic` builds and runs with **only stubs** | West, build, Kconfig | ✅ `zephyr/app` runs the unchanged `logic::Logic` with `factory::Zephyr` (real drivers, `nvs::Stub`) |
+| 2 | Own Zephyr app skeleton: `Logic` builds and runs with **only stubs** | West, build, Kconfig | ✅ `zephyr/app` runs the unchanged `logic::Logic` with `factory::Zephyr` (real drivers only) |
 | 3 | `timer::Zephyr` | Time, timers, work queues | ✅ `k_uptime_get()`, tested: 500 ms period |
 | 4 | `gpio::Zephyr`, then pins from devicetree (`gpio_dt_spec`) instead of `9U` | Devicetree, GPIO | ✅ takes a `gpio_dt_spec`; LED on D6 toggles with `timer::Zephyr`. How `9U` maps to a pin is decided in `factory::Zephyr` |
 | 5 | `serial::Zephyr` – or replace our command parser with Zephyr's shell (design decision) | Shell | ✅ our parser kept; `serial::Zephyr` uses the console UART (USB) with `uart_poll_in/out` |
 | 6 | `adc::Zephyr` + overlay – TMP36 then works as-is | Devicetree, driver model | ✅ takes an `adc_dt_spec`; P02's unchanged `Tmp36` reads ~21 °C |
-| 7 | `nvs` via the Settings subsystem | Settings | ⬜ |
+| 7 | `nvs` via the Settings subsystem | Settings | ✅ `nvs::Zephyr`: Settings with the NVS backend in `storage_partition`, keys `<namespace>/<key>`; tested: `store`, reset, values loaded |
 | 8 | Own board definition `arduino_nano_esp32` | Devicetree, bindings | ✅ `zephyr/boards/arduino/nano_esp32` – done early, so the port is built on the real board from the start |
 | 9 | Own `west.yml` (T2 workspace) + Zephyr build in CI | West manifest | ✅ `west.yml`, `tools/zephyr_setup.sh`, `tools/zephyr_env.sh`, CI job `zephyr-build` |
 | 10 | Wi-Fi and MQTT | Networking | ⬜ |
@@ -139,6 +139,7 @@ first, then apply it to P02 on the real board.
 | How the factory maps hardware to devicetree | **C:** the factory takes a role (`GpioId::StatusLed`, `AdcId::TempSensor`) instead of a pin number (#60) | Each factory decides what a role means: `factory::Esp32s3` maps it to a pin, `factory::Zephyr` to a devicetree node (`DT_ALIAS(p02_led)`, `zephyr,user` `io-channels`). The roles stay in `driver::factory` |
 | ADC attenuation | From `zephyr,gain` in devicetree; `referenceVoltage` is not used | In Zephyr the channel is configured from devicetree, not at runtime |
 | Timer | Polled `timeout()` kept, restarts from "now" | `Logic` stays unchanged. A `k_timer` with a callback would be more idiomatic but changes the interface |
+| NVS | Zephyr's **Settings** subsystem (NVS backend), not the raw NVS API | Settings has string keys like ESP-IDF; raw NVS only has numeric IDs. The namespace becomes the first part of the key (`user_settings/blink_state`). Every write goes to flash at once, so `autoCommit`/`commit()` have no effect – `Logic` only uses `autoCommit = true` anyway |
 | `std::cout` in `Logic` | Kept, via `CONFIG_POSIX_API` | `Logic` stays unchanged. Costs ~225 KB flash; Zephyr logging would be a later improvement |
 | ESP-IDF and Zephyr in one repository | Yes | The shared logic is tested on both while the port is in progress; reorganise (`common/`, `esp-idf/`, `zephyr/`) when stable |
 
@@ -298,7 +299,7 @@ first, then apply it to P02 on the real board.
   still wrong. `printk` has no `%f` by default – print millivolts as an integer instead.
 * `k_uptime_get` without `()` is the function's **address**, not the time.
 
-### Drivers (timer, gpio, adc)
+### Drivers (timer, gpio, adc, nvs)
 
 * An implementation must match the interface's signature exactly. `override` catches it
   (`setPeriod(std::int64_t)` vs the interface's `setPeriod(std::uint32_t)`).
@@ -321,6 +322,18 @@ first, then apply it to P02 on the real board.
   `adc_raw_to_millivolts_dt` converts in place and needs an `int32_t`.
 * Remove what the copied ESP32 code needed but Zephyr does not (`microseconds()`, `High`/`Low`,
   `<cstdio>`) – unused code gives warnings that hide real ones.
+* NVS: Kconfig `FLASH`, `FLASH_MAP`, `NVS`, `SETTINGS`. `SETTINGS_NVS` does not need to be set: the
+  backend `choice` defaults to NVS when `CONFIG_NVS` is on. The board's `storage_partition` is used
+  automatically.
+* NVS: Settings stores raw bytes, so `set<T>`/`get<T>` are just `&value, sizeof(T)` plus
+  `static_assert(std::is_integral_v<T>)` – the ESP32 version needs one `nvs_set_*` per type.
+* `settings_load_one()` returns the number of bytes read as **`ssize_t`** (negative = error). Keep it
+  signed and cast `sizeof(T)` instead; `const size_t n{ssize_t_value}` is a narrowing error with `{}`.
+* `eraseAll()` lists the keys with `settings_load_subtree_direct()` and a callback. A C callback can be a
+  C++ lambda **without capture** (`[]`); data reaches it through the `void* param` argument. Collect the
+  keys first and erase them afterwards, not while Settings iterates.
+* P02 only saves on the `store` command – changing `period` alone is not kept after a reset. That looked
+  like a broken driver the first time.
 
 ### Git
 

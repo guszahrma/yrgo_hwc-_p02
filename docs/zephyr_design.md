@@ -143,10 +143,10 @@ Where things are:
 
 ### USB console (usbipd/WSL)
 
-* Every reset re-enumerates USB, and usbipd needs a moment to re-attach the board to WSL. The flash
-  command waits until `/dev/ttyACM0` is back instead of a fixed `sleep`, and `CONFIG_BOOT_DELAY=1000`
-  keeps the boot output. We first used 10 s and `sleep 9` – estimated, not measured; 1 s works on both
-  our computers.
+* Every reset re-enumerates USB, and usbipd has to re-attach the board to WSL. `CONFIG_BOOT_DELAY=1000`
+  keeps the boot output, and the monitor is started right after `west flash` without a `sleep`. We first
+  used a 10 s delay and `sleep 9` – estimated, not measured; tested on both our computers, neither is
+  needed. With a slower usbipd, add a `sleep` before the monitor (see the readme's troubleshooting).
 * `miniterm --exit-char 24` exits with `Ctrl+X`; the default `Ctrl+]` is awkward on a Swedish keyboard.
 * `SerialException: device reports readiness to read but returned no data` = the board reset or was
   flashed. Start the monitor again.

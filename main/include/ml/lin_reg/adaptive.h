@@ -15,7 +15,7 @@ class Adaptive final : public Interface
 public:
     /**
      * @brief Constructor
-     * 
+     *
      * @param[in] trainIn Training inputs. Size must be greater than 0.
      * @param[in] trainOut Training outputs. Size must be greater than 0.
      */
@@ -39,14 +39,16 @@ public:
      * @brief Train the model for the given number of epochs.
      *
      * @param[in] epochCount Number of epochs to train the model. Must be greater than 0.
-     * @param[in] initialLearningRate Learning rate to use. Must be in range (0.0, 1.0), non-inclusive.
+     * @param[in] initialLearningRate Learning rate to use. Must be in range (0.0, 1.0),
+     * non-inclusive.
      * @param[in] precisionThreshold Training is aborted if/when this threshold is reached.
      *
      * @return True if training was performed, false if input argument is invalid.
      */
-    bool train(std::size_t epochCount, double initialLearningRate = 0.01, double precisionThreshold = 0.999999) noexcept;
+    bool train(std::size_t epochCount, double initialLearningRate = 0.01,
+               double precisionThreshold = 0.999999) noexcept;
 
-    Adaptive()                        = delete; // No default constructor.
+    Adaptive()                           = delete; // No default constructor.
     Adaptive(const Adaptive&)            = delete; // No copy constructor.
     Adaptive(Adaptive&&)                 = delete; // No move constructor.
     Adaptive& operator=(const Adaptive&) = delete; // No copy assignment.
@@ -69,7 +71,7 @@ private:
 
     /**
      * @brief Compute precision.
-     * 
+     *
      * @return Precision as a floating-point value.
      */
     [[nodiscard]] double computePrecision() const noexcept;

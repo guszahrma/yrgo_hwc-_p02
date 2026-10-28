@@ -1,9 +1,11 @@
-//! @note File header missing.
+/**
+ * @file  template file that should be renamed and updated with local settings
+ */
 #pragma once
 
-namespace communication::wifi
+namespace comm::wifi
 {
-//! @note Prefer to use universal initializer {}.
-constexpr const char* defaultSsid     = "YOUR_WIFI_SSID";
-constexpr const char* defaultPassword = "YOUR_WIFI_PASSWORD";
-} // namespace communication::wifi
+
+constexpr const char* defaultSsid{"YOUR_WIFI_SSID"};
+constexpr const char* defaultPassword{"YOUR_WIFI_PASSWORD"};
+} // namespace comm::wifi

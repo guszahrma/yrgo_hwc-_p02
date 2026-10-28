@@ -1,0 +1,5 @@
+# Arduino Nano ESP32 – board-specific Kconfig defaults (same as esp32s3_devkitc).
+
+config HEAP_MEM_POOL_ADD_SIZE_BOARD
+	int
+	default 4096 if BOARD_ARDUINO_NANO_ESP32_ESP32S3_PROCPU

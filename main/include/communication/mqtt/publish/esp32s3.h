@@ -12,6 +12,9 @@
 
 namespace comm::mqtt::publish
 {
+/**
+ * @brief Declaration of Publisher for mqtt on esp32s3
+ */
 class Esp32s3 final : public Interface
 {
 public:

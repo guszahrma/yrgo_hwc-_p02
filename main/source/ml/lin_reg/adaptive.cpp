@@ -46,10 +46,7 @@ Adaptive::Adaptive(const Matrix1d& trainIn, const Matrix1d& trainOut) noexcept
     }
 }
 
-double Adaptive::predict(const double input) const noexcept
-{
-    return myWeight * input + myBias;
-}
+double Adaptive::predict(const double input) const noexcept { return myWeight * input + myBias; }
 
 void Adaptive::optimize(const double input, const double output, const double learningRate) noexcept
 {
@@ -131,15 +128,15 @@ bool Adaptive::train(const std::size_t epochCount, const double initialLearningR
         {
             if (current >= precisionThreshold)
             {
-                std::printf("Reached %g %% precision after %zu epochs!\n",
-                            current * 100.0, epoch + 1U);
+                std::printf("Reached %g %% precision after %zu epochs!\n", current * 100.0,
+                            epoch + 1U);
                 return true;
             }
         }
     }
 
-    std::printf("Final precision: %g %% after %zu epochs\n",
-                computePrecision() * 100.0, epochCount);
+    std::printf("Final precision: %g %% after %zu epochs\n", computePrecision() * 100.0,
+                epochCount);
     return true;
 }
 

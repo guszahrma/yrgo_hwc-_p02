@@ -1,0 +1,8 @@
+# Arduino Nano ESP32 (ABX00083): u-blox NORA-W106 module (ESP32-S3R8, 8 MB PSRAM) with 16 MB flash.
+# Out-of-tree board definition – not part of upstream Zephyr (checked in v4.4.2 and main).
+board:
+  name: arduino_nano_esp32
+  full_name: Arduino Nano ESP32
+  vendor: arduino
+  socs:
+  - name: esp32s3

@@ -1,0 +1,59 @@
+/*
+ * Arduino Nano ESP32 – pin multiplexing: which GPIO pins the UART, I2C and SPI peripherals use.
+ *
+ * On the ESP32-S3 almost any peripheral signal can be routed to almost any GPIO (the "GPIO matrix").
+ * The board decides the routing so it matches the Arduino pin labels on the header.
+ * Each group holds pins that need the same electrical settings.
+ *
+ * Signal names (UART0_TX_GPIO43 etc.) come from <zephyr/dt-bindings/pinctrl/esp32s3-pinctrl.h>.
+ */
+
+#include <zephyr/dt-bindings/pinctrl/esp-pinctrl-common.h>
+#include <zephyr/dt-bindings/pinctrl/esp32s3-pinctrl.h>
+#include <zephyr/dt-bindings/pinctrl/esp32s3-gpio-sigmap.h>
+
+&pinctrl {
+	/* UART0 on D1 (TX) and D0 (RX) – the same GPIOs as on the devkitc, wired to the header. */
+	uart0_default: uart0_default {
+		/* TX starts high (UART idle level), so the receiver does not see a false start bit. */
+		group1 {
+			pinmux = <UART0_TX_GPIO43>;
+			output-high;
+		};
+
+		/* RX is pulled up, so an unconnected pin does not produce garbage characters. */
+		group2 {
+			pinmux = <UART0_RX_GPIO44>;
+			bias-pull-up;
+		};
+	};
+
+	/* I2C0 on A4 (SDA) and A5 (SCL). I2C lines are open-drain with pull-ups: devices only pull low. */
+	i2c0_default: i2c0_default {
+		group1 {
+			pinmux = <I2C0_SDA_GPIO11>,
+				 <I2C0_SCL_GPIO12>;
+			bias-pull-up;
+			drive-open-drain;
+			output-high;
+		};
+	};
+
+	/*
+	 * SPI2 (FSPI) on D11 (COPI), D12 (CIPO) and D13 (SCK).
+	 * No CS here: each SPI device brings its own chip select (cs-gpios in the app overlay).
+	 * SCK (D13, GPIO48) is also the yellow LED, which flickers while SPI is in use.
+	 */
+	spim2_default: spim2_default {
+		group1 {
+			pinmux = <SPIM2_MISO_GPIO47>,
+				 <SPIM2_SCLK_GPIO48>;
+		};
+
+		/* COPI starts low instead of floating, so a connected device sees no noise before SPI starts. */
+		group2 {
+			pinmux = <SPIM2_MOSI_GPIO38>;
+			output-low;
+		};
+	};
+};

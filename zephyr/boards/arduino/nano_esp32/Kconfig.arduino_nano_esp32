@@ -1,0 +1,8 @@
+# Arduino Nano ESP32 – chip variant and CPU core selection.
+#
+# SOC_ESP32S3_WROOM_N16R8 = ESP32-S3 with 16 MB flash and 8 MB PSRAM, the same memory as the Nano's
+# NORA-W106 module. (esp32s3_devkitc uses the N8 variant: 8 MB flash, no PSRAM.)
+
+config BOARD_ARDUINO_NANO_ESP32
+	select SOC_ESP32S3_WROOM_N16R8
+	select SOC_ESP32S3_PROCPU if BOARD_ARDUINO_NANO_ESP32_ESP32S3_PROCPU

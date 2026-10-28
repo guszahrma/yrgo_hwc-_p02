@@ -27,7 +27,10 @@ esp_err_t gpio_set_level(const gpio_num_t gpio_num, const uint32_t level)
 {
     TRACE("Setting GPIO %u level to %u\n", gpio_num, level);
     if (level) { pin_reg |= (1U << gpio_num); }
-    else { pin_reg &= ~(1U << gpio_num); }
+    else
+    {
+        pin_reg &= ~(1U << gpio_num);
+    }
     return 0;
 }
 

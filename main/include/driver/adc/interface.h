@@ -1,4 +1,6 @@
-//! @note Missing file header.
+/**
+ * @file the generic adc interface
+ */
 #pragma once
 
 #include <cstdint>
@@ -6,8 +8,8 @@
 namespace driver::adc
 {
 /**
- *  @brief ADC interface class 
-*/
+ *  @brief abstract ADC interface class
+ */
 class Interface
 {
 public:
@@ -15,16 +17,14 @@ public:
 
     /**
      * @brief Read function for the value of the ADC channel
-     * 
+     *
      * @return value read from the ADC channel , between 0 and 4095 (12-bit resolution)
      */
-    //! @note Please use std::uint16_t and camelCase, i.e. std::uint16_t readValue();
-    virtual uint16_t read_value() noexcept = 0;
+    virtual std::uint16_t readValue() noexcept = 0;
 
     /**
      * @brief Read function for the voltage of the ADC channel
      */
-    //! @note Use camelCase here as well.
-    virtual float read_voltage() noexcept = 0;
+    virtual float readVoltage() noexcept = 0;
 };
 } // namespace driver::adc

@@ -6,8 +6,7 @@
 #include <cstdint>
 #include <iostream>
 
-//! @note Don't use relative paths, this should be "driver/serial/interface.h".
-#include "interface.h"
+#include "driver/serial/interface.h"
 
 namespace driver::serial
 {
@@ -21,40 +20,33 @@ public:
     /**
      * @brief Construct a new Stub object
      */
-    //! @note Explicit not needed for default constructors, but it doesn't hurt.
-    explicit Stub() noexcept
+    Stub() noexcept
         : myBuf{}
         , myBufLen{}
-    {
-        std::cout << "Stub constructed!" << std::endl;
-    }
+    { std::cout << "Stub constructed!" << std::endl; }
 
     /**
      * @brief Destroy the Stub object
-     * 
+     *
      */
     ~Stub() noexcept override = default;
 
     /**
      * @brief Print function
-     * 
+     *
      * @param[in] text Pointer to the C-string to be printed.
      */
     void print(const char* text) noexcept override
     {
-        //! @note Yoda.
-        if (text != nullptr)
-        {
-            std::cout << text << std::flush;
-        }
+        if (nullptr != text) { std::cout << text << std::flush; }
     }
 
     /**
      * @brief ReadLine function
-     * 
+     *
      * @param[out] buffer Pointer to the buffer where the string will be stored.
      * @param[in] maxSize Maximum number of bytes to read.
-     * 
+     *
      * @return True if a simulated line was successfully copied else return false
      */
     bool readLine(char* buffer, std::size_t maxSize) noexcept override
@@ -78,7 +70,10 @@ public:
         // Add terminating null character. Add it last if we have maxed the buffer.
         // Else add it to the end of the string.
         if (maxSize == bytesToCopy) { buffer[bytesToCopy - 1U] = '\0'; }
-        else { buffer[bytesToCopy] = '\0'; }
+        else
+        {
+            buffer[bytesToCopy] = '\0';
+        }
 
         // Clear the internal buffer length so we don't read the same simulated line again.
         myBufLen = 0U;
@@ -89,7 +84,7 @@ public:
 
     /**
      * @brief Simulate input data.
-     * 
+     *
      * @param[in] data Simulated input data.
      */
     void simulateInputData(const char* data) noexcept
@@ -100,13 +95,11 @@ public:
 
         // Copy data into our own buffer until we reach a terminating null character.
         // The buffer length is set accordingly.
-        //! @note I think you should copy until you reach \0 or your internal buffer is out of space:
-        //!        for (i = 0U; (data[i] != '\0') && ((BufLen - 1U) > i); ++i).
-        for (i = 0U; data[i] != '\0'; ++i)
+        for (i = 0U; (data[i] != '\0') && ((BufLen - 1U) > i); ++i)
         {
             myBuf[i] = data[i];
         }
-        myBufLen = i;
+        myBufLen        = i;
         myBuf[myBufLen] = '\0';
     }
 

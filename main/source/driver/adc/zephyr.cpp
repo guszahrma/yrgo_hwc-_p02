@@ -54,9 +54,8 @@ std::uint16_t Zephyr::readValue() noexcept
 // --------------------------------------------------------------------------------
 float Zephyr::readVoltage() noexcept
 {
-    std::int32_t value{};
-
-    if (0U == (value = static_cast<std::int32_t>(readValue()))) { return 0.0f; }
+    std::int32_t value{readValue()};
+    if (0 == value) { return 0.0f; }
 
     // Converts the raw value to millivolts in place, using the gain and reference from devicetree.
     const int ret{adc_raw_to_millivolts_dt(&mySpec, &value)};

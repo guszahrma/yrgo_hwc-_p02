@@ -39,19 +39,23 @@ Zephyr::Zephyr(const adc_dt_spec& spec) noexcept
 // --------------------------------------------------------------------------------
 std::uint16_t Zephyr::readValue() noexcept
 {
-    std::int32_t raw{};
+    std::int32_t raw{}, sumRaw{};
 
-    if (!readRaw(raw)) { return 0U; }
+    // read the value multiple times and average them to avoid distortions
+    for (std::uint8_t i{}; i < AdcSamples; i++)
+    {
+        if (!readRaw(raw)) { return 0U; }
+        sumRaw += raw;
+    }
 
-    return static_cast<std::uint16_t>(raw);
+    return static_cast<std::uint16_t>(sumRaw / AdcSamples);
 }
 
 // --------------------------------------------------------------------------------
 float Zephyr::readVoltage() noexcept
 {
-    std::int32_t value{};
-
-    if (!readRaw(value)) { return 0.0f; }
+    std::int32_t value{readValue()};
+    if (0 == value) { return 0.0f; }
 
     // Converts the raw value to millivolts in place, using the gain and reference from devicetree.
     const int ret{adc_raw_to_millivolts_dt(&mySpec, &value)};

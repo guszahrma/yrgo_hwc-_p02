@@ -467,8 +467,11 @@ the repository root – the root `build/` belongs to ESP-IDF):
 source tools/zephyr_env.sh
 cd zephyr/app
 west build -p always -b arduino_nano_esp32/esp32s3/procpu .
-west flash --esp-device /dev/ttyACM0 && sleep 9 && python -m serial.tools.miniterm /dev/ttyACM0 115200
+west flash --esp-device /dev/ttyACM0 && python -m serial.tools.miniterm --exit-char 24 /dev/ttyACM0 115200
 ```
+
+Exit the monitor with `Ctrl+X` (`--exit-char 24`; the default `Ctrl+]` is awkward on a Swedish
+keyboard).
 
 The [serial commands](#serial-commands) work over the USB port as on ESP-IDF. Wiring: LED on D6, TMP36
 on A6 (`zephyr/app/app.overlay`). `store` saves the blink state and period with `nvs::Zephyr` (Zephyr's
@@ -484,7 +487,7 @@ Our apps find the board through `list(APPEND BOARD_ROOT ...)` in their own `CMak
 source tools/zephyr_env.sh
 cd zephyr/samples/blinky
 west build -p always -b arduino_nano_esp32/esp32s3/procpu .
-west flash --esp-device /dev/ttyACM0 && sleep 9 && python -m serial.tools.miniterm /dev/ttyACM0 115200
+west flash --esp-device /dev/ttyACM0 && python -m serial.tools.miniterm --exit-char 24 /dev/ttyACM0 115200
 ```
 
 Expected: the yellow LED blinks and the RGB LED cycles red → green → blue, with one line per second:
@@ -503,30 +506,31 @@ Example with `hello_world`:
 source tools/zephyr_env.sh
 west build -p always -b arduino_nano_esp32/esp32s3/procpu $ZEPHYR_BASE/samples/hello_world -- \
   -DBOARD_ROOT=$P02_ROOT/zephyr \
-  -DCONFIG_BOOT_DELAY=10000
+  -DCONFIG_BOOT_DELAY=1000
 ```
 
 * `-p always` – pristine build (start from scratch)
 * `BOARD_ROOT` – the directory that contains `boards/`, i.e. the repository's `zephyr/` directory
-* `CONFIG_BOOT_DELAY=10000` – waits 10 s before booting, see below
+* `CONFIG_BOOT_DELAY=1000` – waits 1 s before booting, see below
 
 Flash (attach the board with usbipd first, see [Flashing and monitoring](#flashing-and-monitoring)):
 
 ```bash
 esptool --chip esp32s3 -p /dev/ttyACM0 erase-flash   # once, when switching from ESP-IDF
-west flash --esp-device /dev/ttyACM0 && sleep 9 && python -m serial.tools.miniterm /dev/ttyACM0 115200
+west flash --esp-device /dev/ttyACM0 && python -m serial.tools.miniterm --exit-char 24 /dev/ttyACM0 115200
 ```
 
-Exit the monitor with `Ctrl+]`. Expected output:
+Exit the monitor with `Ctrl+X`. Expected output:
 
 ```
-*** Booting Zephyr OS build v4.4.2 (delayed boot 10000ms) ***
+*** Booting Zephyr OS build v4.4.2 (delayed boot 1000ms) ***
 Hello World! arduino_nano_esp32/esp32s3/procpu
 ```
 
 **Why `BOOT_DELAY`?** The console runs over the ESP32-S3's built-in USB. Every reset disconnects USB, and
-usbipd needs ~8 s to re-attach the board to WSL. Without the delay, everything printed at boot is lost
-before the monitor can open the port.
+usbipd has to re-attach the board to WSL before the monitor can open `/dev/ttyACM0`. The 1 s boot delay
+keeps the boot output until the monitor is open. If the port or the boot output is missing on your
+computer, see [Zephyr troubleshooting](#zephyr-troubleshooting).
 
 Useful files after a build:
 
@@ -544,8 +548,9 @@ Useful files after a build:
 | `devicetree error: ... 'pinctrl-names' is marked as required` (after enabling `i2c0`/`spi2`) | Disabled nodes are not checked against their bindings – errors only show when a node is enabled. Test the board with each bus enabled. |
 | `CMake was unable to find a build program corresponding to "Ninja"` | `pip install ninja` in the Zephyr venv, or `sudo apt install ninja-build`. |
 | `west blobs fetch` fails with `504 Gateway Time-out` | Temporary GitHub error. Run `west blobs fetch hal_espressif` again. |
-| Flashing works but the monitor shows nothing | Boot output was printed before the monitor connected. Build with `-DCONFIG_BOOT_DELAY=10000`. |
+| Flashing works but the monitor shows nothing | Boot output was printed before the monitor connected (usbipd re-attached the board slowly). Increase `CONFIG_BOOT_DELAY` in the app's `prj.conf`, e.g. to `3000`. |
 | `SerialException: device reports readiness to read but returned no data` | The board disconnected from USB (reset/re-attach). Start the monitor again. |
+| `could not open port /dev/ttyACM0` (or the `SerialException` above) right after `west flash` | usbipd had not re-attached the board yet when the monitor started. Wait before opening the monitor: `west flash --esp-device /dev/ttyACM0 && sleep 2 && python -m serial.tools.miniterm --exit-char 24 /dev/ttyACM0 115200` (increase the `sleep` if needed). |
 | Strange compiler errors when building for the ESP32-S3 | The course's `env.sh` is active in the terminal. Open a new terminal and run `source tools/zephyr_env.sh`. |
 | `error: the Zephyr workspace is not set up` | Run `tools/zephyr_setup.sh` first (once per clone). |
 | `tools/zephyr_setup.sh: Permission denied`, or `git status` shows the script as modified with no changes (`git diff --summary`: `mode change 100755 => 100644`) | The file lost its executable bit (e.g. edited or created from Windows). `chmod +x tools/zephyr_setup.sh`. |

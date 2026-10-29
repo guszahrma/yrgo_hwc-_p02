@@ -12,7 +12,7 @@ Course project in *Hårdvarunära programmering C/C++* (low-level programming in
 - TMP36 temperature sensor; Wi-Fi and MQTT (ESP-IDF only)
 - Serial commands: LED on/off, blinking, temperature, settings saved across resets
 - Unit tests on the host with mocked hardware
-- CI: formatting, ESP-IDF build (Linux and Windows) and Zephyr build on every pull request
+- CI: formatting, ESP-IDF build (Linux and Windows), Zephyr build and unit tests on every pull request
 
 ## Architecture
 
@@ -28,14 +28,14 @@ each platform's factory decides what the role means. See [Architecture](docs/arc
 ## Quick start
 
 Requires Ubuntu 24.04 (WSL2 on Windows) with the board attached through usbipd – see
-[Setup](docs/setup.md).
+[Setup](docs/setup.md). All commands run from the repository root.
 
 ```bash
 git clone --recursive git@github.com:guszahrma/yrgo_hwc-_p02.git
 cd yrgo_hwc-_p02
 ```
 
-**ESP-IDF** – requires ESP-IDF 6.0 in `~/esp/esp-idf` ([ESP-IDF environment](docs/espressif_environment.md)):
+**ESP-IDF** – requires ESP-IDF 6.0 installed in `~/esp/esp-idf` ([ESP-IDF environment](docs/espressif_environment.md)):
 
 ```bash
 . ~/esp/esp-idf/export.sh
@@ -52,12 +52,12 @@ idf.py -p /dev/ttyACM0 flash monitor
 ```bash
 tools/zephyr_setup.sh            # first time only (~800 MB)
 source tools/zephyr_env.sh
-cd zephyr/app
-west build -p always -b arduino_nano_esp32/esp32s3/procpu .
-west flash --esp-device /dev/ttyACM0 && python -m serial.tools.miniterm --exit-char 24 /dev/ttyACM0 115200
+west build -p always -b arduino_nano_esp32/esp32s3/procpu -s zephyr/app -d zephyr/app/build
+west flash -d zephyr/app/build --esp-device /dev/ttyACM0 && python -m serial.tools.miniterm --exit-char 24 /dev/ttyACM0 115200
 ```
 
-Then type `help` in the monitor.
+Then type `help` in the monitor ([serial commands](docs/usage.md#serial-commands)). Exit with `Ctrl+]`
+(ESP-IDF) or `Ctrl+X` (Zephyr).
 
 ## Hardware
 
@@ -71,10 +71,10 @@ Then type `help` in the monitor.
 | Document | Contents |
 |---|---|
 | [Setup](docs/setup.md) | WSL, usbipd, packages, cloning, first flash of a new board |
-| [ESP-IDF environment](docs/espressif_environment.md) | Installing ESP-IDF, building and flashing, troubleshooting |
-| [Zephyr environment](docs/zephyr_environment.md) | Zephyr workspace, building and flashing, troubleshooting, design decisions |
+| [ESP-IDF environment](docs/espressif_environment.md) | Setup, building and flashing, troubleshooting, design decisions for ESP-IDF |
+| [Zephyr environment](docs/zephyr_environment.md) | Setup, building and flashing, troubleshooting, design decisions for Zephyr |
 | [Usage](docs/usage.md) | Serial commands, wiring, switching between ESP-IDF and Zephyr |
-| [Architecture](docs/architecture.md) | Interfaces, factories, folder structure, drivers |
+| [Architecture](docs/architecture.md) | Interfaces, factories, adding hardware or drivers, folder structure |
 | [Board](docs/board.md) | Arduino Nano ESP32 facts and our Zephyr board definition |
-| [Contributing](docs/contributing.md) | Tests, code style, CI |
+| [Contributing](docs/contributing.md) | Workflow, tests, code style, CI |
 | [Git commands](docs/git_commands.md) | Git and SSH reference |

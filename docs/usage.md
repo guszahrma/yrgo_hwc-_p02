@@ -1,11 +1,18 @@
 # Usage
 
-How to use the program once it is flashed: serial commands, wiring, and switching between
-ESP-IDF and Zephyr.
+How to use the program once it is flashed: serial commands, wiring, and switching between ESP-IDF and
+Zephyr. The commands and the wiring are the same on both platforms.
 
 ## Serial commands
 
-Connect with `idf.py -p /dev/ttyACM0 monitor` and type:
+Open the monitor after flashing:
+
+| Platform | Monitor | Exit |
+|---|---|---|
+| ESP-IDF | `idf.py -p /dev/ttyACM0 monitor` | `Ctrl+]` |
+| Zephyr | `python -m serial.tools.miniterm --exit-char 24 /dev/ttyACM0 115200` | `Ctrl+X` |
+
+Then type:
 
 | Command | Action |
 |---|---|
@@ -14,35 +21,32 @@ Connect with `idf.py -p /dev/ttyACM0 monitor` and type:
 | `blink on` / `blink off` | Start / stop blinking |
 | `period <ms>` | Set the blink period, e.g. `period 500` |
 | `status` | Show blink state, period and temperature |
-| `store` | Save blink state and period to NVS (loaded at startup) |
+| `store` | Save blink state and period to non-volatile storage (loaded at startup) |
+
+Settings are only saved by `store`: `period` and `blink on` alone are lost after a reset.
 
 ## Hardware and wiring
 
-| Role | Arduino pin | ESP32-S3 GPIO | Notes |
-|---|---|---|---|
-| `GpioId::StatusLed` – status LED | D6 | GPIO9 | Output |
-| `AdcId::TempSensor` – TMP36 | A6 | GPIO13 | ADC2, **does not work while Wi-Fi is active** |
+| Role | Arduino pin | ESP32-S3 GPIO | ESP-IDF (`factory::Esp32s3`) | Zephyr (`zephyr/app/app.overlay`) |
+|---|---|---|---|---|
+| `GpioId::StatusLed` – status LED | D6 | GPIO9 | Arduino pin `D6` | Alias `p02-led` on `&arduino_nano_header 6` |
+| `AdcId::TempSensor` – TMP36 | A6 | GPIO13 | Arduino pin `A6` | `zephyr,user` `io-channels = <&adc1 2>` (ADC2 channel 2) |
 
-`Logic` asks the driver factory for a **role**, not a pin, e.g.
-`factory.createGpio(driver::factory::GpioId::StatusLed, ...)`. Each platform's factory decides which pin
-a role is. To add or change hardware:
+> **Note:** A6 is on ADC2 (A4–A7), which cannot be used while Wi-Fi is active. Use A0–A3 (ADC1) for analog
+> sensors if Wi-Fi is needed.
 
-1. Define the role in `main/include/driver/factory/interface.h` (`GpioId` or `AdcId`).
-2. Map the role to a pin in each platform's factory:
-   - ESP32-S3: `main/source/driver/factory/esp32s3.cpp` (via the Arduino pin names in
-     `driver/pin/esp32s3.h`)
-   - Stub: `main/include/driver/factory/stub.h`
-3. The compiler warns (`-Wswitch`) if a factory does not handle a new role.
-
-> **Note:** ADC2 (A4–A7) cannot be used while Wi-Fi is active. Use A0–A3 (ADC1) for analog sensors if
-> Wi-Fi is needed.
-
-The full pin mapping is in [`main/include/driver/pin/esp32s3.h`](../main/include/driver/pin/esp32s3.h).
+How to add or change hardware is described in [Architecture](architecture.md#adding-or-changing-hardware).
+The full ESP32-S3 pin mapping is in [`main/include/driver/pin/esp32s3.h`](../main/include/driver/pin/esp32s3.h);
+the board's pins and LEDs are in [Board](board.md).
 
 ## Switching between ESP-IDF and Zephyr
 
-The platforms use different partition layouts. Erase the whole flash when switching:
+The platforms use different partition layouts. Erase the whole flash when switching (this also erases the
+saved settings):
 
-```bash
-idf.py -p /dev/ttyACM0 erase-flash
-```
+| Switching to | Command |
+|---|---|
+| ESP-IDF | `idf.py -p /dev/ttyACM0 erase-flash` (in the ESP-IDF environment) |
+| Zephyr | `esptool --chip esp32s3 -p /dev/ttyACM0 erase-flash` (in the Zephyr environment) |
+
+Then build and flash as usual.

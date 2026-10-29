@@ -14,6 +14,16 @@ Reference for the Arduino Nano ESP32 (ABX00083) and our Zephyr board definition.
 | RGB LED | Common anode to 3V3 – **active low**: red = GPIO46, green = GPIO0, blue = GPIO45 (verified on the board) |
 | Boot strapping pins | GPIO0 and GPIO46 – take care when using the RGB LED |
 
+LEDs (verified on the board):
+
+| Zephyr alias | LED | GPIO | Polarity |
+|---|---|---|---|
+| `led0` | Yellow (D13) | GPIO48 | Active high (N-MOSFET) |
+| `led1` / `led2` / `led3` | RGB green / blue / red | GPIO0 / GPIO45 / GPIO46 | Active low (common anode) |
+
+The schematic does not say which RGB pin is which colour; found by testing, and matches Arduino's
+`pins_arduino.h` for the Nano ESP32.
+
 ## Our board definition
 
 **The Arduino Nano ESP32 is not a supported board in Zephyr** (checked in v4.4.2 and on `main`), so this
@@ -51,4 +61,5 @@ gpios = <&arduino_nano_header 6 GPIO_ACTIVE_HIGH>;   /* D6 (= GPIO9) */
 | `arduino_nano_connector.dtsi` | The Nano pin header: D0-D13, A0-A7 → GPIO |
 | `board.yml`, `Kconfig*`, `board.cmake`, `*_defconfig`, `*.yaml` | Board name, chip variant, flash runner, default Kconfig, Twister metadata |
 
-Zephyr only looks for boards in its own tree, so apps point it to ours with `BOARD_ROOT` (see [Zephyr environment](zephyr_environment.md#building-and-flashing)).
+Zephyr only looks for boards in its own tree, so apps point it to ours with `BOARD_ROOT` (see
+[Zephyr environment](zephyr_environment.md#building-and-flashing)).

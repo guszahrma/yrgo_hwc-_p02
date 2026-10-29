@@ -1,11 +1,161 @@
-# Zephyr port – design and lessons learned
+# Zephyr environment
 
-For whoever maintains or extends the Zephyr port of P02: **why** the code looks the way it does, and the
-pitfalls that cost us time. How to set up, build and flash is in the [readme](../readme.md#zephyr-port).
+The application also runs on **Zephyr RTOS v4.4.2**. Thanks to the factory pattern, `logic::Logic` does
+not change – Zephyr implementations of the drivers live next to the ESP32-S3 implementations, together
+with a `factory::Zephyr`. Wi-Fi and MQTT are not ported yet.
 
----
+## Setup
 
-## Overview
+The Zephyr version is pinned in [`west.yml`](../west.yml) (the west manifest), and the repository itself is
+the west workspace: Zephyr and the modules it needs are fetched into `deps/` inside the repository
+(ignored by git). See [Design decisions](#design-decisions) for why Zephyr is not a git submodule.
+
+All commands in this section run from the **repository root**, wherever you cloned it.
+
+Set up once (needs the packages from [step 2](setup.md#2-packages-in-ubuntu) in Setup, ~800 MB, a few minutes):
+
+```bash
+tools/zephyr_setup.sh
+```
+
+The script creates `.venv/` (west and Zephyr's Python tools), `.west/config` and `deps/` (Zephyr and
+`hal_espressif`), installs the Zephyr SDK with the ESP32-S3 compiler in `~/zephyr-sdk-<version>` if it is
+not there yet, and fetches Espressif's binary blobs. Run it again after `west.yml` has changed (e.g. a new
+Zephyr version) – it only updates what is needed.
+
+Then, in **every new terminal**:
+
+```bash
+source tools/zephyr_env.sh
+```
+
+It activates `.venv`, sets `ZEPHYR_BASE` to `deps/zephyr` and exports `P02_ROOT` (the repository
+root), which commands and scripts can use instead of a hard-coded path.
+
+Optionally add an alias. Run this from the repository root: `$(pwd)` is replaced with the repository's
+path when the line is written to `~/.bashrc`, so the alias works from any directory:
+
+```bash
+echo "alias get_zephyr='source $(pwd)/tools/zephyr_env.sh'" >> ~/.bashrc
+```
+
+> **Never mix environments in one terminal.** Use a fresh terminal for each of:
+>
+> | Environment | Activate with | Used for |
+> |---|---|---|
+> | ESP-IDF | `get_idf` | This project as it is today |
+> | Zephyr (board) | `source tools/zephyr_env.sh` | The Zephyr port, flashing the board |
+> | Zephyr course | `source ~/zephyr/env.sh` | Course exercises on `native_sim` |
+>
+> The course's `env.sh` sets `ZEPHYR_TOOLCHAIN_VARIANT=host` (the PC's own GCC), which breaks builds for
+> the ESP32-S3.
+
+## Building and flashing
+
+### P02 on Zephyr (`zephyr/app/`)
+
+`zephyr/app` runs the same `logic::Logic` as the ESP-IDF build, with `driver::factory::Zephyr` instead
+of `factory::Esp32s3`. Start in the repository root, then build from the **app directory** (never from
+the repository root – the root `build/` belongs to ESP-IDF):
+
+```bash
+source tools/zephyr_env.sh
+cd zephyr/app
+west build -p always -b arduino_nano_esp32/esp32s3/procpu .
+west flash --esp-device /dev/ttyACM0 && python -m serial.tools.miniterm --exit-char 24 /dev/ttyACM0 115200
+```
+
+Exit the monitor with `Ctrl+X` (`--exit-char 24`; the default `Ctrl+]` is awkward on a Swedish
+keyboard).
+
+The [serial commands](usage.md#serial-commands) work over the USB port as on ESP-IDF. Wiring: LED on D6, TMP36
+on A6 (`zephyr/app/app.overlay`). `store` saves the blink state and period with `nvs::Zephyr` (Zephyr's
+Settings subsystem, in the board's `storage_partition`), so they are loaded again after a reset or a new
+`west flash`. Not ported yet: Wi-Fi and MQTT.
+
+### Our own samples (`zephyr/samples/`)
+
+Our apps find the board through `list(APPEND BOARD_ROOT ...)` in their own `CMakeLists.txt` and set
+`CONFIG_BOOT_DELAY` in `prj.conf`, so no extra flags are needed. From the repository root:
+
+```bash
+source tools/zephyr_env.sh
+cd zephyr/samples/blinky
+west build -p always -b arduino_nano_esp32/esp32s3/procpu .
+west flash --esp-device /dev/ttyACM0 && python -m serial.tools.miniterm --exit-char 24 /dev/ttyACM0 115200
+```
+
+Expected: the yellow LED blinks and the RGB LED cycles red → green → blue, with one line per second:
+
+```
+Yellow: OFF  RGB: green
+Yellow: ON   RGB: blue
+```
+
+### Zephyr's samples
+
+Zephyr's own samples don't know about our board, so `BOARD_ROOT` is passed on the command line.
+Example with `hello_world`:
+
+```bash
+source tools/zephyr_env.sh
+west build -p always -b arduino_nano_esp32/esp32s3/procpu $ZEPHYR_BASE/samples/hello_world -- \
+  -DBOARD_ROOT=$P02_ROOT/zephyr \
+  -DCONFIG_BOOT_DELAY=1000
+```
+
+* `-p always` – pristine build (start from scratch)
+* `BOARD_ROOT` – the directory that contains `boards/`, i.e. the repository's `zephyr/` directory
+* `CONFIG_BOOT_DELAY=1000` – waits 1 s before booting, see below
+
+Flash (attach the board with usbipd first, see [Setup](setup.md#attaching-the-board-to-wsl)):
+
+```bash
+esptool --chip esp32s3 -p /dev/ttyACM0 erase-flash   # once, when switching from ESP-IDF
+west flash --esp-device /dev/ttyACM0 && python -m serial.tools.miniterm --exit-char 24 /dev/ttyACM0 115200
+```
+
+Exit the monitor with `Ctrl+X`. Expected output:
+
+```
+*** Booting Zephyr OS build v4.4.2 (delayed boot 1000ms) ***
+Hello World! arduino_nano_esp32/esp32s3/procpu
+```
+
+**Why `BOOT_DELAY`?** The console runs over the ESP32-S3's built-in USB. Every reset disconnects USB, and
+usbipd has to re-attach the board to WSL before the monitor can open `/dev/ttyACM0`. The 1 s boot delay
+keeps the boot output until the monitor is open. If the port or the boot output is missing on your
+computer, see [Troubleshooting](#troubleshooting).
+
+Useful files after a build:
+
+| File | Contents |
+|---|---|
+| `build/zephyr/zephyr.dts` | The final devicetree (board + overlays), with the source file of every line |
+| `build/zephyr/.config` | All active Kconfig options |
+| `west build -t menuconfig` | Interactive Kconfig browser (`/` to search, `?` for help) |
+
+## Troubleshooting
+
+| Error | Cause / fix |
+|---|---|
+| `No board named 'arduino_nano_esp32' found` | Zephyr cannot find our board. Our apps: `list(APPEND BOARD_ROOT ...)` must come before `find_package(Zephyr)` in `CMakeLists.txt`. Zephyr's samples: add `-- -DBOARD_ROOT=$P02_ROOT/zephyr`. |
+| `devicetree error: ... 'pinctrl-names' is marked as required` (after enabling `i2c0`/`spi2`) | Disabled nodes are not checked against their bindings – errors only show when a node is enabled. Test the board with each bus enabled. |
+| `CMake was unable to find a build program corresponding to "Ninja"` | `pip install ninja` in the Zephyr venv, or `sudo apt install ninja-build`. |
+| `west blobs fetch` fails with `504 Gateway Time-out` | Temporary GitHub error. Run `west blobs fetch hal_espressif` again. |
+| Flashing works but the monitor shows nothing | Boot output was printed before the monitor connected (usbipd re-attached the board slowly). Increase `CONFIG_BOOT_DELAY` in the app's `prj.conf`, e.g. to `3000`. |
+| `SerialException: device reports readiness to read but returned no data` | The board disconnected from USB (reset/re-attach). Start the monitor again. |
+| `could not open port /dev/ttyACM0` (or the `SerialException` above) right after `west flash` | usbipd had not re-attached the board yet when the monitor started. Wait before opening the monitor: `west flash --esp-device /dev/ttyACM0 && sleep 2 && python -m serial.tools.miniterm --exit-char 24 /dev/ttyACM0 115200` (increase the `sleep` if needed). |
+| Strange compiler errors when building for the ESP32-S3 | The course's `env.sh` is active in the terminal. Open a new terminal and run `source tools/zephyr_env.sh`. |
+| `error: the Zephyr workspace is not set up` | Run `tools/zephyr_setup.sh` first (once per clone). |
+| `tools/zephyr_setup.sh: Permission denied`, or `git status` shows the script as modified with no changes (`git diff --summary`: `mode change 100755 => 100644`) | The file lost its executable bit (e.g. edited or created from Windows). `chmod +x tools/zephyr_setup.sh`. |
+| `CMake Error: Not a file: .../zephyrproject/zephyr/cmake/pristine.cmake` | The app's `build/` was made with the old `~/zephyrproject` workspace, and `-p always` cleans it with the Zephyr it was built with. Delete it once: `rm -rf build`. |
+| The build prints `Zephyr version: ... (~/zephyrproject/zephyr)` | An old `get_zephyr` alias from before `west.yml` is active. Remove it with `sed -i '/alias get_zephyr=/d' ~/.bashrc`, add the new one (see [Setup](#setup)) and open a new terminal. The old `~/zephyrproject` can then be deleted; keep `~/zephyr-sdk-<version>` (the compiler). |
+| `west: unknown command "build"` | `ZEPHYR_BASE` is not set. Run `source tools/zephyr_env.sh`. |
+
+## Design decisions and lessons learned
+
+### Overview
 
 The unchanged application (`logic::Logic`) runs on Zephyr RTOS v4.4.2 on the Arduino Nano ESP32. Only
 the factory and the drivers differ from the ESP-IDF build:
@@ -34,7 +184,7 @@ Where things are:
 | `zephyr/samples/blinky/` | First exercise: LEDs from devicetree |
 | `west.yml`, `tools/zephyr_setup.sh`, `tools/zephyr_env.sh` | The pinned Zephyr workspace |
 
-### Not ported / known issues
+#### Not ported / known issues
 
 * **Wi-Fi and MQTT** are not ported. The ESP-IDF app does not use them either (`main.cpp` only runs
   `Logic`). Note: ADC2 cannot be used while Wi-Fi is on, so the TMP36 must move from A6 to A0-A3 first.
@@ -47,7 +197,7 @@ Where things are:
 
 ---
 
-## Design decisions
+### Design decisions
 
 | Decision | Choice | Why |
 |---|---|---|
@@ -65,9 +215,9 @@ Where things are:
 
 ---
 
-## Pitfalls and lessons learned
+### Pitfalls and lessons learned
 
-### West workspace
+#### West workspace
 
 * `west init -l` makes the *parent* of the repository the workspace (`~`), which collides with other
   workspaces. `tools/zephyr_setup.sh` writes `.west/config` with `path = .` instead.
@@ -77,7 +227,7 @@ Where things are:
 * The SDK is per user (`~/zephyr-sdk-<version>`), not per workspace.
 * An old `build/` remembers the Zephyr it was made with. After moving workspaces, `rm -rf build`.
 
-### Board and devicetree
+#### Board and devicetree
 
 * LEDs on the board (verified):
 
@@ -104,7 +254,7 @@ Where things are:
   (A6 = GPIO13 = ADC2 ch 2), not the GPIO number. `ADC_GAIN_1_4` = 12 dB (~3.1 V full scale).
 * Read the **first** line of a devicetree error; a missing `;` is reported on the line after.
 
-### Kconfig and CMake
+#### Kconfig and CMake
 
 * No spaces around `=` in `prj.conf`, and end the file with a newline.
 * Board defconfig = what every app needs; `prj.conf` = what this app uses.
@@ -114,7 +264,7 @@ Where things are:
   (`undefined reference to ...`), not a compiler error.
 * Build from the app directory; the root `build/` belongs to ESP-IDF.
 
-### C++ on Zephyr
+#### C++ on Zephyr
 
 * `CONFIG_CPP`, `CONFIG_STD_CPP17`, `CONFIG_REQUIRES_FULL_LIBCPP`, and `CONFIG_POSIX_API` for
   `std::cout` (otherwise `undefined reference to 'open'`, `read`, ...).
@@ -125,7 +275,7 @@ Where things are:
 * Keep signed return values signed (`ssize_t`); `const size_t n{ssize_t_value}` is a narrowing error
   with `{}` – which is the point of `{}`.
 
-### Drivers
+#### Drivers
 
 * `override` catches signatures that do not match the interface.
 * Zephyr calls return negative error codes. Store them in an `int` before converting to `bool`, or an
@@ -141,7 +291,7 @@ Where things are:
 * Remove what the copied ESP32 code needed but Zephyr does not – unused code gives warnings that hide
   real ones.
 
-### USB console (usbipd/WSL)
+#### USB console (usbipd/WSL)
 
 * Every reset re-enumerates USB, and usbipd has to re-attach the board to WSL. `CONFIG_BOOT_DELAY=1000`
   keeps the boot output, and the monitor is started right after `west flash` without a `sleep`. We first
@@ -151,7 +301,7 @@ Where things are:
 * `SerialException: device reports readiness to read but returned no data` = the board reset or was
   flashed. Start the monitor again.
 
-### Git
+#### Git
 
 * `.gitignore` ignores files without an extension – Zephyr's `Kconfig` and `*_defconfig` are excepted.
   Build from a fresh clone before opening a PR.

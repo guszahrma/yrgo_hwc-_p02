@@ -118,3 +118,16 @@ jobs:
             build-zephyr/blinky/zephyr/zephyr.bin
           if-no-files-found: error
           retention-days: 3
+          
+  unit-tests:
+    name: Run unit tests on the host
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+        with:
+          submodules: recursive
+      - name: Build and run the tests
+        run: |
+          cmake -S tests -B tests/build
+          cmake --build tests/build

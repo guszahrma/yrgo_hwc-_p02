@@ -3,12 +3,13 @@ cmake_minimum_required(VERSION 3.16)
 # Test target.
 set(TARGET testsuite)
 
-# C++ compiler. Must be set before project() so it takes effect during
+# C and C++ compilers. Must be set before project() so they take effect during
 # compiler detection instead of whatever compiler is first on PATH
 # (e.g. ESP-IDF's esp-clang when built from an ESP-IDF shell).
+set(CMAKE_C_COMPILER gcc)
+set(CMAKE_CXX_COMPILER g++)
 project(${TARGET} CXX C)
 
-set(CMAKE_CXX_COMPILER g++)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
@@ -53,6 +54,9 @@ target_compile_options(${TARGET} PRIVATE -Wall -Werror)
 target_compile_definitions(${TARGET} PUBLIC TESTSUITE)
 target_compile_definitions(${TARGET} PUBLIC TRACE_ENABLED)
 
+
+add_subdirectory(googletest)
+target_link_libraries(${TARGET} PRIVATE gtest gtest_main)
 
 # Run the test suite.
 add_custom_target(run ALL

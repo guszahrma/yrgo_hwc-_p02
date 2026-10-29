@@ -11,8 +11,6 @@ How we work: branches and pull requests, tests, code style and CI.
 * Commit first, then merge `main` – your work is safe in a commit, and `git merge --abort` can always undo
   the merge.
 
-Git commands and SSH setup are described in [`git_commands.md`](git_commands.md).
-
 ## Tests
 
 The unit tests in `tests/` use **GoogleTest** (git submodule `tests/googletest`) and run on the host with

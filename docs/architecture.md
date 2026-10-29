@@ -32,7 +32,7 @@ Pins on ESP-IDF are handled by `driver::pin`:
 * `driver/pin/manager.h` (`PhysicalPinManager`) keeps track of which physical pins are in use, so that two
   drivers cannot claim the same pin.
 
-On Zephyr, pins come from devicetree instead (see [Zephyr environment](zephyr_environment.md#design-decisions)).
+On Zephyr, pins come from devicetree instead (see [Zephyr environment](zephyr_environment.md#drivers)).
 
 ## Adding or changing hardware
 
@@ -109,8 +109,8 @@ Generated and not committed: `sdkconfig` and `build/` (ESP-IDF), `.west/`, `deps
 | MQTT | `comm::mqtt::publish/subscribe` | Publish and subscribe to topics | ✅ | – |
 | ML | `ml::lin_reg` | Adaptive linear regression, platform independent | ✅ | – |
 
-Which platform API each driver uses is listed in [ESP-IDF environment](espressif_environment.md#overview)
-and [Zephyr environment](zephyr_environment.md#overview).
+Which platform API each driver uses is listed in [ESP-IDF environment](espressif_environment.md#drivers)
+and [Zephyr environment](zephyr_environment.md#drivers).
 
 ## Known issues
 
@@ -118,3 +118,7 @@ and [Zephyr environment](zephyr_environment.md#overview).
   (`run()` never returns), but wrong.
 * `gpio::Interface` says "high/low"; Zephyr's `gpio_pin_set_dt` means **active/inactive**. The two
   platforms differ for an active-low pin.
+* ESP-IDF: the ADC driver ignores the return values of `adc_oneshot_*`/`adc_cali_*`, so a failed read is
+  counted into the average without any error.
+* Zephyr: Wi-Fi and MQTT are not ported (the application does not use them on ESP-IDF either). ADC2 cannot
+  be used while Wi-Fi is on, so the TMP36 must move from A6 to A0–A3 first.

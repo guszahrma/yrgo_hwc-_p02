@@ -89,15 +89,3 @@ After this, esptool can put the board into flash mode by itself.
 > **Never mix environments in one terminal.** Use a fresh terminal for each of ESP-IDF, Zephyr and – if
 > you take the Zephyr course – the course's `source ~/zephyr/env.sh`. The course's `env.sh` sets
 > `ZEPHYR_TOOLCHAIN_VARIANT=host` (the PC's own GCC), which breaks builds for the ESP32-S3.
-
-## Troubleshooting
-
-| Error | Cause / fix |
-|---|---|
-| `Could not open COM3` | Windows port name used in WSL. Use `/dev/ttyACM0`. |
-| `Path '/dev/ttyACM0' is not readable` | The user is not in the `dialout` group. See step 2, then run `wsl --shutdown` in PowerShell. |
-| `usbipd: error: Device is not shared` | Run `usbipd bind --busid <id>` as administrator first. |
-| No `/dev/ttyACM*` in WSL | Check that `usbipd attach` is running and that the board is not in Arduino mode (`2341:0070`). |
-| `SerialException: device reports readiness to read but returned no data` | The board disconnected from USB (reset/re-attach). Start the monitor again. |
-| `could not open port /dev/ttyACM0` right after flashing | usbipd had not re-attached the board yet when the monitor started. Wait a moment, or add `sleep 2 &&` before the monitor command. |
-| `tools/...sh: Permission denied`, or `git status` shows a script as modified with no changes (`git diff --summary`: `mode change 100755 => 100644`) | The file lost its executable bit (e.g. edited from Windows). `chmod +x <file>`. |

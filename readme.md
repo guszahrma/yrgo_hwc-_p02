@@ -71,10 +71,12 @@ Then type `help` in the monitor ([serial commands](docs/usage.md#serial-commands
 | Document | Contents |
 |---|---|
 | [Setup](docs/setup.md) | WSL, usbipd, packages, cloning, first flash of a new board |
-| [ESP-IDF environment](docs/espressif_environment.md) | Setup, building and flashing, troubleshooting, design decisions for ESP-IDF |
-| [Zephyr environment](docs/zephyr_environment.md) | Setup, building and flashing, troubleshooting, design decisions for Zephyr |
+| [ESP-IDF environment](docs/espressif_environment.md) | Installing ESP-IDF, building and flashing, drivers |
+| [Zephyr environment](docs/zephyr_environment.md) | Installing Zephyr, building and flashing, samples, drivers |
 | [Usage](docs/usage.md) | Serial commands, wiring, switching between ESP-IDF and Zephyr |
 | [Architecture](docs/architecture.md) | Interfaces, factories, adding hardware or drivers, folder structure |
 | [Board](docs/board.md) | Arduino Nano ESP32 facts and our Zephyr board definition |
 | [Contributing](docs/contributing.md) | Workflow, tests, code style, CI |
-| [Git commands](docs/git_commands.md) | Git and SSH reference |
+
+Troubleshooting tables, design decisions and lessons learned are collected in [`AGENTS.md`](AGENTS.md),
+written as context for AI coding assistants.

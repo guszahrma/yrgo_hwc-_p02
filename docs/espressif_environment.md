@@ -79,23 +79,7 @@ Then use the [serial commands](usage.md#serial-commands).
 | `build/*.bin`, `build/*.elf`, `build/*.map` | Firmware, ELF with symbols, memory map |
 | `idf.py fullclean` | Delete the build; run `set-target` again afterwards |
 
-## Troubleshooting
-
-| Error | Cause / fix |
-|---|---|
-| `ESP-IDF Python virtual environment ... not found` | `install.sh` has not completed. Run `cd ~/esp/esp-idf && ./install.sh esp32s3`. |
-| `libusb-1.0.so.0: cannot open shared object file` (during install) | `sudo apt install -y libusb-1.0-0`, then run `install.sh` again. |
-| `Current directory '.../esp-idf' is not buildable` | You are in the ESP-IDF directory. `cd` to the repository root. Remove `~/esp/esp-idf/build`. |
-| CMake uses `Unix Makefiles` instead of Ninja | `ninja-build` is missing: `sudo apt install -y ninja-build`. |
-| `esp32s3_local_config.h: No such file or directory` | Copy the Wi-Fi template, see [Configure Wi-Fi](#3-configure-wi-fi-once). |
-| `task_wdt: Task watchdog got triggered ... IDLE0` | A task never blocks, so the idle task cannot run. See *Sleeps shorter than one tick* below. |
-
-## Design decisions and lessons learned
-
-> Draft – to be reviewed and extended. Counterpart of
-> [Zephyr environment → Design decisions and lessons learned](zephyr_environment.md#design-decisions-and-lessons-learned).
-
-### Overview
+## Drivers
 
 | Driver | ESP-IDF API | Configured from |
 |---|---|---|
@@ -105,28 +89,3 @@ Then use the [serial commands](usage.md#serial-commands).
 | `serial::Esp32s3` | `driver/usb_serial_jtag.h` | The board's USB port |
 | `nvs::Esp32s3` | `nvs_flash.h` | Default NVS partition |
 | `comm::wifi`, `comm::mqtt` | `esp_wifi.h`, `espressif/mqtt` | `esp32s3_local_config.h` |
-
-#### Known issues
-
-* The ADC driver ignores the return values of `adc_oneshot_*`/`adc_cali_*`, so a failed read is counted
-  into the average without any error.
-
-### Design decisions
-
-| Decision | Choice | Why |
-|---|---|---|
-| ADC attenuation | Chosen from `referenceVoltage` in the constructor | The caller says which voltage range it needs; the driver picks the attenuation |
-| ADC noise | Average of `AdcSamples` (5) reads in `readValue()`; `readVoltage()` uses it | Single reads are noisy; the same on Zephyr |
-| NVS initialisation | `nvs_flash_init()` in the NVS driver's constructor (erase and retry if the partition is full or from a newer version) | The driver works without the Wi-Fi driver having initialised flash first |
-| Pins | Arduino names (`D6`, `A6`) mapped to GPIO numbers in `driver/pin/esp32s3.h`; `PhysicalPinManager` stops two drivers from claiming the same pin | Code and wiring use the names printed on the board |
-
-### Pitfalls and lessons learned
-
-* **Sleeps shorter than one tick.** FreeRTOS ticks every 10 ms (`CONFIG_FREERTOS_HZ=100`). A shorter
-  sleep busy-waits in ESP-IDF, so the task never blocks, the idle task cannot run, and the task watchdog
-  fires. `Logic` therefore sleeps 10 ms.
-* **`sleep()` takes seconds**, not milliseconds – use `std::this_thread::sleep_for(std::chrono::milliseconds(...))`.
-* **ADC2 (A4–A7) cannot be used while Wi-Fi is active.** Use A0–A3 (ADC1) for analog sensors if Wi-Fi is
-  needed.
-* The Nano ESP32 ships with the Arduino bootloader – the first flash needs B1 to GND (see
-  [Setup](setup.md#5-first-time-get-the-board-out-of-arduino-mode)).

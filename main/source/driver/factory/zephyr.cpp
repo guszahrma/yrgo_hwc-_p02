@@ -12,6 +12,9 @@
 #include "driver/tempsensor/tmp36.h"
 #include "driver/timer/zephyr.h"
 
+// Running stubs until real drivers are finished
+#include "driver/watchdog/stub.h"
+
 namespace driver::factory
 {
 // -----------------------------------------------------------------------------
@@ -54,7 +57,6 @@ std::unique_ptr<driver::adc::Interface> Zephyr::createAdc(AdcId id, float refere
 // -----------------------------------------------------------------------------
 std::unique_ptr<driver::nvs::Interface> Zephyr::createNvs(const char* namespaceName) noexcept
 {
-    // TODO, nvs::Zephyr (zephyr settings subsystem). Values are not kept after a reset
     return std::make_unique<driver::nvs::Zephyr>(namespaceName);
 }
 
@@ -76,4 +78,12 @@ Zephyr::createTempSensor(adc::Interface& adc) noexcept
 // -----------------------------------------------------------------------------
 std::unique_ptr<driver::timer::Interface> Zephyr::createTimer() noexcept
 { return std::make_unique<driver::timer::Zephyr>(); }
+
+// -----------------------------------------------------------------------------
+std::unique_ptr<driver::watchdog::Interface> Zephyr::createWatchdog(std::uint32_t timeoutMs) noexcept
+{
+    // Running stubs until real drivers are finished
+    return std::make_unique<driver::watchdog::Stub>(timeoutMs);
+}
 } // namespace driver::factory
+

@@ -11,6 +11,9 @@
 #include "driver/tempsensor/tmp36.h"
 #include "driver/timer/esp32s3.h"
 
+// Running stubs until real drivers are finished
+#include "driver/watchdog/stub.h"
+
 namespace driver::factory
 {
 
@@ -67,4 +70,10 @@ Esp32s3::createTempSensor(adc::Interface& adc) noexcept
 std::unique_ptr<driver::timer::Interface> Esp32s3::createTimer() noexcept
 { return std::make_unique<driver::timer::Esp32s3>(); }
 
+// -----------------------------------------------------------------------------
+std::unique_ptr<driver::watchdog::Interface> Esp32s3::createWatchdog(std::uint32_t timeoutMs) noexcept
+{
+    // Running stubs until real drivers are finished
+    return std::make_unique<driver::watchdog::Stub>(timeoutMs);
+}
 } // namespace driver::factory

@@ -81,6 +81,15 @@ public:
      */
     std::unique_ptr<driver::timer::Interface> createTimer() noexcept override;
 
+    /**
+     * @brief Create a Watchdog object
+     * 
+     * @param[in] timeoutMs The timeout
+     * 
+     * @return unique pointer
+     */
+    virtual std::unique_ptr<driver::watchdog::Interface> createWatchdog(std::uint32_t timeoutMs) noexcept override;
+
     Esp32s3(const Esp32s3&)            = delete;
     Esp32s3(Esp32s3&&)                 = delete;
     Esp32s3& operator=(const Esp32s3&) = delete;

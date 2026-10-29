@@ -84,6 +84,15 @@ public:
      */
     std::unique_ptr<driver::timer::Interface> createTimer() noexcept override;
 
+    /**
+     * @brief Create a Watchdog object
+     * 
+     * @param[in] timeoutMs The timeout
+     * 
+     * @return unique pointer
+     */
+    virtual std::unique_ptr<driver::watchdog::Interface> createWatchdog(std::uint32_t timeoutMs) noexcept override;
+
     Zephyr(const Zephyr&)            = delete;
     Zephyr(Zephyr&&)                 = delete;
     Zephyr& operator=(const Zephyr&) = delete;

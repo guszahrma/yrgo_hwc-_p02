@@ -11,9 +11,7 @@
 #include "driver/serial/zephyr.h"
 #include "driver/tempsensor/tmp36.h"
 #include "driver/timer/zephyr.h"
-
-// Running stubs until real drivers are finished
-#include "driver/watchdog/stub.h"
+#include "driver/watchdog/zephyr.h"
 
 namespace driver::factory
 {
@@ -81,7 +79,7 @@ std::unique_ptr<driver::timer::Interface> Zephyr::createTimer() noexcept
 std::unique_ptr<driver::watchdog::Interface>
 Zephyr::createWatchdog(std::uint32_t timeoutMs) noexcept
 {
-    // Running stubs until real drivers are finished
-    return std::make_unique<driver::watchdog::Stub>(timeoutMs);
+    return std::make_unique<driver::watchdog::Zephyr>(DEVICE_DT_GET(DT_ALIAS(watchdog0)),
+                                                      timeoutMs);
 }
 } // namespace driver::factory

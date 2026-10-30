@@ -72,7 +72,7 @@ CI (`.github/workflows/ci.yml`) runs on every push and pull request:
 | Build ESP32-S3 firmware on Ubuntu | ESP-IDF 6.0 build in the Docker image `espressif/idf:release-v6.0` |
 | Build ESP32-S3 firmware on Windows | ESP-IDF 6.0 installed on the runner, then the same build |
 | Build Zephyr apps for the Arduino Nano ESP32 | `tools/zephyr_setup.sh`, then `zephyr/app` and `zephyr/samples/blinky` with the Zephyr version from `west.yml` |
-| Build Zephyr apps for the Daisy Seed | `tools/zephyr_setup.sh`, then Zephyr's `samples/basic/blinky` for `daisy_seed` |
+| Build Zephyr apps for the Daisy Seed | `tools/zephyr_setup.sh`, then Zephyr's `samples/basic/blinky` for `daisy_seed`, and `zephyr/app` with MCUboot (`--sysbuild`) for `daisy_seed/stm32h750xx/ram_load` |
 | Run unit tests on the host | Builds and runs the GoogleTest suite in `tests/` |
 
 The firmware jobs upload the built images as artifacts (kept for 3 days).

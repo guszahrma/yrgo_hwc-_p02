@@ -135,12 +135,20 @@ jobs:
         run: |
           source tools/zephyr_env.sh
           west build -p always -d build-zephyr/daisy-blinky -b daisy_seed $ZEPHYR_BASE/samples/basic/blinky -- -DBOARD_ROOT=$P02_ROOT/zephyr
+      # P02 with MCUboot. BOARD_ROOT is needed here too: sysbuild looks up the board before the app's
+      # CMakeLists.txt runs.
+      - name: Build the P02 app with MCUboot
+        run: |
+          source tools/zephyr_env.sh
+          west build -p always --sysbuild -d build-zephyr/daisy-app -b daisy_seed/stm32h750xx/ram_load zephyr/app -- -DBOARD_ROOT=$P02_ROOT/zephyr
       - name: Upload Zephyr firmware artifacts
         uses: actions/upload-artifact@v7
         with:
           name: firmware-zephyr-daisy
           path: |
             build-zephyr/daisy-blinky/zephyr/zephyr.bin
+            build-zephyr/daisy-app/mcuboot/zephyr/zephyr.bin
+            build-zephyr/daisy-app/app/zephyr/zephyr.signed.bin
           if-no-files-found: error
           retention-days: 3
 

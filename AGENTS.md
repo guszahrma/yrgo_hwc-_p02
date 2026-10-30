@@ -72,7 +72,7 @@ tools/clang-format/check.sh
 | `libusb-1.0.so.0: cannot open shared object file` (during install) | `sudo apt install -y libusb-1.0-0`, then run `install.sh` again. |
 | `Current directory '.../esp-idf' is not buildable` | You are in the ESP-IDF directory. `cd` to the repository root. Remove `~/esp/esp-idf/build`. |
 | CMake uses `Unix Makefiles` instead of Ninja | `ninja-build` is missing: `sudo apt install -y ninja-build`. |
-| `esp32s3_local_config.h: No such file or directory` | Copy the Wi-Fi template, see [Configure Wi-Fi](docs/espressif_environment.md#3-configure-wi-fi-once). |
+| `esp32s3_local_config.h: No such file or directory` | Copy the Wi-Fi template, see [Create the Wi-Fi config](docs/espressif_environment.md#3-create-the-wi-fi-config-once). |
 | `task_wdt: Task watchdog got triggered ... IDLE0` | A task never blocks, so the idle task cannot run. See *Sleeps shorter than one tick* under ESP-IDF pitfalls. |
 
 ### Zephyr

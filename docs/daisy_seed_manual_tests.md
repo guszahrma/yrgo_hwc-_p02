@@ -98,6 +98,27 @@ Press RESET, upload and start it as in tests 4 and 5. Then check the console (`h
 
 Afterwards, build and upload the normal P02 again (tests 1, 4 and 5).
 
+## 7. QSPI chip ID with 0 dummy cycles (an open quirk, nothing committed yet)
+
+The chip's JEDEC ID reads back rotated (`17 9d 60` instead of `9d 60 17`). Likely cause: the driver
+waits 8 dummy cycles before reading the ID (`st,read-id-dummy-cycles`, default 8), but the IS25LP064A
+sends it at once. This test reads the ID with Zephyr's `jesd216` sample, first as the board is, then with
+0 dummy cycles. It flashes the plain target, which **replaces MCUboot** – flash MCUboot again afterwards.
+
+```bash
+printf '&ext_flash_ctrl {\n\tst,read-id-dummy-cycles = <0>;\n};\n' > ~/daisy_id0.overlay
+west build -p always -b daisy_seed -s deps/zephyr/samples/drivers/jesd216 -d jesd216_build -- -DBOARD_ROOT=$P02_ROOT/zephyr
+west flash -d jesd216_build        # BOOT + RESET first
+python -m serial.tools.miniterm --exit-char 24 /dev/ttyACM0 115200
+west build -p always -b daisy_seed -s deps/zephyr/samples/drivers/jesd216 -d jesd216_build -- -DBOARD_ROOT=$P02_ROOT/zephyr -DEXTRA_DTC_OVERLAY_FILE=$HOME/daisy_id0.overlay
+west flash -d jesd216_build        # BOOT + RESET first
+python -m serial.tools.miniterm --exit-char 24 /dev/ttyACM0 115200
+```
+
+Note the `jedec-id` line of each run. Expected: rotated first, `9d 60 17` with 0 dummy cycles. If so,
+`st,read-id-dummy-cycles = <0>;` goes into `daisy_seed-common.dtsi`. Then flash MCUboot again (test 2) –
+P02 is still in the QSPI flash.
+
 ## If the RESET hook does not work
 
 * **RESET boots P02** (test 4 fails), or **power-on or `os reset` enters recovery** (tests 3 or 5
@@ -114,3 +135,4 @@ Afterwards, build and upload the normal P02 again (tests 1, 4 and 5).
 | 4. RESET enters recovery, no timeout | | | |
 | 5. Upload, `os reset` starts P02 at once | | | |
 | 6. P02 without `board.c` | | | needed / not needed |
+| 7. JEDEC ID, as is / 0 dummy cycles | | | |

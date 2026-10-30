@@ -45,6 +45,9 @@ cd yrgo_hwc-_p02
 
 ## 4. Attach the board to WSL (PowerShell as administrator)
 
+This section and the next are for the Arduino Nano ESP32. For the Daisy Seed, see
+[Daisy Seed → Setup](daisy_seed.md#setup-once).
+
 Run `usbipd list` once without the board connected and once with it, to see which device is the board and
 its BUSID (`6-4` in the example below):
 

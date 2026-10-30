@@ -78,6 +78,8 @@ Then type `help` in the monitor ([serial commands](docs/usage.md#serial-commands
 | Status LED | D6 | LED + resistor to GND |
 | Temperature sensor | A6 | TMP36: Vout to A6, V+ to 3V3 or VBUS (2.7–5.5 V), 0.1 µF capacitor between V+ and GND |
 
+P02 also runs on the Electrosmith Daisy Seed (Zephyr): see [Daisy Seed](docs/daisy_seed.md#wiring-for-p02).
+
 ## Documentation
 
 | Document | Contents |
@@ -88,6 +90,7 @@ Then type `help` in the monitor ([serial commands](docs/usage.md#serial-commands
 | [Usage](docs/usage.md) | Serial commands, wiring, switching between ESP-IDF and Zephyr |
 | [Architecture](docs/architecture.md) | Interfaces, factories, adding hardware or drivers, folder structure |
 | [Board](docs/board.md) | Arduino Nano ESP32 facts and our Zephyr board definition |
+| [Daisy Seed](docs/daisy_seed.md) | Electrosmith Daisy Seed (Zephyr only, work in progress): board, setup, MCUboot, flashing, wiring |
 | [Contributing](docs/contributing.md) | Workflow, tests, code style, CI |
 
 Troubleshooting tables, design decisions and lessons learned are collected in [`AGENTS.md`](AGENTS.md),

@@ -263,53 +263,24 @@ west build -p always -b daisy_seed -s deps/zephyr/samples/basic/blinky -d blinky
 west flash -d blinky_build     # BOOT + RESET first (ROM bootloader, 0483:df11)
 ```
 
-Setup notes (to be moved into [docs/setup.md](docs/setup.md) once verified):
+Setup, building, flashing, wiring and user troubleshooting are in [docs/daisy_seed.md](docs/daisy_seed.md);
+tests still to run on the board in [docs/daisy_seed_manual_tests.md](docs/daisy_seed_manual_tests.md).
+Lessons from the bring-up that the docs leave out:
 
-1. **ROM bootloader.** Hold BOOT, press and release RESET, release BOOT. The board shows up as
-   `DFU in FS Mode` (`0483:df11`). Outside BOOT mode it does not show up over USB at all (yet).
-   A charge-only micro-USB cable gives no device at all – use a data cable.
-2. **Windows driver.** Device Manager shows `DFU in FS Mode` with *Code 28* (no driver). Ignore it:
-   usbipd passes the device to WSL, where `dfu-util` needs no Windows driver.
-3. **usbipd** (PowerShell as administrator; the BUSID differs per USB port):
-   ```powershell
-   usbipd bind --busid <id>                            # first time only
-   usbipd attach --wsl --busid <id> --auto-attach      # keep the window open
-   ```
-   `--auto-attach` re-attaches after every reset and flash, when the board disconnects from USB.
-4. **USB permission in WSL.** `dfu-util: Cannot open DFU device ... (LIBUSB_ERROR_ACCESS)`: `dialout`
-   covers serial ports only, not raw USB. One-time udev rule:
-   ```bash
-   echo 'SUBSYSTEM=="usb", ATTRS{idVendor}=="0483", ATTRS{idProduct}=="df11", MODE="0660", GROUP="dialout"' | sudo tee /etc/udev/rules.d/50-stm32-dfu.rules
-   sudo udevadm control --reload-rules && sudo udevadm trigger
-   ```
-   Verified: `dfu-util -l` then lists `@Internal Flash /0x08000000` (alt 0) and `@Option Bytes` (alt 1).
-5. **Backup before the first flash** (read only; outside the repository):
-   ```bash
-   mkdir -p ~/daisy_seed_backup && cd ~/daisy_seed_backup
-   dfu-util -a 1 -s 0x5200201C:128 -U option_bytes.bin          # option bytes
-   dfu-util -a 0 -s 0x08000000:131072 -U internal_flash.bin     # internal flash (128 KB)
-   ```
-   Restore: `dfu-util -a 0 -s 0x08000000:leave -D internal_flash.bin`. Byte 1 of `option_bytes.bin` is
-   RDP: `0xAA` = no read protection (level 0); anything else and the read fails. The ROM bootloader
-   cannot reach the QSPI flash, so its contents cannot be backed up this way. A read-only check (a small
-   Zephyr program) found one written 64 KB block, 0x020000–0x02FFFF, filled with the test pattern
-   `0xDEADBEEF` (probably a factory test), the rest erased. Backed up anyway (`qspi_0x020000.bin`, read
-   twice over USB with a CRC-32, identical). JEDEC ID read back
-   rotated (`17 9d 60` instead of `9d 60 17`), not yet investigated.
-6. **`west flash` ended with `dfu-util: Error during download get_status` / `FATAL ERROR: command exited
-   with status 74`**, although `File downloaded successfully` was printed: the ROM bootloader resets into
-   the program before answering the final `leave` request. Harmless, but alarming – still unsolved.
-   Tried: `--dfuse-modifiers=leave:will-reset` (as the dfu-util manual suggests) – it breaks the download
-   after the first 1 KB (`LIBUSB_ERROR_PIPE` on `SET_ADDRESS`). Also harmless:
-   `Warning: Invalid DFU suffix signature` (`zephyr.bin` has no DFU suffix). Press RESET if the program
-   does not start.
-7. **USB console.** A running program shows up as a *different* USB device than the ROM bootloader:
-   `2fe3:0004` *USB Serial Device (COMx)* (Zephyr's test VID:PID, from `boards/common/usb/`). usbipd sees
-   it as new: `usbipd bind` again (same BUSID), then `usbipd attach ... --auto-attach`. In WSL it is
-   `/dev/ttyACM0`, or `/dev/ttyACM1` if the Nano is attached too (`ls /dev/ttyACM*`). Run `miniterm`
-   in WSL (`source tools/zephyr_env.sh`), not in PowerShell: Windows has no Python, and its "Python was
-   not found" message is only a Microsoft Store shortcut. Verified with blinky:
-   `python -m serial.tools.miniterm --exit-char 24 /dev/ttyACM1 115200` prints `LED state: ON/OFF`.
+* **`dfu-util` exit 74.** Tried `--dfuse-modifiers=leave:will-reset` (as the dfu-util manual suggests): it
+  breaks the download after the first 1 KB (`LIBUSB_ERROR_PIPE` on `SET_ADDRESS`). Plain `leave` is kept;
+  without `leave` the program does not start until RESET. `Warning: Invalid DFU suffix signature` is
+  harmless too (`zephyr.bin` has no DFU suffix).
+* **Backup.** Byte 1 of `option_bytes.bin` is RDP: `0xAA` = no read protection (level 0); anything else and
+  the read fails. Our board's QSPI held one 64 KB block of `0xDEADBEEF` at 0x020000 (probably a factory
+  test), read with a small Zephyr program (twice, with a CRC-32) and backed up outside the repository.
+* **USB console in WSL.** Run `miniterm` in WSL, not PowerShell: Windows has no Python, and its "Python was
+  not found" is only a Microsoft Store shortcut. With the Nano attached too, the Daisy is `/dev/ttyACM1`.
+* **Debugging without a probe or console.** Two LEDs driven through raw registers at fixed init levels
+  (`SYS_INIT` at `PRE_KERNEL_1` and `APPLICATION`, plus `k_sys_fatal_error_handler`) showed how far an app
+  got. Reading a QSPI range back over USB and comparing it with the uploaded file found the write bug.
+  Check first whether MCUboot is still in recovery (`smpmgr image state-read` answers) before suspecting
+  the app.
 
 Build directories: today's pattern names the **application**, not the board – our apps build in
 `<app>/build` (`zephyr/app/build`), Zephyr's samples in `<sample>_build` at the root (`hello_world_build`),

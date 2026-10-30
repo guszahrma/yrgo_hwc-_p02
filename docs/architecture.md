@@ -85,8 +85,10 @@ The current wiring is listed in [Usage](usage.md#hardware-and-wiring).
 │   └── source/               # Implementations, same layout as include/
 ├── zephyr/
 │   ├── app/                  # P02 on Zephyr: logic::Logic with factory::Zephyr
+│   │   └── boards/           # The wiring: one devicetree overlay per board
 │   ├── boards/               # Out-of-tree Zephyr boards (<vendor>/<board>/), add new boards here
-│   │   └── arduino/nano_esp32/   # Our board definition: arduino_nano_esp32
+│   │   ├── arduino/nano_esp32/       # Our board definition: arduino_nano_esp32
+│   │   └── electrosmith/daisy_seed/  # Our board definition: daisy_seed (with MCUboot setup)
 │   └── samples/blinky/       # First Zephyr app: yellow LED + RGB colour cycle
 ├── tests/                    # Unit tests on the host (GoogleTest, mocked hardware)
 │   ├── CMakeLists.txt        # Test build: test files, code under test, mocks
@@ -100,8 +102,8 @@ The current wiring is listed in [Usage](usage.md#hardware-and-wiring).
 └── .github/workflows/ci.yml  # CI: formatting, ESP-IDF and Zephyr builds, unit tests
 ```
 
-Generated and not committed: `sdkconfig` and `build/` (ESP-IDF), `.west/`, `deps/` and `zephyr/*/build/`
-(Zephyr), `.venv/` (Python tools for Zephyr and clang-format).
+Generated and not committed: `sdkconfig` and `build/` (ESP-IDF), `.west/`, `deps/`, `zephyr/*/build/`
+and `zephyr/app/daisy_seed_build/` (Zephyr), `.venv/` (Python tools for Zephyr and clang-format).
 
 ## Drivers
 

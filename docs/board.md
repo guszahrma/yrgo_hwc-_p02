@@ -1,6 +1,7 @@
 # Board
 
-Reference for the Arduino Nano ESP32 (ABX00083) and our Zephyr board definition.
+Reference for the Arduino Nano ESP32 (ABX00083) and our Zephyr board definition. The Electrosmith Daisy
+Seed has its own page: [Daisy Seed](daisy_seed.md).
 
 ## Board facts (from the ABX00083 schematic)
 

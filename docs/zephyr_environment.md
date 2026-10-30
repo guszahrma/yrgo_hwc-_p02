@@ -62,6 +62,9 @@ Exit the monitor with `Ctrl+X` (`--exit-char 24`; the default `Ctrl+]` is awkwar
 
 Then use the [serial commands](usage.md#serial-commands).
 
+The Daisy Seed is built with MCUboot (`--sysbuild`) and flashed differently: see
+[Daisy Seed → Building and flashing](daisy_seed.md#building-and-flashing).
+
 ### Our samples (`zephyr/samples/`)
 
 Our apps find the board through `list(APPEND BOARD_ROOT ...)` in their own `CMakeLists.txt` and set

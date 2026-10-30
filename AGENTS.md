@@ -138,7 +138,7 @@ tools/clang-format/check.sh
 | How Zephyr gets into the project | `west.yml` in this repository, which is the west workspace (T2); Zephyr and `hal_espressif` in `deps/` | Zephyr is ~80 repositories that west fetches; git submodules cannot follow Zephyr's own manifest. The version is pinned in git, setup is one script, and CI builds the port |
 | Where the Zephyr drivers live | Next to the ESP32 ones in `main/` (`driver/<name>/zephyr.h/.cpp`) | Each driver's interface, ESP32, stub and Zephyr versions stay together; each build system lists its own files |
 | Board | Own out-of-tree board definition, found through `BOARD_ROOT` | The Nano ESP32 is not in Zephyr; app overlays can use Arduino pin names (`arduino_nano_header`) |
-| Where pins come from | Devicetree: drivers take a `gpio_dt_spec` / `adc_dt_spec` | Pin **and** polarity/gain come from `app.overlay`; no GPIO numbers in Zephyr code |
+| Where pins come from | Devicetree: drivers take a `gpio_dt_spec` / `adc_dt_spec` | Pin **and** polarity/gain come from the board's overlay in `zephyr/app/boards/`; no GPIO numbers in Zephyr code |
 | How the factory maps hardware | Roles (`GpioId::StatusLed`, `AdcId::TempSensor`) instead of pin numbers | Each factory decides what a role means: `factory::Esp32s3` a pin, `factory::Zephyr` a devicetree node |
 | ADC attenuation | `zephyr,gain` in devicetree; `referenceVoltage` is ignored | Zephyr configures channels from devicetree, not at runtime |
 | ADC noise | Average of `AdcSamples` (5) reads in `readValue()`; `readVoltage()` uses it | Single reads are noisy; the same on ESP-IDF |
@@ -173,6 +173,10 @@ tools/clang-format/check.sh
 * **Label, node name and alias** – `p02_led: led-d6 { ... }`, `aliases { p02-led = &p02_led; }`:
   label (`_`) for `&p02_led` in devicetree, node name (`-`) for description, alias (lowercase, `-`) for
   `DT_ALIAS(p02_led)` in code. Name aliases after the **role**, not the pin.
+* **Board overlays** in `zephyr/app/boards/` are named after the full target, `/` → `_`
+  (`arduino_nano_esp32_procpu.overlay`), or the same without the SoC (`<board>_<variant>.overlay`) –
+  **not** the bare board name: `arduino_nano_esp32.overlay` is silently ignored. A board overlay replaces
+  `app.overlay`. Check the `Found devicetree overlay:` line in the build output.
 * New nodes go inside `/ { }`; changing an existing node (`&adc1 { }`) is written at the top level.
 * A node with the same name as one in the board is **merged** into it; give the app's wiring its own
   parent (`p02-leds`).

@@ -28,7 +28,7 @@ values are loaded again when the board starts. Without `store`, a reset brings b
 
 ## Hardware and wiring
 
-| Role | Arduino pin | ESP32-S3 GPIO | ESP-IDF (`factory::Esp32s3`) | Zephyr (`zephyr/app/app.overlay`) |
+| Role | Arduino pin | ESP32-S3 GPIO | ESP-IDF (`factory::Esp32s3`) | Zephyr (`zephyr/app/boards/<board>.overlay`) |
 |---|---|---|---|---|
 | `GpioId::StatusLed` – status LED | D6 | GPIO9 | Arduino pin `D6` | Alias `p02-led` on `&arduino_nano_header 6` |
 | `AdcId::TempSensor` – TMP36 | A6 | GPIO13 | Arduino pin `A6` | `zephyr,user` `io-channels = <&adc1 2>` (ADC2 channel 2) |

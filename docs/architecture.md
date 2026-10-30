@@ -48,7 +48,7 @@ is. To add or change hardware:
 2. Map the role in each platform's factory:
    - ESP-IDF: `main/source/driver/factory/esp32s3.cpp` (via the Arduino pin names in
      `driver/pin/esp32s3.h`)
-   - Zephyr: `main/source/driver/factory/zephyr.cpp`, and describe the wiring in `zephyr/app/app.overlay`
+   - Zephyr: `main/source/driver/factory/zephyr.cpp`, and describe the wiring in the board's overlay in `zephyr/app/boards/`
      (an alias for a GPIO, `io-channels` in `zephyr,user` for an ADC channel)
    - Stub: `main/include/driver/factory/stub.h`
 3. The compiler warns (`-Wswitch`) if a factory does not handle a new role.

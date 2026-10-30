@@ -121,8 +121,8 @@ increase `CONFIG_BOOT_DELAY` in the app's `prj.conf` (e.g. to `3000`).
 | Driver | Zephyr API | Configured from |
 |---|---|---|
 | `timer::Zephyr` | `k_uptime_get()`, polled | – |
-| `gpio::Zephyr` | `gpio_dt_spec`, `gpio_pin_*_dt` | `app.overlay`: alias `p02-led` (D6) |
-| `adc::Zephyr` (+ `Tmp36`) | `adc_dt_spec`, `adc_read_dt`, average of 5 samples | `app.overlay`: `zephyr,user` `io-channels` (A6 = ADC2 ch 2) |
+| `gpio::Zephyr` | `gpio_dt_spec`, `gpio_pin_*_dt` | The board's overlay: alias `p02-led` (D6 on the Nano) |
+| `adc::Zephyr` (+ `Tmp36`) | `adc_dt_spec`, `adc_read_dt`, average of 5 samples | The board's overlay: `zephyr,user` `io-channels` (A6 = ADC2 ch 2 on the Nano) |
 | `serial::Zephyr` | `uart_poll_in/out` on the console UART (USB) | `zephyr,console` |
 | `nvs::Zephyr` | Settings subsystem, NVS backend | `storage_partition` |
 
@@ -132,7 +132,7 @@ Where things are:
 |---|---|
 | `main/include/driver/<name>/zephyr.h`, `main/source/driver/<name>/zephyr.cpp` | The drivers, next to the ESP32 and stub versions |
 | `main/source/driver/factory/zephyr.cpp` | Maps the roles (`GpioId::StatusLed`, ...) to devicetree |
-| `zephyr/app/` | The app: `CMakeLists.txt` (lists the sources from `main/`), `prj.conf`, `app.overlay`, `main.cpp` |
+| `zephyr/app/` | The app: `CMakeLists.txt` (lists the sources from `main/`), `prj.conf`, `boards/<board>.overlay` (one per board: the wiring), `main.cpp` |
 | `zephyr/boards/arduino/nano_esp32/` | Our board definition (Zephyr has none for this board), see [Board](board.md) |
 | `zephyr/samples/blinky/` | First exercise: LEDs from devicetree |
 | `west.yml`, `tools/zephyr_setup.sh`, `tools/zephyr_env.sh` | The pinned Zephyr workspace |

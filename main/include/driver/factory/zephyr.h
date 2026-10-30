@@ -13,8 +13,9 @@ namespace driver::factory
 /**
  * @brief Driver factory for Zephyr.
  *
- * Maps P02's roles to devicetree (zephyr/app/app.overlay): GpioId::StatusLed -> alias p02-led,
- * AdcId::TempSensor -> io-channels in zephyr,user. NVS uses nvs::Zephyr (Settings subsystem).
+ * Maps P02's roles to devicetree (each board's overlay in zephyr/app/boards/):
+ * GpioId::StatusLed -> alias p02-led, AdcId::TempSensor -> io-channels in zephyr,user. NVS uses
+ * nvs::Zephyr (Settings subsystem).
  */
 class Zephyr final : public Interface
 {

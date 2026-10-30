@@ -10,7 +10,7 @@
 namespace driver::watchdog
 {
 /**
- * @brief
+ * @brief Esp32s3 watchdog driver class
  *
  */
 class Esp32s3 final : public Interface

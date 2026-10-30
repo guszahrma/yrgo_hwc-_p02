@@ -81,7 +81,8 @@ The current wiring is listed in [Usage](usage.md#hardware-and-wiring).
 │   └── source/               # Implementations, same layout as include/
 ├── zephyr/
 │   ├── app/                        # P02 on Zephyr: logic::Logic with factory::Zephyr
-│   ├── boards/arduino/nano_esp32/  # Our Zephyr board definition: arduino_nano_esp32
+│   ├── boards/                                    # Structure to add new supported boards
+│           ├── arduino/nano_esp32/      # Our Zephyr board definition: arduino_nano_esp32
 │   └── samples/blinky/             # First Zephyr app: yellow LED + RGB colour cycle
 ├── tests/                    # Unit tests on the host (GoogleTest, mocked hardware)
 │   └── googletest/           # GoogleTest (git submodule)

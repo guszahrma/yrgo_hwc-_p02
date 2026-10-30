@@ -18,7 +18,7 @@ class Stub final : public Interface
 public:
     /**
      * @brief Constructor
-     * 
+     *
      * @param[in] timeoutMs The timeout to set in milliseconds
      * @param[in] causedLastReset The flag to check whether watchdog caused the last reset or not
      */
@@ -27,13 +27,14 @@ public:
         , myKickCount{}
         , myCausedLastReset{causedLastReset}
     {
-        if (0U == myTimeoutMs) 
-        { 
+        if (0U == myTimeoutMs)
+        {
             std::printf("Can't create watchdog timer with no timeout\n");
             return;
         }
 
-        std::printf("Stub watchdog timer started, timeout %u ms\n", static_cast<unsigned>(timeoutMs));
+        std::printf("Stub watchdog timer started, timeout %u ms\n",
+                    static_cast<unsigned>(timeoutMs));
     }
 
     /**
@@ -44,50 +45,35 @@ public:
     /**
      * @brief Reset the watchdog timer. Must be called more often than the timeout
      */
-    void kick() noexcept override
-    {
-        ++myKickCount;
-    }
+    void kick() noexcept override { ++myKickCount; }
 
     /**
      * @brief Check if the last reset was caused by the watchdog
-     * 
+     *
      * @return True if last reset was caused by the watchdog, false otherwise
      */
-    bool causedLastReset() const noexcept override
-    {
-        return myCausedLastReset;
-    }
+    bool causedLastReset() const noexcept override { return myCausedLastReset; }
 
     /**
      * @brief Check the kick count
-     * 
+     *
      * @return Number of kick counts recorded
      */
-    std::uint32_t kickCount() const noexcept
-    {
-        return myKickCount;
-    }
+    std::uint32_t kickCount() const noexcept { return myKickCount; }
 
     /**
      * @brief Check the set timeout
-     * 
+     *
      * @return The timeout in milliseconds
      */
-    std::uint32_t timeoutMs() const noexcept
-    {
-        return myTimeoutMs;
-    }
+    std::uint32_t timeoutMs() const noexcept { return myTimeoutMs; }
 
     /**
      * @brief Simulate a watchdog reset
-     * 
+     *
      * @param[in] state State to set
      */
-    void simulateWatchdogReset(bool state) noexcept
-    {
-        myCausedLastReset = state;
-    }
+    void simulateWatchdogReset(bool state) noexcept { myCausedLastReset = state; }
 
     Stub()                       = delete;
     Stub(const Stub&)            = delete;

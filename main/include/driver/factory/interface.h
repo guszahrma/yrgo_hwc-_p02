@@ -102,11 +102,12 @@ public:
 
     /**
      * @brief Create a Watchdog object
-     * 
+     *
      * @param[in] timeoutMs The timeout
-     * 
+     *
      * @return unique pointer
      */
-    virtual std::unique_ptr<driver::watchdog::Interface> createWatchdog(std::uint32_t timeoutMs) noexcept = 0;
+    virtual std::unique_ptr<driver::watchdog::Interface>
+    createWatchdog(std::uint32_t timeoutMs) noexcept = 0;
 };
 } // namespace driver::factory

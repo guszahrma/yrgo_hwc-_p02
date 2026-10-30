@@ -23,7 +23,7 @@ public:
 
     /**
      * @brief Check if the last reset was caused by the watchdog
-     * 
+     *
      * @return True if last reset was caused by the watchdog, false otherwise
      */
     virtual bool causedLastReset() const noexcept = 0;

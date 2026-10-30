@@ -93,7 +93,7 @@ tools/clang-format/check.sh
 |---|---|
 | `error: the Zephyr workspace is not set up` | Run `tools/zephyr_setup.sh` first (once per clone). |
 | `west: unknown command "build"` | `ZEPHYR_BASE` is not set. Run `source tools/zephyr_env.sh`. |
-| `No board named 'arduino_nano_esp32' found` | Zephyr cannot find our board. Our apps: `list(APPEND BOARD_ROOT ...)` must come before `find_package(Zephyr)` in `CMakeLists.txt`. Zephyr's samples: add `-- -DBOARD_ROOT=$P02_ROOT/zephyr`. |
+| `No board named 'arduino_nano_esp32' found` | Zephyr cannot find our board. Our apps: `list(APPEND BOARD_ROOT ...)` must come before `find_package(Zephyr)` in `CMakeLists.txt`. Zephyr's samples, and any build with `--sysbuild` (also `zephyr/app`, e.g. the Daisy's `ram_load`): add `-- -DBOARD_ROOT=$P02_ROOT/zephyr` – sysbuild looks up the board before the app's `CMakeLists.txt` runs. |
 | `devicetree error: ... 'pinctrl-names' is marked as required` (after enabling `i2c0`/`spi2`) | Disabled nodes are not checked against their bindings – errors only show when a node is enabled. Test the board with each bus enabled. |
 | `CMake was unable to find a build program corresponding to "Ninja"` | `pip install ninja` in the Zephyr venv, or `sudo apt install ninja-build`. |
 | `west blobs fetch` fails with `504 Gateway Time-out` | Temporary GitHub error. Run `west blobs fetch hal_espressif` again. |
@@ -223,3 +223,98 @@ tools/clang-format/check.sh
   keeps the boot output, and the monitor is started right after `west flash`. With a slower usbipd, add a
   `sleep` before the monitor (see [Troubleshooting → Setup](#setup-wsl-usb-serial)).
 * `miniterm --exit-char 24` exits with `Ctrl+X`; the default `Ctrl+]` is awkward on a Swedish keyboard.
+
+---
+
+## Daisy Seed (work in progress): design decisions
+
+Out-of-tree Zephyr board `daisy_seed` for the Electrosmith Daisy Seed (STM32H750, Cortex-M7), in
+`zephyr/boards/electrosmith/daisy_seed/`. Modelled on Zephyr's `stm32h750b_dk` (the same chip).
+
+| Decision | Choice | Why |
+|---|---|---|
+| Supported hardware | Seed 1.2 / Rev7 only; no board revisions | The only version we have and can test. The codec (the only difference between versions) is not in devicetree |
+| Where P02 runs | MCUboot in the 128 KB internal flash; P02 stored in the 8 MB QSPI flash | P02 is ~350 KB; the STM32H750 has 128 KB internal flash |
+| RAM load, not XIP | MCUboot copies P02 from QSPI into AXI SRAM (512 KB) and runs it there. P02 built for `daisy_seed/stm32h750xx/ram_load` uses 290 KB of it (code, data and stack). Verified on the board: all P02 commands, including `store` surviving a power cycle | The QSPI driver leaves memory-mapped mode to write, so `store` (NVS in QSPI) would crash a program running from QSPI. Fallback: XIP without NVS |
+| Two targets | `daisy_seed` (internal flash, no bootloader) and `daisy_seed/stm32h750xx/ram_load` for P02; shared `daisy_seed-common.dtsi` with the flash partitions (MCUboot 128 KB internal; QSPI: slot0 1 MB, slot1 1 MB, storage 64 KB) | Bring the board up one layer at a time (LED, USB, MCUboot) with small programs |
+| Flashing | USB only: `dfu-util` via the ROM bootloader (BOOT + RESET) for internal flash; P02 via MCUboot over USB with `smpmgr` (installed into `.venv` by `tools/zephyr_setup.sh`). `stm32cubeprogrammer` (SWD) listed in case a probe turns up | No debug probe. The ROM bootloader cannot write QSPI |
+| MCUboot recovery mode | A RESET press alone enters recovery (waits for `smpmgr` as long as needed); power-on and `smpmgr os reset` boot the app at once. `mcuboot_hooks.c` (`CONFIG_BOOT_GO_HOOKS`, built into MCUboot only) reads the reset flags: pin flag set and power-on/brown-out/software/watchdog/low-power/domain flags not set means RESET; it then reports "no bootable image", and MCUboot enters recovery through `CONFIG_BOOT_SERIAL_NO_APPLICATION`. The flags are cleared at every start. Also recovery when QSPI holds no valid app. Fallback: wait for `smpmgr` after every reset (`CONFIG_BOOT_SERIAL_WAIT_FOR_DFU`, verified on the board with 15 s) | The Daisy has no button MCUboot can read (BOOT selects the ROM bootloader in hardware). MCUboot's own `CONFIG_BOOT_SERIAL_PIN_RESET` checks only the pin flag, and tested on the board the STM32H7 sets it on every reset (RESET, power-on, `smpmgr os reset`), so MCUboot never booted the app. The wait costs 15 s at every start, because usbipd needs 5–15 s to re-attach the board. **The hook is not yet tested on the board** |
+| MCUboot build | Sysbuild from the board directory: `Kconfig.sysbuild` makes MCUboot (RAM-load mode, hash check, no signature) the default for `ram_load`; `sysbuild.cmake` builds it for plain `daisy_seed` with `mcuboot.overlay` (RAM = DTCM, code in `boot_partition`) and `mcuboot.conf`. Build: `west build --sysbuild -b daisy_seed/stm32h750xx/ram_load ...`. Also enters recovery when QSPI holds no valid app (`CONFIG_BOOT_SERIAL_NO_APPLICATION`) | Every app built for `ram_load` gets the same MCUboot without per-app files. DTCM keeps all of AXI SRAM free for the app. A signature with MCUboot's public development key would protect nothing |
+| MCUboot USB | Zephyr's new USB stack: `BOOT_SERIAL_UART` on the CDC ACM UART (`zephyr,uart-mcumgr`), console off. MCUboot is 61 KB of the 128 KB internal flash. Verified on the board: with QSPI empty, MCUboot enters recovery and shows up as `2fe3:0004` (`/dev/ttyACM0`); usbipd took more than 5 s to re-attach after `west flash`. Verified: MCUboot loads blinky from QSPI into AXI SRAM and starts it; a reset after `west flash` boots the app (not recovery). Known issue: `smpmgr image state-read` answers "No images on device!" even with a valid image in slot0 (checked by reading slot0 back) – not yet investigated. Fallback: `BOOT_SERIAL_CDC_ACM` (legacy stack) | The legacy stack is deprecated in 4.4.2; one USB stack in the project. Zephyr's own board files do not enable the new stack for MCUboot (`default y if !MCUBOOT`), so this path is less tested |
+| QSPI write command | `writeoc = "PP_1_1_4"` (0x32) on `ext_flash_ctrl` | Zephyr's default `PP_1_4_4` (0x38) sends the address on four lines, but on the IS25LP064A 0x38 is also 1-1-4: uploads through MCUboot landed as a few scattered fragments (found by reading slot0 back and comparing). Reads and erases were fine. libDaisy uses 0x32 |
+| Peripheral reset for apps started by MCUboot | `board.c` (built only with `CONFIG_BOOTLOADER_MCUBOOT`) resets USB OTG FS and QUADSPI at `PRE_KERNEL_1` | MCUboot leaves USB running (it only switches off the legacy stack) and QSPI configured; neither Zephyr driver resets its peripheral. Added while the real fault was still unknown (MCUboot never booted the app, see recovery mode) – whether it is needed is not yet tested |
+| Main stack | `CONFIG_MAIN_STACK_SIZE=4096` in `zephyr/app/prj.conf` | Zephyr's default 1 KB overflowed on `store` (Settings → NVS → flash driver in the main thread); with the MPU stack guard the app halted. The Nano's board already used 4 KB, so it never showed there |
+| Console | USB CDC ACM on the micro-USB port (Zephyr's new USB stack), via Zephyr's `boards/common/usb/cdc_acm_serial` like the Arduino GIGA R1 (STM32H747) | One cable, like the Nano. The legacy USB stack is deprecated in 4.4.2. Verified with blinky |
+| App wiring | One overlay per board in `zephyr/app/boards/` providing `p02-led` and `zephyr,user`: `arduino_nano_esp32_procpu.overlay`, `daisy_seed_ram_load.overlay` | `factory::Zephyr` uses only those names; `boards/<board>.overlay` replaces `app.overlay`. See *Board overlays* under Board and devicetree for the file name. |
+| Pin names | Daisy names (`D15`, `A0`) through our own `daisy_seed_connector.dtsi` (`daisy_seed_header`), like `arduino_nano_connector.dtsi`. Needs our own binding and constants header – upstream has none for the Daisy | Same idea as the Nano: overlays use the board's pin names, not STM32 names. The board prints only some physical pin numbers (1, 10, 21, 32, 40; 1–20 down one side, 21–40 up the other) |
+| Wiring comments | Give all three names: Daisy name, physical pin, STM32 name (`/* D15 = pin 22 = PC0 */`) | Only the physical pin number matches the board's print; the STM32 name is what the datasheet and errors use |
+| SDRAM | Not in devicetree yet; added as its own verified step when something needs it | P02 runs from internal RAM and stores settings in QSPI flash (SDRAM loses its contents at power-off). Untested SDRAM timing gives intermittent faults |
+| CI | A separate job per board: the Nano's `zephyr-build` stays, a new Daisy job builds Zephyr's blinky on `daisy_seed` and P02 with MCUboot (`--sysbuild`) on `daisy_seed/stm32h750xx/ram_load` | Each job is its own check in the PR, so it shows directly whether Zephyr works for the Nano and/or the Daisy. Cost: the workspace setup runs in both jobs (in parallel) – runner time and energy, judged worth it. Later: per-board setup, so each job downloads only its own toolchain |
+| Role mapping | External parts, like the Nano: `StatusLed` = LED on D26 = pin 33 = PD11 (330 Ω to GND, active high); `TempSensor` = potentiometer simulating a TMP36 on A3/D18 = pin 25 = PA7 (ADC1 ch 7), fed from 3V3 pin 38 / GND pin 40 | Pins 16, 20–24 are used by another project on the same breadboard. D1–D14 and D29–D30 are kept free for the Daisy's usual buses (SD card, SPI, I2C, UART, USB HS). Verified on the board: pin 33 = D26 (blinky on the external LED through `daisy_seed_header`) and pin 25 = A3 (Zephyr's `adc_dt` sample with this overlay follows the pot, ~0–3300 mV). Breadboard tip: on the side with pins 21–40, the row number counts the other way, so one row off is an easy mistake |
+| Modules | `hal_stm32`, `cmsis_6` (Cortex-M; `cmsis` is for Cortex-A/R), `mcuboot` and `zcbor` (MCUboot's serial recovery) in `west.yml`; `arm-zephyr-eabi` in `tools/zephyr_setup.sh` | Needed to build for the STM32H750 |
+
+Bring-up: Zephyr's own blinky (only `led0`, the user LED on PC7). Verified on the board: the LED next to
+BOOT (PC7) blinks; the LED next to RESET is the power LED and is always on. With nothing flashed, only
+the power LED is lit. The period is 2.00 s (1 s on, 1 s off), which confirms the clock setup (16 MHz
+crystal, 480 MHz).
+
+```bash
+west build -p always -b daisy_seed -s deps/zephyr/samples/basic/blinky -d blinky_build -- -DBOARD_ROOT=$P02_ROOT/zephyr
+west flash -d blinky_build     # BOOT + RESET first (ROM bootloader, 0483:df11)
+```
+
+Setup notes (to be moved into [docs/setup.md](docs/setup.md) once verified):
+
+1. **ROM bootloader.** Hold BOOT, press and release RESET, release BOOT. The board shows up as
+   `DFU in FS Mode` (`0483:df11`). Outside BOOT mode it does not show up over USB at all (yet).
+   A charge-only micro-USB cable gives no device at all – use a data cable.
+2. **Windows driver.** Device Manager shows `DFU in FS Mode` with *Code 28* (no driver). Ignore it:
+   usbipd passes the device to WSL, where `dfu-util` needs no Windows driver.
+3. **usbipd** (PowerShell as administrator; the BUSID differs per USB port):
+   ```powershell
+   usbipd bind --busid <id>                            # first time only
+   usbipd attach --wsl --busid <id> --auto-attach      # keep the window open
+   ```
+   `--auto-attach` re-attaches after every reset and flash, when the board disconnects from USB.
+4. **USB permission in WSL.** `dfu-util: Cannot open DFU device ... (LIBUSB_ERROR_ACCESS)`: `dialout`
+   covers serial ports only, not raw USB. One-time udev rule:
+   ```bash
+   echo 'SUBSYSTEM=="usb", ATTRS{idVendor}=="0483", ATTRS{idProduct}=="df11", MODE="0660", GROUP="dialout"' | sudo tee /etc/udev/rules.d/50-stm32-dfu.rules
+   sudo udevadm control --reload-rules && sudo udevadm trigger
+   ```
+   Verified: `dfu-util -l` then lists `@Internal Flash /0x08000000` (alt 0) and `@Option Bytes` (alt 1).
+5. **Backup before the first flash** (read only; outside the repository):
+   ```bash
+   mkdir -p ~/daisy_seed_backup && cd ~/daisy_seed_backup
+   dfu-util -a 1 -s 0x5200201C:128 -U option_bytes.bin          # option bytes
+   dfu-util -a 0 -s 0x08000000:131072 -U internal_flash.bin     # internal flash (128 KB)
+   ```
+   Restore: `dfu-util -a 0 -s 0x08000000:leave -D internal_flash.bin`. Byte 1 of `option_bytes.bin` is
+   RDP: `0xAA` = no read protection (level 0); anything else and the read fails. The ROM bootloader
+   cannot reach the QSPI flash, so its contents cannot be backed up this way. A read-only check (a small
+   Zephyr program) found one written 64 KB block, 0x020000–0x02FFFF, filled with the test pattern
+   `0xDEADBEEF` (probably a factory test), the rest erased. Backed up anyway (`qspi_0x020000.bin`, read
+   twice over USB with a CRC-32, identical). JEDEC ID read back
+   rotated (`17 9d 60` instead of `9d 60 17`), not yet investigated.
+6. **`west flash` ended with `dfu-util: Error during download get_status` / `FATAL ERROR: command exited
+   with status 74`**, although `File downloaded successfully` was printed: the ROM bootloader resets into
+   the program before answering the final `leave` request. Harmless, but alarming – still unsolved.
+   Tried: `--dfuse-modifiers=leave:will-reset` (as the dfu-util manual suggests) – it breaks the download
+   after the first 1 KB (`LIBUSB_ERROR_PIPE` on `SET_ADDRESS`). Also harmless:
+   `Warning: Invalid DFU suffix signature` (`zephyr.bin` has no DFU suffix). Press RESET if the program
+   does not start.
+7. **USB console.** A running program shows up as a *different* USB device than the ROM bootloader:
+   `2fe3:0004` *USB Serial Device (COMx)* (Zephyr's test VID:PID, from `boards/common/usb/`). usbipd sees
+   it as new: `usbipd bind` again (same BUSID), then `usbipd attach ... --auto-attach`. In WSL it is
+   `/dev/ttyACM0`, or `/dev/ttyACM1` if the Nano is attached too (`ls /dev/ttyACM*`). Run `miniterm`
+   in WSL (`source tools/zephyr_env.sh`), not in PowerShell: Windows has no Python, and its "Python was
+   not found" message is only a Microsoft Store shortcut. Verified with blinky:
+   `python -m serial.tools.miniterm --exit-char 24 /dev/ttyACM1 115200` prints `LED state: ON/OFF`.
+
+Build directories: today's pattern names the **application**, not the board – our apps build in
+`<app>/build` (`zephyr/app/build`), Zephyr's samples in `<sample>_build` at the root (`hello_world_build`),
+CI in `build-zephyr/<app>`. With two boards, a build for one board overwrites the other's. Proposal, not
+yet applied: add the board as a subdirectory, `<build dir>/<board>` (`zephyr/app/build/daisy_seed`,
+`blinky_build/arduino_nano_esp32`), for all boards and applications.
+
+Open items: test the RESET hook and whether `board.c` is needed (see `docs/daisy_seed_manual_tests.md`); a `zephyr/module.yml` with `board_root: zephyr`, so builds find our boards without `-DBOARD_ROOT` (needed today even for `zephyr/app` with `--sysbuild`); P02 on `native_sim` (emulated LED, ADC and flash; its own branch); `smpmgr image state-read` shows no images; JEDEC ID read rotated; CI builds P02 for `ram_load` with `--sysbuild`; outdated "NVS is a stub" comments in `zephyr/app/src/main.cpp` and `factory/zephyr.cpp`.

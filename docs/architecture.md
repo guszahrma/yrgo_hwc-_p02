@@ -85,7 +85,10 @@ The current wiring is listed in [Usage](usage.md#hardware-and-wiring).
 │           ├── arduino/nano_esp32/      # Our Zephyr board definition: arduino_nano_esp32
 │   └── samples/blinky/             # First Zephyr app: yellow LED + RGB colour cycle
 ├── tests/                    # Unit tests on the host (GoogleTest, mocked hardware)
+│   └── testsuite.cpp/        # List of all tests
 │   └── googletest/           # GoogleTest (git submodule)
+│   └── include/                 # Declaration of mocks
+│   └── source/                  # Implementation of mocks
 ├── tools/                    # Zephyr setup (zephyr_setup.sh, zephyr_env.sh)
 │   └── clang-format/         # Pinned clang-format version and scripts
 ├── docs/                     # Documentation (see the readme)

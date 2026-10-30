@@ -1,0 +1,15 @@
+# Board metadata, used by Twister (Zephyr's test runner) to know what the board supports.
+identifier: daisy_seed/stm32h750xx/ram_load
+name: Electrosmith Daisy Seed (RAM load)
+type: mcu
+arch: arm
+toolchain:
+  - zephyr
+ram: 512
+flash: 1024
+supported:
+  - gpio
+  - usb_device
+  - flash
+  - adc
+vendor: electrosmith

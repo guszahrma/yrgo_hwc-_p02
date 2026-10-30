@@ -7,3 +7,5 @@ board:
   vendor: electrosmith
   socs:
   - name: stm32h750xx
+    variants:
+    - name: ram_load

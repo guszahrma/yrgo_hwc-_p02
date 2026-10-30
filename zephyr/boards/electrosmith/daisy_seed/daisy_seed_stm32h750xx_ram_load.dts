@@ -1,0 +1,19 @@
+/*
+ * Electrosmith Daisy Seed – ram_load target: the program is stored in QSPI flash (slot0/slot1) and
+ * MCUboot, in the internal flash, copies it into AXI SRAM (512 KB) and runs it there. QSPI flash is
+ * then free to be written (NVS), which it is not while a program runs from it (XIP).
+ */
+
+/dts-v1/;
+#include "daisy_seed-common.dtsi"
+
+/ {
+	model = "Electrosmith Daisy Seed (RAM load)";
+	compatible = "electrosmith,daisy-seed";
+
+	chosen {
+		zephyr,flash = &ext_flash;
+		zephyr,flash-controller = &ext_flash_ctrl;
+		zephyr,code-partition = &slot0_partition;
+	};
+};

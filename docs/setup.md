@@ -33,8 +33,9 @@ sudo usermod -aG dialout $USER
 
 ## 3. Clone the repository
 
+Clone it wherever you like in the Linux file system:
+
 ```bash
-cd ~
 git clone --recursive git@github.com:guszahrma/yrgo_hwc-_p02.git
 cd yrgo_hwc-_p02
 ```
@@ -49,13 +50,13 @@ its BUSID (`6-4` in the example below):
 
 ```powershell
 usbipd list                                    # find the board's BUSID, e.g. 6-4
-usbipd bind --busid 6-4                        # once per device and port
-usbipd attach --wsl --busid 6-4 --auto-attach  # keep this window open
+usbipd bind --busid 6-4                        # only needed once during first setup per device and port
+usbipd attach --wsl --busid 6-4 --auto-attach  # every time the computer or WSL restarts; keep the window open
 ```
 
 `--auto-attach` is needed because the ESP32-S3 disconnects and reconnects USB on every reset/flash.
 
-Check in WSL:
+Check in WSL which mode the board is in:
 
 ```bash
 lsusb | grep -iE "303a|2341"; ls /dev/ttyACM*
@@ -63,8 +64,8 @@ lsusb | grep -iE "303a|2341"; ls /dev/ttyACM*
 
 | USB ID | Meaning |
 |---|---|
-| `2341:0070` | Arduino factory firmware – esptool does **not** work, see step 5 |
 | `303a:1001` | ESP32-S3 USB-Serial/JTAG – ready to flash |
+| `2341:0070` | Still the Arduino factory firmware – esptool does **not** work, do step 5 first |
 
 ## 5. First time: get the board out of Arduino mode
 
@@ -81,11 +82,15 @@ After this, esptool can put the board into flash mode by itself.
 
 ## Next: set up a platform
 
-| Platform | Guide | Activate in every new terminal |
-|---|---|---|
-| ESP-IDF 6.0 | [ESP-IDF environment](espressif_environment.md#setup) | `. ~/esp/esp-idf/export.sh` (alias `get_idf`) |
-| Zephyr 4.4.2 | [Zephyr environment](zephyr_environment.md#setup) | `source tools/zephyr_env.sh` (alias `get_zephyr`) |
+The project supports two platforms, ESP-IDF and Zephyr. You can set up either one, or both.
 
-> **Never mix environments in one terminal.** Use a fresh terminal for each of ESP-IDF, Zephyr and – if
-> you take the Zephyr course – the course's `source ~/zephyr/env.sh`. The course's `env.sh` sets
-> `ZEPHYR_TOOLCHAIN_VARIANT=host` (the PC's own GCC), which breaks builds for the ESP32-S3.
+| Platform | Setup guide |
+|---|---|
+| ESP-IDF 6.0 | [ESP-IDF environment](espressif_environment.md#setup) |
+| Zephyr 4.4.2 | [Zephyr environment](zephyr_environment.md#setup) |
+
+> **Never mix environments in one terminal.** Use a fresh terminal for ESP-IDF and for Zephyr.
+
+> **If you take the QAcademy Zephyr course:** do not use the course's `source ~/zephyr/env.sh` in the same
+> terminal either. It sets `ZEPHYR_TOOLCHAIN_VARIANT=host` (the PC's own GCC), which breaks builds for the
+> ESP32-S3.

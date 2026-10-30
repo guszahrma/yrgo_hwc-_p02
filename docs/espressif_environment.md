@@ -8,8 +8,9 @@ Common setup (WSL, usbipd, cloning) is in [Setup](setup.md).
 
 ### 1. Install ESP-IDF (once)
 
-ESP-IDF is built from source together with the project, so it has to be available locally. A shallow
-clone is enough. The commands below use `~/esp/esp-idf`; if you choose another location, adjust the paths.
+ESP-IDF is built from source together with the project, so it has to be available locally. A shallow clone
+is enough. The example uses `~/esp/esp-idf` (Espressif's default); any other location works – use that path
+instead below.
 
 ```bash
 mkdir -p ~/esp
@@ -26,24 +27,23 @@ ESP-IDF lives outside the repository and its version is not pinned by a file in 
 . ~/esp/esp-idf/export.sh
 ```
 
-Optionally add an alias:
+Optionally add an alias. Run this from the ESP-IDF directory (e.g. `~/esp/esp-idf`): `$(pwd)` is replaced
+with its path when the line is written to `~/.bashrc`, so the alias works wherever ESP-IDF is installed:
 
 ```bash
-echo "alias get_idf='. ~/esp/esp-idf/export.sh'" >> ~/.bashrc
+echo "alias get_idf='. $(pwd)/export.sh'" >> ~/.bashrc
 ```
 
-Do not mix it with the Zephyr environment in the same terminal (see [Setup](setup.md#next-set-up-a-platform)).
+### 3. Create the Wi-Fi config (once)
 
-### 3. Configure Wi-Fi (once)
-
-The build needs `esp32s3_local_config.h`. From the repository root:
+The build needs `esp32s3_local_config.h`, even if you do not use Wi-Fi. From the repository root:
 
 ```bash
 cp main/include/communication/wifi/esp32s3_local_config_template.h main/include/communication/wifi/esp32s3_local_config.h
 ```
 
-Fill in the SSID and password in `esp32s3_local_config.h`. The file is ignored by git and must **never** be
-committed.
+If you want to use Wi-Fi, fill in the SSID and password in `esp32s3_local_config.h`. The file is ignored by
+git and must **never** be committed.
 
 ### Alternative: ESP-IDF directly on Windows
 
@@ -59,14 +59,14 @@ called `COMx` instead of `/dev/ttyACM0`.
 From the **repository root** (attach the board first, see [Setup](setup.md#4-attach-the-board-to-wsl-powershell-as-administrator)):
 
 ```bash
-. ~/esp/esp-idf/export.sh
+. ~/esp/esp-idf/export.sh     # or use the get_idf alias
 idf.py set-target esp32s3     # first time only / after fullclean
 idf.py build
 idf.py -p /dev/ttyACM0 flash monitor
 ```
 
-Exit the monitor with `Ctrl+]`. If the monitor cannot find the port right after flashing (the board is
-still being re-attached), wait a few seconds and run `idf.py -p /dev/ttyACM0 monitor`.
+Exit the monitor with `Ctrl+]` or `Ctrl+T`, `Ctrl+X`. If the monitor cannot find the port right after
+flashing (the board is still being re-attached), wait a few seconds and run `idf.py -p /dev/ttyACM0 monitor`.
 
 Then use the [serial commands](usage.md#serial-commands).
 
@@ -88,4 +88,6 @@ Then use the [serial commands](usage.md#serial-commands).
 | `adc::Esp32s3` (+ `Tmp36`) | `esp_adc/adc_oneshot.h` + calibration, average of 5 samples | Pin and `referenceVoltage` from `factory::Esp32s3` |
 | `serial::Esp32s3` | `driver/usb_serial_jtag.h` | The board's USB port |
 | `nvs::Esp32s3` | `nvs_flash.h` | Default NVS partition |
-| `comm::wifi`, `comm::mqtt` | `esp_wifi.h`, `espressif/mqtt` | `esp32s3_local_config.h` |
+| `comm::wifi::Esp32s3` | `esp_wifi.h` | SSID and password from `esp32s3_local_config.h` |
+| `comm::mqtt::publish::Esp32s3` | `mqtt_client.h` (`espressif/mqtt`) | Broker URL, topic, client ID and credentials in the constructor |
+| `comm::mqtt::subscribe::Esp32s3` | `mqtt_client.h` (`espressif/mqtt`) | Broker URL, topic, client ID and credentials in the constructor |

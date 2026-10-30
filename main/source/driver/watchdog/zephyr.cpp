@@ -2,10 +2,10 @@
  * @file Zephyr watchdog timer implementation
  */
 #include <cstdint>
+#include <zephyr/device.h>
 #include <zephyr/drivers/hwinfo.h>
 #include <zephyr/drivers/watchdog.h>
 #include <zephyr/sys/printk.h>
-#include <zephyr/device.h>
 
 #include "driver/watchdog/zephyr.h"
 
@@ -25,7 +25,7 @@ Zephyr::Zephyr(const device* wdt, std::uint32_t timeoutMs) noexcept
         myCausedLastReset = (0U != (cause & RESET_WATCHDOG));
     }
 
-    if (0U == timeoutMs) 
+    if (0U == timeoutMs)
     {
         printk("Can't create watchdog timer with no timeout\n");
         return;
@@ -40,8 +40,8 @@ Zephyr::Zephyr(const device* wdt, std::uint32_t timeoutMs) noexcept
     wdt_timeout_cfg cfg{};
     cfg.window.min = 0U;
     cfg.window.max = timeoutMs;
-    cfg.callback = nullptr;
-    cfg.flags = WDT_FLAG_RESET_SOC;
+    cfg.callback   = nullptr;
+    cfg.flags      = WDT_FLAG_RESET_SOC;
 
     myChannel = wdt_install_timeout(myWdt, &cfg);
     if (0 > myChannel)
@@ -51,7 +51,7 @@ Zephyr::Zephyr(const device* wdt, std::uint32_t timeoutMs) noexcept
     }
 
     const int err = wdt_setup(myWdt, WDT_OPT_PAUSE_HALTED_BY_DBG);
-    if (0 > err) 
+    if (0 > err)
     {
         printk("watchdog: setup failed: %d\n", err);
         return;
@@ -65,17 +65,11 @@ Zephyr::Zephyr(const device* wdt, std::uint32_t timeoutMs) noexcept
 void Zephyr::kick() noexcept
 {
     if (!myReady) { return; }
-    
+
     const int err{wdt_feed(myWdt, myChannel)};
-    if (0 > err)
-    {
-        printk("watchdog: feed failed: %d\n", err);
-    }
+    if (0 > err) { printk("watchdog: feed failed: %d\n", err); }
 }
 
 // --------------------------------------------------------------------------------
-bool Zephyr::causedLastReset() const noexcept
-{
-    return myCausedLastReset;
-}
+bool Zephyr::causedLastReset() const noexcept { return myCausedLastReset; }
 } // namespace driver::watchdog

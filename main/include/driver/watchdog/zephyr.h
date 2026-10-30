@@ -22,7 +22,7 @@ class Zephyr final : public Interface
 public:
     /**
      * @brief Constructor
-     * 
+     *
      * @param[in] wdt Watchdog timer device
      * @param[in] timeoutMs Timeout to set in milliseconds
      */

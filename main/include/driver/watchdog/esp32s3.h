@@ -10,15 +10,15 @@
 namespace driver::watchdog
 {
 /**
- * @brief 
- * 
+ * @brief
+ *
  */
 class Esp32s3 final : public Interface
 {
 public:
     /**
      * @brief Constructor
-     * 
+     *
      * @param[in] timeoutMs The timeout to set in milliseconds
      */
     explicit Esp32s3(std::uint32_t timeoutMs) noexcept;
@@ -26,7 +26,7 @@ public:
     /**
      * @brief Destructor
      */
-    ~Esp32s3() noexcept override = default;
+    ~Esp32s3() noexcept override;
 
     /**
      * @brief Reset the watchdog timer. Must be called more often than the timeout
@@ -35,7 +35,7 @@ public:
 
     /**
      * @brief Check if the last reset was caused by the watchdog
-     * 
+     *
      * @return True if last reset was caused by the watchdog, false otherwise
      */
     bool causedLastReset() const noexcept override;

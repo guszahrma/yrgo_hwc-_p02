@@ -16,19 +16,20 @@ Esp32s3::Esp32s3(std::uint32_t timeoutMs) noexcept
     , myCausedLastReset{esp_reset_reason() == ESP_RST_TASK_WDT}
     , mySubscribed{false}
 {
-    if (0U == myTimeoutMs) 
-    { 
+    if (0U == myTimeoutMs)
+    {
         std::printf("Can't create watchdog timer with no timeout\n");
         return;
     }
 
     esp_task_wdt_config_t config{};
     config.timeout_ms = myTimeoutMs;
-    config.idle_core_mask = (1U << 0) | (1U << 1); // Watch the idle tasks on both cores, CPU0 & CPU1
+    config.idle_core_mask =
+        (1U << 0) | (1U << 1); // Watch the idle tasks on both cores, CPU0 & CPU1
     config.trigger_panic = true;
 
     // ESP-idf usually already started the TWDT
-    esp_err_t err{esp_task_wdt_config_t(&config)};
+    esp_err_t err{esp_task_wdt_reconfigure(&config)};
 
     // If it wasn't started, initialize it
     if (ESP_ERR_INVALID_STATE == err) { err = esp_task_wdt_init(&config); }
@@ -46,13 +47,13 @@ Esp32s3::Esp32s3(std::uint32_t timeoutMs) noexcept
         std::printf("watchdog: failed to watch the task: %s\n", esp_err_to_name(err));
         return;
     }
-    
+
     mySubscribed = true;
     std::printf("ESP32s3 watchdog started, timeout %u ms\n", static_cast<unsigned>(myTimeoutMs));
 }
 
 // --------------------------------------------------------------------------------
-Esp32s3::~Esp32s3()
+Esp32s3::~Esp32s3() noexcept
 {
     if (mySubscribed) { esp_task_wdt_delete(nullptr); }
 }
@@ -61,18 +62,10 @@ Esp32s3::~Esp32s3()
 void Esp32s3::kick() noexcept
 {
     if (!mySubscribed) { return; }
-    err = esp_task_wdt_reset();
-    if (ESP_OK != err)
-    {
-        std::printf("error");
-        return;
-    }
+    const esp_err_t err{esp_task_wdt_reset()};
+    if (ESP_OK != err) { std::printf("watchdog: kick failed: %s\n", esp_err_to_name(err)); }
 }
 
 // --------------------------------------------------------------------------------
-bool Esp32s3::causedLastReset() const noexcept
-{
-    return myCausedLastReset;
-}
-}
-
+bool Esp32s3::causedLastReset() const noexcept { return myCausedLastReset; }
+} // namespace driver::watchdog

@@ -103,20 +103,23 @@ void Logic::run() noexcept
                     handleBlinkOn();
                 else if (args == "off")
                     handleBlinkOff();
+                else
+                    mySerialDriver->print("Usage: blink on | blink off\n");
             }
             else if (cmd == "period")
             {
                 std::uint16_t ms{};
 
-                //! @note Please add an inline comment for this; it's always a good thing to do
-                //!       when using lambdas (lambdas = a necessary evil; works fine, but
-                //!       usually totally unreadable, haha).
-                // I left @note as is since I don't understand the function.
-                auto [ptr, ec] = std::from_chars(args.data(), args.data() + args.size(), ms);
-                if (ec == std::errc{})
+                // Parse the argument as a number. std::from_chars returns where it stopped (ptr)
+                // and an error code (ec), unpacked with a structured binding. ec is set if args is
+                // empty, not a number or too large for std::uint16_t.
+                const auto [ptr, ec] = std::from_chars(args.data(), args.data() + args.size(), ms);
+
+                // ptr must reach the end of args, so "500abc" is not accepted as 500.
+                if ((std::errc{} == ec) && (args.data() + args.size() == ptr))
                     handlePeriod(ms);
                 else
-                    handleUnknownCommand(cmd);
+                    mySerialDriver->print("Usage: period <ms>, e.g. period 500\n");
             }
             else if (cmd == "store")
                 handleStore();

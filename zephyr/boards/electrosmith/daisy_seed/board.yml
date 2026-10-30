@@ -1,0 +1,9 @@
+# Electrosmith Daisy Seed (Rev7 / Seed 1.2): STM32H750IBK6, 8 MB QSPI flash, 64 MB SDRAM, PCM3060 codec.
+# Out-of-tree board definition – not part of upstream Zephyr (checked in v4.4.2).
+# Modelled on Zephyr's stm32h750b_dk (the same chip). Only Seed 1.2 / Rev7 is supported.
+board:
+  name: daisy_seed
+  full_name: Electrosmith Daisy Seed
+  vendor: electrosmith
+  socs:
+  - name: stm32h750xx

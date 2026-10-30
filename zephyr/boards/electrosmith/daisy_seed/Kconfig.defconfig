@@ -1,0 +1,9 @@
+# Electrosmith Daisy Seed – board defaults.
+
+if BOARD_DAISY_SEED
+
+# The console is a USB serial port (CDC ACM) on the micro-USB port: the Daisy has no USB-UART chip.
+# Zephyr's shared setup for such boards (also used by the Arduino GIGA R1).
+source "boards/common/usb/Kconfig.cdc_acm_serial.defconfig"
+
+endif # BOARD_DAISY_SEED

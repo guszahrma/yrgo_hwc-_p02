@@ -1,0 +1,13 @@
+# Board metadata, used by Twister (Zephyr's test runner) to know what the board supports.
+identifier: daisy_seed
+name: Electrosmith Daisy Seed
+type: mcu
+arch: arm
+toolchain:
+  - zephyr
+ram: 512
+flash: 128
+supported:
+  - gpio
+  - usb_device
+vendor: electrosmith

@@ -22,6 +22,7 @@ namespace logic
 Logic::Logic(driver::factory::Interface& factory) noexcept
     : myPeriodLengthMs{1000} // Set default blinking period to 1000 ms
     , myBlinkState{false}    // Initialize blink state to off
+    , myFault{false}
 {
     // Create the necessary drivers using the factory and initialize the system state.
     // For example, you might create a serial driver for communication and a GPIO driver for
@@ -35,6 +36,12 @@ Logic::Logic(driver::factory::Interface& factory) noexcept
     myTimerDriver   = factory.createTimer();
     myTimerDriver->stop(); // Start the timer for blinking
     myNvsUserSettingsStorage = factory.createNvs("user_settings");
+    myWatchdog               = factory.createWatchdog(WatchdogTimeoutMs);
+
+    if (myWatchdog->causedLastReset())
+    {
+        mySerialDriver->print("Last reset was caused by the watchdog\n");
+    }
 
     // Initialize other necessary components and state variables here.
 }
@@ -78,6 +85,8 @@ void Logic::run() noexcept
 
     while (true)
     {
+        if (!myFault) { myWatchdog->kick(); }
+
         if (mySerialDriver->readLine(buffer, sizeof(buffer)))
         {
             std::cout << std::endl << std::endl << "Reading line..." << buffer << std::endl;
@@ -207,6 +216,14 @@ void Logic::handlePeriod(uint16_t periodLengthMs) noexcept
     std::cout << std::endl
               << "Handling 'period' command..." << periodLengthMs << " ms" << std::endl;
 
+    if ((MinPeriodMs > periodLengthMs) || (MaxPeriodMs < periodLengthMs))
+    {
+        std::cout << "Invalid period (valid: " << MinPeriodMs << "-" << MaxPeriodMs
+                  << " ms). The watchdog will restart the system" << std::endl;
+        myFault = true;
+        return;
+    }
+
     // Implement the logic to set the blinking period.
     myTimerDriver->setPeriod(periodLengthMs);
     myPeriodLengthMs = periodLengthMs; // Store the new period length
@@ -256,6 +273,12 @@ void Logic::loadStoredUserSettings() noexcept
 
     myBlinkState     = (blinkState == "on") ? 1 : 0;
     myPeriodLengthMs = static_cast<uint16_t>(std::stoi(blinkPeriod));
+
+    // Old or corrupt data in NVS: fall back to the default instead of using an invalid period.
+    if ((MinPeriodMs > myPeriodLengthMs) || (MaxPeriodMs < myPeriodLengthMs))
+    {
+        myPeriodLengthMs = 1000;
+    }
 
     // Implement the logic to load the stored state from non-volatile memory.
     // This is a placeholder implementation - replace with actual loading logic.

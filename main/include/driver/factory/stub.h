@@ -11,6 +11,7 @@
 #include "driver/serial/stub.h"
 #include "driver/tempsensor/stub.h"
 #include "driver/timer/stub.h"
+#include "driver/watchdog/stub.h"
 
 namespace driver::factory
 {
@@ -110,5 +111,16 @@ public:
      */
     std::unique_ptr<driver::timer::Interface> createTimer() noexcept override
     { return std::make_unique<driver::timer::Stub>(); }
+
+    /**
+     * @brief Create a Watchdog object
+     *
+     * @param[in] timeoutMs The timeout
+     *
+     * @return unique pointer
+     */
+    std::unique_ptr<driver::watchdog::Interface>
+    createWatchdog(std::uint32_t timeoutMs) noexcept override
+    { return std::make_unique<driver::watchdog::Stub>(timeoutMs); }
 };
 } // namespace driver::factory

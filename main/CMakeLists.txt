@@ -13,6 +13,7 @@ idf_component_register(
         "source/ml/lin_reg/adaptive.cpp"
         "source/driver/timer/esp32s3.cpp"
         "source/driver/nvs/esp32s3.cpp"
+        "source/driver/watchdog/esp32s3.cpp"
         "source/driver/factory/esp32s3.cpp"
     INCLUDE_DIRS
         "include"

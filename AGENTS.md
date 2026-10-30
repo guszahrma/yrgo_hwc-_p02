@@ -26,9 +26,10 @@ idf.py -p /dev/ttyACM0 flash monitor
 tools/zephyr_setup.sh                # first time only
 source tools/zephyr_env.sh
 west build -p always -b arduino_nano_esp32/esp32s3/procpu -s zephyr/app -d zephyr/app/build
-west flash -d zephyr/app/build --esp-device /dev/ttyACM0
+west flash -d zephyr/app/build --esp-device /dev/ttyACM0 && python -m serial.tools.miniterm --exit-char 24 /dev/ttyACM0 115200
 
-# Unit tests on the host (GoogleTest)
+# Unit tests on the host (GoogleTest). Building also runs them (custom target "run" in
+# tests/CMakeLists.txt); no CTest. Compiled with -Wall -Werror, so a warning fails the build.
 cmake -S tests -B tests/build && cmake --build tests/build
 
 # Formatting (pinned clang-format) – run before committing
@@ -38,8 +39,13 @@ tools/clang-format/check.sh
 
 ## Conventions
 
-* Each driver: `driver/<name>/interface.h` + `esp32s3.h/.cpp`, `zephyr.h/.cpp`, `stub.h`. Each build
-  system lists its own sources (`main/CMakeLists.txt`, `zephyr/app/CMakeLists.txt`, `tests/CMakeLists.txt`).
+* Each driver: headers in `main/include/driver/<name>/` (`interface.h`, `esp32s3.h`, `zephyr.h`, `stub.h`),
+  sources in `main/source/driver/<name>/` (`esp32s3.cpp`, `zephyr.cpp`). `communication/` and `ml/` use the
+  same interface pattern. Each build system lists its own sources (`main/CMakeLists.txt`,
+  `zephyr/app/CMakeLists.txt`, `tests/CMakeLists.txt`).
+* Adding a driver: interface, ESP-IDF and Zephyr implementations, stub, a `create...()` method in
+  `factory::Interface` and all three factories, the `.cpp` files in the build files above, and a test. See
+  [docs/architecture.md](docs/architecture.md#writing-a-driver).
 * Classes are `final` where possible, member functions `noexcept`, overrides marked `override`, copy and
   move deleted for drivers; members are prefixed `my` (`myState`, `myValid`).
 * Hardware is requested from the factory by role (`GpioId`, `AdcId`), never by pin number.
@@ -47,6 +53,12 @@ tools/clang-format/check.sh
   [docs/contributing.md](docs/contributing.md)).
 * `.gitignore` ignores files without an extension; `Kconfig` and `*_defconfig` are excepted, `sdkconfig`
   is not committed.
+
+## Do not touch
+
+* Do not edit generated or fetched files: `deps/`, `.west/`, `.venv/`, `managed_components/`, `build/`,
+  `zephyr/*/build/`, `tests/googletest/` (submodule).
+* Never commit `main/include/communication/wifi/esp32s3_local_config.h` (Wi-Fi credentials) or `sdkconfig`.
 
 ---
 

@@ -12,7 +12,11 @@ Each driver consists of an interface and one implementation per platform:
 | Interface | `driver/<name>/interface.h` | Abstract class (`Interface`) that the application logic programs against |
 | ESP-IDF implementation | `driver/<name>/esp32s3.h/.cpp` | Real driver using ESP-IDF |
 | Zephyr implementation | `driver/<name>/zephyr.h/.cpp` | Real driver using Zephyr |
-| Stub | `driver/<name>/stub.h` | Simulated driver for testing without hardware |
+| Stub | `driver/<name>/stub.h` | Simulated driver for testing application logic without hardware |
+
+For unit tests of a real driver there are also **mocks** in `tests/` (e.g. `tests/source/gpio/gpio_mock.c`):
+they replace the platform API (here ESP-IDF's GPIO functions), so `gpio::Esp32s3` itself can run on the host.
+A stub replaces a whole driver; a mock replaces what is underneath one.
 
 Drivers are created through a **factory** (`driver::factory::Interface`) with one implementation per platform
 (`factory::Esp32s3`, `factory::Zephyr`, `factory::Stub`). The application logic (`logic::Logic`) only knows
@@ -80,15 +84,15 @@ The current wiring is listed in [Usage](usage.md#hardware-and-wiring).
 │   │   └── ml/               # Linear regression
 │   └── source/               # Implementations, same layout as include/
 ├── zephyr/
-│   ├── app/                        # P02 on Zephyr: logic::Logic with factory::Zephyr
-│   ├── boards/                                    # Structure to add new supported boards
-│           ├── arduino/nano_esp32/      # Our Zephyr board definition: arduino_nano_esp32
-│   └── samples/blinky/             # First Zephyr app: yellow LED + RGB colour cycle
+│   ├── app/                  # P02 on Zephyr: logic::Logic with factory::Zephyr
+│   ├── boards/               # Out-of-tree Zephyr boards (<vendor>/<board>/), add new boards here
+│   │   └── arduino/nano_esp32/   # Our board definition: arduino_nano_esp32
+│   └── samples/blinky/       # First Zephyr app: yellow LED + RGB colour cycle
 ├── tests/                    # Unit tests on the host (GoogleTest, mocked hardware)
-│   └── testsuite.cpp/        # List of all tests
-│   └── googletest/           # GoogleTest (git submodule)
-│   └── include/                 # Declaration of mocks
-│   └── source/                  # Implementation of mocks
+│   ├── CMakeLists.txt        # Test build: test files, code under test, mocks
+│   ├── googletest/           # GoogleTest (git submodule)
+│   ├── include/              # Declarations of the mocks
+│   └── source/               # The tests (testsuite.cpp) and the mock implementations
 ├── tools/                    # Zephyr setup (zephyr_setup.sh, zephyr_env.sh)
 │   └── clang-format/         # Pinned clang-format version and scripts
 ├── docs/                     # Documentation (see the readme)

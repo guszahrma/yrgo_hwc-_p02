@@ -189,7 +189,8 @@ cycle.
 ### Zephyr's blinky (plain target)
 
 ```bash
-west build -p always -b daisy_seed -s deps/zephyr/samples/basic/blinky -d blinky_build -- -DBOARD_ROOT=$P02_ROOT/zephyr
+west build -p always -b daisy_seed -s deps/zephyr/samples/basic/blinky -d blinky_build -- \
+  -DBOARD_ROOT=$P02_ROOT/zephyr
 west flash -d blinky_build
 ```
 
@@ -200,7 +201,8 @@ The user LED blinks with a 2 s period; `LED state: ON/OFF` is printed on the USB
 Build P02 and MCUboot together:
 
 ```bash
-west build -p always --sysbuild -b daisy_seed/stm32h750xx/ram_load -d zephyr/app/daisy_seed_build zephyr/app -- -DBOARD_ROOT=$P02_ROOT/zephyr
+west build -p always --sysbuild -b daisy_seed/stm32h750xx/ram_load -d zephyr/app/daisy_seed_build zephyr/app -- \
+  -DBOARD_ROOT=$P02_ROOT/zephyr
 ```
 
 **MCUboot** – the first time, and when MCUboot or the board files change. BOOT + RESET, then:
@@ -222,7 +224,8 @@ not be parsed` (frame `08 00 00 01 00 00 00 06 a0`), P02 is still running and ec
 RESET again. Then upload P02 and start it:
 
 ```bash
-smpmgr --port /dev/tty_daisy_seed --timeout 30 image upload zephyr/app/daisy_seed_build/app/zephyr/zephyr.signed.bin
+smpmgr --port /dev/tty_daisy_seed --timeout 30 image upload \
+  zephyr/app/daisy_seed_build/app/zephyr/zephyr.signed.bin
 smpmgr --port /dev/tty_daisy_seed os reset
 ```
 

@@ -265,7 +265,8 @@ the power LED is lit. The period is 2.00 s (1 s on, 1 s off), which confirms the
 crystal, 480 MHz).
 
 ```bash
-west build -p always -b daisy_seed -s deps/zephyr/samples/basic/blinky -d blinky_build -- -DBOARD_ROOT=$P02_ROOT/zephyr
+west build -p always -b daisy_seed -s deps/zephyr/samples/basic/blinky -d blinky_build -- \
+  -DBOARD_ROOT=$P02_ROOT/zephyr
 west flash -d blinky_build     # BOOT + RESET first (ROM bootloader, 0483:df11)
 ```
 

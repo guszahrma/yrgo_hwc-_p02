@@ -106,7 +106,7 @@ passes through MCUboot, which decides by the kind of reset:
 
 ```
 BOOT held + RESET ──► ROM bootloader (DFU, 0483:df11)
-                          │ west flash ends, or RESET
+                          │ RESET (also after west flash)
                           ▼
 power-on ───────────► MCUboot ──── RESET pressed alone ────────────► Recovery mode
 RESET ──────────────►    │                                             ▲  waits for smpmgr,
@@ -125,7 +125,7 @@ smpmgr os reset ────►    │ any other reset                          
 | P02 | BOOT held + RESET | ROM bootloader |
 | Recovery mode | `smpmgr ... image upload <file>` | Recovery mode, with the new P02 in slot0 |
 | Recovery mode | `smpmgr ... os reset`, or a power cycle | P02 |
-| ROM bootloader | `west flash ...` | P02 (through MCUboot) |
+| ROM bootloader | `west flash ...` | ROM bootloader, with the new program in internal flash |
 | ROM bootloader | RESET | Recovery mode |
 
 `smpmgr os reset` only works in recovery mode: P02 does not speak smpmgr's protocol. How to tell the states
@@ -179,12 +179,9 @@ sysbuild looks up the board before the app's `CMakeLists.txt` runs.
 Used for the plain target and for MCUboot. Hold **BOOT**, press and release **RESET**, release **BOOT**:
 the board shows up as `0483:df11`. Then `west flash`.
 
-`west flash` ends with `dfu-util: Error during download get_status` / `FATAL ERROR: command exited with
-status 74`. **This is harmless**: the flash worked if `File downloaded successfully` is printed – the ROM
-bootloader starts the program before answering dfu-util's last request. If the board stays in the ROM
-bootloader (`lsusb` still shows `0483:df11` after a few seconds), press RESET: the chip then starts from
-its flash. With MCUboot, a RESET press means recovery mode; leave it with `smpmgr ... os reset` or a power
-cycle.
+`west flash` ends with `File downloaded successfully`, and the board stays in the ROM bootloader. **Press
+RESET** to start the program: the plain target starts at once; with MCUboot, a RESET press means recovery
+mode, ready for uploading P02 (leave it with `smpmgr ... os reset` or a power cycle).
 
 ### Zephyr's blinky (plain target)
 
@@ -194,7 +191,7 @@ west build -p always -b daisy_seed -s deps/zephyr/samples/basic/blinky -d blinky
 west flash -d blinky_build
 ```
 
-The user LED blinks with a 2 s period; `LED state: ON/OFF` is printed on the USB console.
+Then press RESET. The user LED blinks with a 2 s period; `LED state: ON/OFF` is printed on the USB console.
 
 ### P02 (`zephyr/app/`)
 
@@ -210,6 +207,8 @@ west build -p always --sysbuild -b daisy_seed/stm32h750xx/ram_load -d zephyr/app
 ```bash
 west flash -d zephyr/app/daisy_seed_build --domain mcuboot
 ```
+
+Then press RESET: MCUboot starts in recovery mode, ready for the next step.
 
 **P02** – every time P02 changes. Press **RESET** (recovery mode), wait for the port and check that
 recovery mode answers:
@@ -254,12 +253,11 @@ The mapping is in [`zephyr/app/boards/daisy_seed_ram_load.overlay`](../zephyr/ap
 
 | Problem | Cause / fix |
 |---|---|
-| `FATAL ERROR: command exited with status 74` after `west flash` | Harmless, see [Flashing with the ROM bootloader](#flashing-with-the-rom-bootloader-dfu-util) |
 | `dfu-util: Cannot open DFU device ... (LIBUSB_ERROR_ACCESS)` | The udev rule is missing, see [Setup](#setup-once) step 2 |
 | No USB device at all, with nothing flashed | The board only shows up in BOOT mode (BOOT + RESET), or the cable is charge-only |
 | `tio` shows *Waiting for tty device* after a flash or reset | usbipd has not attached the board yet (5–15 s); `tio` connects by itself |
 | No `/dev/tty_daisy_seed`, but a `/dev/ttyACM*` | The udev rules are missing (Setup step 2), or the board runs software from before the USB product name `Daisy Seed`: flash MCUboot and upload P02 again |
-| The board stays `0483:df11` after `west flash` | The program did not start: press RESET |
+| The board stays `0483:df11` after `west flash` | As intended: press RESET to start the program |
 | `smpmgr ... connection timeout` | The board is not in recovery mode, or not attached yet: press RESET, wait for `/dev/tty_daisy_seed` |
 | `smpmgr`: `Frame could not be parsed`, frame `08 00 00 01 00 00 00 06 a0` | P02 is running, not recovery mode: it echoes smpmgr's request. Press RESET |
 | `smpmgr image state-read` says `No images on device!` | A known quirk of MCUboot's image list in RAM-load mode; the image boots anyway |

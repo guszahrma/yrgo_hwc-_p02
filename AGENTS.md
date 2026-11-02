@@ -267,16 +267,19 @@ crystal, 480 MHz).
 ```bash
 west build -p always -b daisy_seed -s deps/zephyr/samples/basic/blinky -d blinky_build -- \
   -DBOARD_ROOT=$P02_ROOT/zephyr
-west flash -d blinky_build     # BOOT + RESET first (ROM bootloader, 0483:df11)
+west flash -d blinky_build     # BOOT + RESET first (ROM bootloader, 0483:df11); RESET afterwards
 ```
 
 Setup, building, flashing, wiring and user troubleshooting are in [docs/daisy_seed.md](docs/daisy_seed.md).
 Lessons from the bring-up that the docs leave out:
 
-* **`dfu-util` exit 74.** Tried `--dfuse-modifiers=leave:will-reset` (as the dfu-util manual suggests): it
-  breaks the download after the first 1 KB (`LIBUSB_ERROR_PIPE` on `SET_ADDRESS`). Plain `leave` is kept;
-  without `leave` the program does not start until RESET. `Warning: Invalid DFU suffix signature` is
-  harmless too (`zephyr.bin` has no DFU suffix).
+* **`dfu-util` without `leave`.** With `leave` (Zephyr's default) every flash ended with `FATAL ERROR: command
+  exited with status 74`: the ROM bootloader restarts without answering dfu-util's last request. Tried on
+  the board: `leave:will-reset` breaks the download after the first 1 KB (it relaxes the wait after every
+  block, `LIBUSB_ERROR_PIPE` on `SET_ADDRESS`); detach (`-e`) is not supported ("can't detach"); a USB reset
+  (`-R`) hangs under usbipd until the cable is pulled. So `board.cmake` sets `--dfuse-modifiers=` (empty):
+  the flash ends cleanly, and RESET starts the program – with MCUboot straight into recovery, ready for
+  the P02 upload. `Warning: Invalid DFU suffix signature` is harmless (`zephyr.bin` has no DFU suffix).
 * **Backup.** Byte 1 of `option_bytes.bin` is RDP: `0xAA` = no read protection (level 0); anything else and
   the read fails. Our board's QSPI held one 64 KB block of `0xDEADBEEF` at 0x020000 (probably a factory
   test), read with a small Zephyr program (twice, with a CRC-32) and backed up outside the repository.

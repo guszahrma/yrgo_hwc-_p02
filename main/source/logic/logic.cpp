@@ -42,14 +42,9 @@ Logic::Logic(driver::factory::Interface& factory) noexcept
 // --------------------------------------------------------------------------------
 Logic::~Logic() noexcept
 {
-    // Clean up resources, if necessary.
-    // For example, you might want to delete any dynamically allocated drivers or other resources
-    // here.
-    mySerialDriver.reset();
-    myStatusLed.reset();
-    myTempSensorAdc.reset();
-    myTimerDriver->stop(); // Stop the timer when the Logic instance is destroyed
-    myTimerDriver.reset();
+    // Stop blinking. The drivers themselves are destroyed automatically afterwards, in reverse
+    // order of declaration, so the temperature sensor goes before the ADC it refers to.
+    myTimerDriver->stop();
 }
 
 // --------------------------------------------------------------------------------

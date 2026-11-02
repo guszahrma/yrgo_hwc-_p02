@@ -13,7 +13,7 @@ static uint64_t pin_reg = 0U;
 esp_err_t gpio_reset_pin(const gpio_num_t gpio_num)
 {
     TRACE("Resetting GPIO %u\n", gpio_num);
-    pin_reg &= ~(1U << gpio_num);
+    pin_reg &= ~(1ULL << gpio_num);
     return 0;
 }
 
@@ -26,10 +26,10 @@ esp_err_t gpio_set_direction(const gpio_num_t gpio_num, const gpio_mode_t mode)
 esp_err_t gpio_set_level(const gpio_num_t gpio_num, const uint32_t level)
 {
     TRACE("Setting GPIO %u level to %u\n", gpio_num, level);
-    if (level) { pin_reg |= (1U << gpio_num); }
+    if (level) { pin_reg |= (1ULL << gpio_num); }
     else
     {
-        pin_reg &= ~(1U << gpio_num);
+        pin_reg &= ~(1ULL << gpio_num);
     }
     return 0;
 }
@@ -37,7 +37,7 @@ esp_err_t gpio_set_level(const gpio_num_t gpio_num, const uint32_t level)
 int gpio_get_level(const gpio_num_t gpio_num)
 {
     TRACE("Getting GPIO %u level\n", gpio_num);
-    return 0U != (pin_reg & (1U << gpio_num)) ? 1U : 0U;
+    return 0U != (pin_reg & (1ULL << gpio_num)) ? 1U : 0U;
 }
 
 esp_err_t gpio_pullup_en(const gpio_num_t gpio_num)

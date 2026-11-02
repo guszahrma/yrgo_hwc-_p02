@@ -101,13 +101,37 @@ Internal flash (128 KB)     QSPI flash (8 MB)                        AXI SRAM (5
 At every start MCUboot checks the image in slot0, copies it into RAM and starts it. P02 runs from RAM
 rather than directly from the QSPI flash because `store` writes to the same QSPI chip.
 
-MCUboot also has a **recovery mode**, in which it accepts a new P02 over USB (`smpmgr`):
+MCUboot also has a **recovery mode**, in which it accepts a new P02 over USB (`smpmgr`). Every restart
+passes through MCUboot, which decides by the kind of reset:
 
-| Start | What happens |
-|---|---|
-| Power-on, `smpmgr os reset` | P02 starts at once |
-| RESET pressed | Recovery mode: waits for `smpmgr` as long as needed |
-| No valid P02 in slot0 | Recovery mode |
+```
+BOOT held + RESET ──► ROM bootloader (DFU, 0483:df11)
+                          │ west flash ends, or RESET
+                          ▼
+power-on ───────────► MCUboot ──── RESET pressed alone ────────────► Recovery mode
+RESET ──────────────►    │                                             ▲  waits for smpmgr,
+smpmgr os reset ────►    │ any other reset                             │  no timeout
+(from recovery)          ▼                                             │
+                     valid P02 in slot0? ──── no ──────────────────────┘
+                         │ yes
+                         ▼
+                     P02 running
+```
+
+| You are in | Do | You end up in |
+|---|---|---|
+| P02 | Power cycle (unplug, plug in) | P02 |
+| P02 | RESET | Recovery mode |
+| P02 | BOOT held + RESET | ROM bootloader |
+| Recovery mode | `smpmgr ... image upload <file>` | Recovery mode, with the new P02 in slot0 |
+| Recovery mode | `smpmgr ... os reset`, or a power cycle | P02 |
+| ROM bootloader | `west flash ...` | P02 (through MCUboot) |
+| ROM bootloader | RESET | Recovery mode |
+
+`smpmgr os reset` only works in recovery mode: P02 does not speak smpmgr's protocol. How to tell the states
+apart: in P02 the console answers; in recovery mode the console is silent and
+`smpmgr --port /dev/tty_daisy_seed image state-read` answers; the ROM bootloader shows up as `0483:df11`
+in `lsusb`. P02 and recovery mode have the same port name.
 
 ## Setup (once)
 
@@ -157,8 +181,10 @@ the board shows up as `0483:df11`. Then `west flash`.
 
 `west flash` ends with `dfu-util: Error during download get_status` / `FATAL ERROR: command exited with
 status 74`. **This is harmless**: the flash worked if `File downloaded successfully` is printed – the ROM
-bootloader starts the program before answering dfu-util's last request. If the program does not start
-(`lsusb` still shows `0483:df11`), press RESET.
+bootloader starts the program before answering dfu-util's last request. If the board stays in the ROM
+bootloader (`lsusb` still shows `0483:df11` after a few seconds), press RESET: the chip then starts from
+its flash. With MCUboot, a RESET press means recovery mode; leave it with `smpmgr ... os reset` or a power
+cycle.
 
 ### Zephyr's blinky (plain target)
 
@@ -183,10 +209,19 @@ west build -p always --sysbuild -b daisy_seed/stm32h750xx/ram_load -d zephyr/app
 west flash -d zephyr/app/daisy_seed_build --domain mcuboot
 ```
 
-**P02** – every time P02 changes. Press **RESET** (recovery mode), then:
+**P02** – every time P02 changes. Press **RESET** (recovery mode), wait for the port and check that
+recovery mode answers:
 
 ```bash
-sleep 2; until [ -e /dev/tty_daisy_seed ]; do sleep 0.5; done
+sleep 3; until [ -e /dev/tty_daisy_seed ]; do sleep 0.5; done
+smpmgr --port /dev/tty_daisy_seed image state-read
+```
+
+Recovery mode answers with `No images on device!` (see below). If smpmgr instead fails with `Frame could
+not be parsed` (frame `08 00 00 01 00 00 00 06 a0`), P02 is still running and echoed the request: press
+RESET again. Then upload P02 and start it:
+
+```bash
 smpmgr --port /dev/tty_daisy_seed --timeout 30 image upload zephyr/app/daisy_seed_build/app/zephyr/zephyr.signed.bin
 smpmgr --port /dev/tty_daisy_seed os reset
 ```
@@ -223,6 +258,7 @@ The mapping is in [`zephyr/app/boards/daisy_seed_ram_load.overlay`](../zephyr/ap
 | No `/dev/tty_daisy_seed`, but a `/dev/ttyACM*` | The udev rules are missing (Setup step 2), or the board runs software from before the USB product name `Daisy Seed`: flash MCUboot and upload P02 again |
 | The board stays `0483:df11` after `west flash` | The program did not start: press RESET |
 | `smpmgr ... connection timeout` | The board is not in recovery mode, or not attached yet: press RESET, wait for `/dev/tty_daisy_seed` |
+| `smpmgr`: `Frame could not be parsed`, frame `08 00 00 01 00 00 00 06 a0` | P02 is running, not recovery mode: it echoes smpmgr's request. Press RESET |
 | `smpmgr image state-read` says `No images on device!` | A known quirk of MCUboot's image list in RAM-load mode; the image boots anyway |
 | P02 runs (the LED blinks) but `/dev/tty_daisy_seed` never appears, after `smpmgr os reset` or a flash | A known, intermittent fault: P02 started with its USB off. Press RESET (recovery), then `smpmgr ... os reset` or a power cycle |
 | `smpmgr` or `west flash` fails with the port busy, or `device reports readiness to read but returned no data` | Another program has the port open, often `tio`: quit it (`Ctrl+T`, `q`). `fuser -v /dev/ttyACM*` shows who |

@@ -294,4 +294,10 @@ CI in `build-zephyr/<app>`. With two boards, a build for one board overwrites th
 yet applied: add the board as a subdirectory, `<build dir>/<board>` (`zephyr/app/build/daisy_seed`,
 `blinky_build/arduino_nano_esp32`), for all boards and applications.
 
-Open items: a `zephyr/module.yml` with `board_root: zephyr`, so builds find our boards without `-DBOARD_ROOT` (needed today even for `zephyr/app` with `--sysbuild`); P02 on `native_sim` (emulated LED, ADC and flash; its own branch); the outdated TODO in `factory/zephyr.cpp` `createNvs()` (the `driver/watchdog` branches rewrite it).
+Open items: **P02 sometimes starts with its USB off** after a software reset (`smpmgr os reset`, the end of
+`west flash`), never seen after power-on or RESET. P02 runs, but the PC sees no device on the port (UsbTreeView:
+port empty). A probe on the board showed `usbd_init()` failing with `-EIO` (likely `HAL_PCD_Init`, the USB
+core reset timing out) and a retry 1 s later failing too; RESET recovers. Not reproducible on demand (a few times
+in an afternoon). Next step if it returns: save the USB/RCC/PWR registers in `__noinit` RAM on failure and print
+them after RESET, and try a retry after an RCC reset of OTG FS. Seen with `board.c` in place; whether it also
+happens without it is not yet known. Other open items: a `zephyr/module.yml` with `board_root: zephyr`, so builds find our boards without `-DBOARD_ROOT` (needed today even for `zephyr/app` with `--sysbuild`); P02 on `native_sim` (emulated LED, ADC and flash; its own branch); the outdated TODO in `factory/zephyr.cpp` `createNvs()` (the `driver/watchdog` branches rewrite it).

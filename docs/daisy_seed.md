@@ -224,4 +224,5 @@ The mapping is in [`zephyr/app/boards/daisy_seed_ram_load.overlay`](../zephyr/ap
 | The board stays `0483:df11` after `west flash` | The program did not start: press RESET |
 | `smpmgr ... connection timeout` | The board is not in recovery mode, or not attached yet: press RESET, wait for `/dev/tty_daisy_seed` |
 | `smpmgr image state-read` says `No images on device!` | A known quirk of MCUboot's image list in RAM-load mode; the image boots anyway |
+| P02 runs (the LED blinks) but `/dev/tty_daisy_seed` never appears, after `smpmgr os reset` or a flash | A known, intermittent fault: P02 started with its USB off. Press RESET (recovery), then `smpmgr ... os reset` or a power cycle |
 | `smpmgr` or `west flash` fails with the port busy, or `device reports readiness to read but returned no data` | Another program has the port open, often `tio`: quit it (`Ctrl+T`, `q`). `fuser -v /dev/ttyACM*` shows who |

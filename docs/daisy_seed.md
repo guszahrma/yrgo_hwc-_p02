@@ -4,8 +4,7 @@ Reference for the Electrosmith Daisy Seed (Seed 1.2 / Rev7) and our Zephyr board
 setup, building and flashing, and wiring for P02. The Daisy Seed is supported on **Zephyr only** (not
 ESP-IDF). Design decisions and lessons learned are in [`AGENTS.md`](../AGENTS.md#daisy-seed-work-in-progress-design-decisions).
 
-> **Work in progress.** P02 runs on the board (verified). Recovery mode on RESET is committed but not yet
-> tested on the board – see [manual tests](daisy_seed_manual_tests.md).
+> **Work in progress.** P02 runs on the board, including recovery mode on RESET (verified on the board).
 
 ## Board facts
 
@@ -107,7 +106,7 @@ MCUboot also has a **recovery mode**, in which it accepts a new P02 over USB (`s
 | Start | What happens |
 |---|---|
 | Power-on, `smpmgr os reset` | P02 starts at once |
-| RESET pressed | Recovery mode: waits for `smpmgr` as long as needed (*not yet tested on the board*) |
+| RESET pressed | Recovery mode: waits for `smpmgr` as long as needed |
 | No valid P02 in slot0 | Recovery mode |
 
 ## Setup (once)

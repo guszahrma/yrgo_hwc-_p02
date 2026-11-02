@@ -2,7 +2,6 @@
  * @file Implementation of the Logic class for handling commands and controlling the LED and other
  * components.
  */
-
 #include <charconv>
 #include <chrono>
 #include <cstdint>
@@ -10,6 +9,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <iostream>
+#include <limits>
 #include <string_view>
 #include <thread>
 
@@ -257,8 +257,27 @@ void Logic::loadStoredUserSettings() noexcept
     if (!(myNvsUserSettingsStorage->getString("blink_period", blinkPeriod)))
         blinkPeriod = "1000"; // Default to 1000 ms if not found
 
-    myBlinkState     = (blinkState == "on") ? 1 : 0;
-    myPeriodLengthMs = static_cast<uint16_t>(std::stoi(blinkPeriod));
+    myBlinkState = (blinkState == "on");
+
+    // Parse the stored period without exceptions (std::stoi throws on bad data, and this function
+    // is noexcept) and without silent wrap-around (a cast to uint16_t turns 70000 into 4464).
+    constexpr std::uint16_t DefaultPeriodMs{1000U};
+
+    std::uint32_t parsed{};
+    const auto [ptr, ec] =
+        std::from_chars(blinkPeriod.data(), blinkPeriod.data() + blinkPeriod.size(), parsed);
+
+    // Valid only if it is a number, the whole string was read and it fits in a uint16_t
+    const bool valid{(std::errc{} == ec) && (blinkPeriod.data() + blinkPeriod.size() == ptr) &&
+                     (0U < parsed) && (std::numeric_limits<std::uint16_t>::max() >= parsed)};
+
+    if (valid) { myPeriodLengthMs = static_cast<std::uint16_t>(parsed); }
+    else
+    {
+        std::cout << "Invalid stored blink period '" << blinkPeriod << "', using "
+                  << DefaultPeriodMs << " ms" << std::endl;
+        myPeriodLengthMs = DefaultPeriodMs;
+    }
 
     // Implement the logic to load the stored state from non-volatile memory.
     // This is a placeholder implementation - replace with actual loading logic.

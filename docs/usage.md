@@ -9,8 +9,8 @@ Open the monitor after flashing:
 
 | Platform | Monitor | Exit |
 |---|---|---|
-| ESP-IDF | `idf.py -p /dev/ttyACM0 monitor` | `Ctrl+]` or `Ctrl+T`, `Ctrl+X` |
-| Zephyr | `python -m serial.tools.miniterm --exit-char 24 /dev/ttyACM0 115200` | `Ctrl+X` |
+| ESP-IDF | `idf.py -p /dev/tty_arduino_nano_esp32 monitor` | `Ctrl+]` or `Ctrl+T`, `Ctrl+X` |
+| Zephyr | `tio /dev/tty_arduino_nano_esp32` (Daisy Seed: `tio /dev/tty_daisy_seed`) | `Ctrl+T`, `q` |
 
 Then type:
 
@@ -54,5 +54,5 @@ If saved settings behave oddly after a switch, erase the whole flash once and fl
 
 | Platform | Command |
 |---|---|
-| ESP-IDF | `idf.py -p /dev/ttyACM0 erase-flash` (in the ESP-IDF environment) |
-| Zephyr | `esptool --chip esp32s3 -p /dev/ttyACM0 erase-flash` (in the Zephyr environment) |
+| ESP-IDF | `idf.py -p /dev/tty_arduino_nano_esp32 erase-flash` (in the ESP-IDF environment) |
+| Zephyr | `esptool --chip esp32s3 -p /dev/tty_arduino_nano_esp32 erase-flash` (in the Zephyr environment) |

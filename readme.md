@@ -55,7 +55,7 @@ cp main/include/communication/wifi/esp32s3_local_config_template.h \
    main/include/communication/wifi/esp32s3_local_config.h      # first time only (needed to build)
 idf.py set-target esp32s3                                       # first time only
 idf.py build
-idf.py -p /dev/ttyACM0 flash monitor
+idf.py -p /dev/tty_arduino_nano_esp32 flash monitor
 ```
 
 **Zephyr** – the setup script fetches Zephyr, the toolchain and the Python tools
@@ -65,11 +65,11 @@ idf.py -p /dev/ttyACM0 flash monitor
 tools/zephyr_setup.sh            # first time only (~800 MB)
 source tools/zephyr_env.sh       # or the get_zephyr alias
 west build -p always -b arduino_nano_esp32/esp32s3/procpu -s zephyr/app -d zephyr/app/build
-west flash -d zephyr/app/build --esp-device /dev/ttyACM0 && python -m serial.tools.miniterm --exit-char 24 /dev/ttyACM0 115200
+west flash -d zephyr/app/build --esp-device /dev/tty_arduino_nano_esp32 && tio /dev/tty_arduino_nano_esp32
 ```
 
 Then type `help` in the monitor ([serial commands](docs/usage.md#serial-commands)). Exit the monitor with
-`Ctrl+]` or `Ctrl+T`, `Ctrl+X` (ESP-IDF), or `Ctrl+X` (Zephyr).
+`Ctrl+]` or `Ctrl+T`, `Ctrl+X` (ESP-IDF), or `Ctrl+T`, `q` (Zephyr, `tio`).
 
 ## Hardware
 

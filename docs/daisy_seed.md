@@ -117,12 +117,10 @@ In addition to the [general setup](setup.md) (WSL, usbipd, packages, clone):
 
 1. **Zephyr workspace.** [`tools/zephyr_setup.sh`](zephyr_environment.md#setup) also installs what the
    Daisy needs: the Arm toolchain (`arm-zephyr-eabi`), the STM32 and MCUboot modules, and `smpmgr`.
-2. **USB permission for the ROM bootloader.** `dfu-util` talks to the chip directly, which the `dialout`
-   group does not cover (otherwise: `LIBUSB_ERROR_ACCESS`):
-   ```bash
-   echo 'SUBSYSTEM=="usb", ATTRS{idVendor}=="0483", ATTRS{idProduct}=="df11", MODE="0660", GROUP="dialout"' | sudo tee /etc/udev/rules.d/50-stm32-dfu.rules
-   sudo udevadm control --reload-rules && sudo udevadm trigger
-   ```
+2. **udev rules.** Install the project's rules ([fixed port names](setup.md#fixed-port-names)). For the
+   Daisy they name the serial port `/dev/tty_daisy_seed`, in MCUboot and in P02 alike, and give `dfu-util`
+   access to the ROM bootloader, which the `dialout` group does not cover (otherwise:
+   `LIBUSB_ERROR_ACCESS`).
 3. **Attach the board to WSL – two USB devices.** The board shows up as a different USB device depending
    on what runs (use a data cable; a charge-only cable shows nothing):
 
@@ -138,7 +136,7 @@ In addition to the [general setup](setup.md) (WSL, usbipd, packages, clone):
    usbipd attach --wsl --busid <id> --auto-attach
    ```
    After every reset or flash, usbipd takes **5–15 s** to attach the board again; until then there is no
-   `/dev/ttyACM*`.
+   `/dev/tty_daisy_seed`.
 4. **Backup (recommended before the first flash).** Read-only, outside the repository:
    ```bash
    mkdir -p ~/daisy_seed_backup && cd ~/daisy_seed_backup
@@ -190,9 +188,9 @@ west flash -d zephyr/app/daisy_seed_build --domain mcuboot
 **P02** – every time P02 changes. Press **RESET** (recovery mode), then:
 
 ```bash
-sleep 2; until [ -e /dev/ttyACM0 ]; do sleep 0.5; done
-smpmgr --port /dev/ttyACM0 --timeout 30 image upload zephyr/app/daisy_seed_build/app/zephyr/zephyr.signed.bin
-smpmgr --port /dev/ttyACM0 os reset
+sleep 2; until [ -e /dev/tty_daisy_seed ]; do sleep 0.5; done
+smpmgr --port /dev/tty_daisy_seed --timeout 30 image upload zephyr/app/daisy_seed_build/app/zephyr/zephyr.signed.bin
+smpmgr --port /dev/tty_daisy_seed os reset
 ```
 
 `--timeout 30`: MCUboot erases the whole slot when the upload starts, which takes longer than smpmgr's
@@ -202,7 +200,7 @@ support that query). `west flash` cannot do this step: the ROM bootloader cannot
 Then open the console and use the [serial commands](usage.md#serial-commands):
 
 ```bash
-python -m serial.tools.miniterm --exit-char 24 /dev/ttyACM0 115200
+tio /dev/tty_daisy_seed
 ```
 
 P02's welcome text is usually printed before usbipd has attached the board; type `help`.
@@ -223,8 +221,9 @@ The mapping is in [`zephyr/app/boards/daisy_seed_ram_load.overlay`](../zephyr/ap
 | `FATAL ERROR: command exited with status 74` after `west flash` | Harmless, see [Flashing with the ROM bootloader](#flashing-with-the-rom-bootloader-dfu-util) |
 | `dfu-util: Cannot open DFU device ... (LIBUSB_ERROR_ACCESS)` | The udev rule is missing, see [Setup](#setup-once) step 2 |
 | No USB device at all, with nothing flashed | The board only shows up in BOOT mode (BOOT + RESET), or the cable is charge-only |
-| `could not open port /dev/ttyACM0` right after a flash or reset | usbipd has not attached the board yet (5–15 s); wait and try again |
+| `tio` shows *Waiting for tty device* after a flash or reset | usbipd has not attached the board yet (5–15 s); `tio` connects by itself |
+| No `/dev/tty_daisy_seed`, but a `/dev/ttyACM*` | The udev rules are missing (Setup step 2), or the board runs software from before the USB product name `Daisy Seed`: flash MCUboot and upload P02 again |
 | The board stays `0483:df11` after `west flash` | The program did not start: press RESET |
-| `smpmgr ... connection timeout` | The board is not in recovery mode, or not attached yet: press RESET, wait for `/dev/ttyACM0` |
+| `smpmgr ... connection timeout` | The board is not in recovery mode, or not attached yet: press RESET, wait for `/dev/tty_daisy_seed` |
 | `smpmgr image state-read` says `No images on device!` | A known quirk of MCUboot's image list in RAM-load mode; the image boots anyway |
-| `device reports readiness to read but returned no data` | Another program has the port open (e.g. an old monitor): `fuser -v /dev/ttyACM*` |
+| `smpmgr` or `west flash` fails with the port busy, or `device reports readiness to read but returned no data` | Another program has the port open, often `tio`: quit it (`Ctrl+T`, `q`). `fuser -v /dev/ttyACM*` shows who |

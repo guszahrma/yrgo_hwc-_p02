@@ -20,13 +20,13 @@ All commands run from the repository root. Never mix the ESP-IDF and Zephyr envi
 . ~/esp/esp-idf/export.sh
 idf.py set-target esp32s3            # first time only
 idf.py build
-idf.py -p /dev/ttyACM0 flash monitor
+idf.py -p /dev/tty_arduino_nano_esp32 flash monitor
 
 # Zephyr
 tools/zephyr_setup.sh                # first time only
 source tools/zephyr_env.sh
 west build -p always -b arduino_nano_esp32/esp32s3/procpu -s zephyr/app -d zephyr/app/build
-west flash -d zephyr/app/build --esp-device /dev/ttyACM0 && python -m serial.tools.miniterm --exit-char 24 /dev/ttyACM0 115200
+west flash -d zephyr/app/build --esp-device /dev/tty_arduino_nano_esp32 && tio /dev/tty_arduino_nano_esp32
 
 # Unit tests on the host (GoogleTest). Building also runs them (custom target "run" in
 # tests/CMakeLists.txt); no CTest. Compiled with -Wall -Werror, so a warning fails the build.
@@ -68,12 +68,14 @@ tools/clang-format/check.sh
 
 | Error | Cause / fix |
 |---|---|
-| `Could not open COM3` | Windows port name used in WSL. Use `/dev/ttyACM0`. |
+| `Could not open COM3` | Windows port name used in WSL. Use `/dev/tty_arduino_nano_esp32` (see [fixed port names](docs/setup.md#fixed-port-names)). |
 | `Path '/dev/ttyACM0' is not readable` | The user is not in the `dialout` group. See [Setup step 2](docs/setup.md#2-packages-in-ubuntu), then run `wsl --shutdown` in PowerShell. |
 | `usbipd: error: Device is not shared` | Run `usbipd bind --busid <id>` as administrator first. |
 | No `/dev/ttyACM*` in WSL | Check that `usbipd attach` is running and that the board is not in Arduino mode (`2341:0070`). |
+| `/dev/ttyACM*` exists, but not `/dev/tty_arduino_nano_esp32` / `/dev/tty_daisy_seed` | The udev rules are not installed: see [fixed port names](docs/setup.md#fixed-port-names). On the Daisy, also software built before the USB product name `Daisy Seed`: flash MCUboot and P02 again. |
+| `smpmgr`, `esptool` or `tio`: port busy / `multiple access on port` | Another program has the port open, often `tio` in another terminal. Quit it (`Ctrl+T`, `q`); `fuser -v /dev/ttyACM*` shows who. |
 | `SerialException: device reports readiness to read but returned no data` | The board disconnected from USB (reset/re-attach). Start the monitor again. |
-| `could not open port /dev/ttyACM0` right after flashing | usbipd had not re-attached the board yet when the monitor started. Wait a moment, or add `sleep 2 &&` before the monitor command. |
+| `idf.py monitor` cannot open the port right after flashing | usbipd had not re-attached the board yet when the monitor started. Wait a moment and run `idf.py -p /dev/tty_arduino_nano_esp32 monitor`. (`tio` waits by itself.) |
 | `tools/...sh: Permission denied`, or `git status` shows a script as modified with no changes (`git diff --summary`: `mode change 100755 => 100644`) | The file lost its executable bit (e.g. edited from Windows). `chmod +x <file>`. |
 
 ### ESP-IDF
@@ -222,7 +224,11 @@ tools/clang-format/check.sh
 * Every reset re-enumerates USB, and usbipd has to re-attach the board to WSL. `CONFIG_BOOT_DELAY=1000`
   keeps the boot output, and the monitor is started right after `west flash`. With a slower usbipd, add a
   `sleep` before the monitor (see [Troubleshooting → Setup](#setup-wsl-usb-serial)).
-* `miniterm --exit-char 24` exits with `Ctrl+X`; the default `Ctrl+]` is awkward on a Swedish keyboard.
+* The monitor is `tio`, not `miniterm`: `tio` waits for the port and reconnects after every reset. `miniterm`
+  crashed when the board left USB (RESET pressed), and as it still held `/dev/ttyACM0`, the board came back as
+  `/dev/ttyACM1`. The fixed names from `tools/udev/99-p02.rules` (`/dev/tty_daisy_seed`,
+  `/dev/tty_arduino_nano_esp32`) do not change. Exit `tio` with `Ctrl+T`, `q`; quit it before `west flash` or
+  `smpmgr`, which need the port to themselves.
 
 ---
 
@@ -274,8 +280,9 @@ Lessons from the bring-up that the docs leave out:
 * **Backup.** Byte 1 of `option_bytes.bin` is RDP: `0xAA` = no read protection (level 0); anything else and
   the read fails. Our board's QSPI held one 64 KB block of `0xDEADBEEF` at 0x020000 (probably a factory
   test), read with a small Zephyr program (twice, with a CRC-32) and backed up outside the repository.
-* **USB console in WSL.** Run `miniterm` in WSL, not PowerShell: Windows has no Python, and its "Python was
-  not found" is only a Microsoft Store shortcut. With the Nano attached too, the Daisy is `/dev/ttyACM1`.
+* **USB console in WSL.** Run the monitor (`tio`) and `smpmgr` in WSL, not PowerShell: Windows has no Python,
+  and its "Python was not found" is only a Microsoft Store shortcut. With the Nano attached too, the Daisy is
+  `/dev/ttyACM1` – the fixed names (`/dev/tty_daisy_seed`) avoid guessing.
 * **Debugging without a probe or console.** Two LEDs driven through raw registers at fixed init levels
   (`SYS_INIT` at `PRE_KERNEL_1` and `APPLICATION`, plus `k_sys_fatal_error_handler`) showed how far an app
   got. Reading a QSPI range back over USB and comparing it with the uploaded file found the write bug.

@@ -1,0 +1,14 @@
+# udev rules for P02's boards: fixed serial port names, whatever /dev/ttyACM<n> the board gets, and USB
+# access to the Daisy Seed's ROM bootloader. Install once, and again after a change (see docs/setup.md):
+#   sudo cp tools/udev/99-p02.rules /etc/udev/rules.d/ && sudo udevadm control --reload-rules && sudo udevadm trigger
+
+# Arduino Nano ESP32 -> /dev/tty_arduino_nano_esp32. The ESP32-S3's built-in USB-Serial/JTAG, the same
+# under ESP-IDF, Zephyr and the ROM bootloader. Matches any board with that chip: attach one at a time.
+SUBSYSTEM=="tty", ATTRS{idVendor}=="303a", ATTRS{idProduct}=="1001", SYMLINK+="tty_arduino_nano_esp32"
+
+# Daisy Seed -> /dev/tty_daisy_seed, in MCUboot's recovery mode and in the app. 2fe3:0004 is Zephyr's
+# default USB ID; the product name is set in the board's Kconfig.defconfig.
+SUBSYSTEM=="tty", ATTRS{idVendor}=="2fe3", ATTRS{idProduct}=="0004", ATTRS{product}=="Daisy Seed", SYMLINK+="tty_daisy_seed"
+
+# Daisy Seed's ROM bootloader (BOOT + RESET), for dfu-util: the dialout group covers serial ports only.
+SUBSYSTEM=="usb", ATTRS{idVendor}=="0483", ATTRS{idProduct}=="df11", MODE="0660", GROUP="dialout"

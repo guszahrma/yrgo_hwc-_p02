@@ -19,7 +19,7 @@ Restart the computer and open Ubuntu from the Start menu.
 ## 2. Packages in Ubuntu
 
 ```bash
-sudo apt update && sudo apt install -y --no-install-recommends git cmake ninja-build gperf ccache dfu-util device-tree-compiler wget flex bison python3-dev python3-pip python3-venv xz-utils file make gcc g++ gcc-multilib g++-multilib libffi-dev libssl-dev libusb-1.0-0 libsdl2-dev libmagic1 usbutils
+sudo apt update && sudo apt install -y --no-install-recommends git cmake ninja-build gperf ccache dfu-util device-tree-compiler wget flex bison python3-dev python3-pip python3-venv xz-utils file make gcc g++ gcc-multilib g++-multilib libffi-dev libssl-dev libusb-1.0-0 libsdl2-dev libmagic1 usbutils tio
 ```
 
 Give your user access to serial ports (takes effect after running `wsl --shutdown` in PowerShell):
@@ -42,6 +42,26 @@ cd yrgo_hwc-_p02
 
 `--recursive` also fetches GoogleTest (`tests/googletest`). In an existing clone without it:
 `git submodule update --init`.
+
+### Fixed port names
+
+A board's serial port is `/dev/ttyACM0`, `/dev/ttyACM1`, ... depending on the order things were attached,
+and the name can change after a reset. The project's udev rules give each board a name that stays the
+same, whatever runs on it:
+
+| Board | Port |
+|---|---|
+| Arduino Nano ESP32 | `/dev/tty_arduino_nano_esp32` |
+| Daisy Seed | `/dev/tty_daisy_seed` |
+
+Install them once (and again when [`tools/udev/99-p02.rules`](../tools/udev/99-p02.rules) changes):
+
+```bash
+sudo cp tools/udev/99-p02.rules /etc/udev/rules.d/ && sudo udevadm control --reload-rules && sudo udevadm trigger
+```
+
+The commands in these docs use these names. The monitor is `tio` (installed in step 2): it waits for the
+port and reconnects after every reset. Exit it with `Ctrl+T`, `q`.
 
 ## 4. Attach the board to WSL (PowerShell as administrator)
 

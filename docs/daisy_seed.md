@@ -87,7 +87,6 @@ gpios = <&daisy_seed_header DAISY_SEED_HEADER_D26 GPIO_ACTIVE_HIGH>; /* D26 = pi
 | `daisy_seed_connector.dtsi`, `dts/bindings/`, `include/` | The pin header: D0–D30 → STM32 pins, with our own binding and constants |
 | `Kconfig.sysbuild`, `sysbuild.cmake`, `mcuboot.conf`, `mcuboot.overlay` | MCUboot for `ram_load` |
 | `mcuboot_hooks.c` | MCUboot: a RESET press enters recovery mode |
-| `board.c` | Apps started by MCUboot: reset USB and QSPI before the drivers start |
 | `board.yml`, `Kconfig*`, `board.cmake`, `*_defconfig`, `*.yaml` | Board name, chip, flash runners, default Kconfig, Twister metadata |
 
 ## How P02 starts: MCUboot and RAM load

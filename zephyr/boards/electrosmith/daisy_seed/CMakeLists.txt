@@ -1,6 +1,6 @@
-# Board code, built into the images for the Daisy Seed that need it.
-zephyr_library()
-# Apps started by MCUboot: reset the peripherals MCUboot used.
-zephyr_library_sources_ifdef(CONFIG_BOOTLOADER_MCUBOOT board.c)
-# MCUboot itself: RESET enters serial recovery (see mcuboot.conf).
-zephyr_library_sources_ifdef(CONFIG_BOOT_GO_HOOKS mcuboot_hooks.c)
+# Board code for MCUboot itself: RESET enters serial recovery, USB is on only there (see mcuboot.conf).
+# Apps need no board code: an empty zephyr_library() would only add a CMake warning to every build.
+if(CONFIG_BOOT_GO_HOOKS)
+  zephyr_library()
+  zephyr_library_sources(mcuboot_hooks.c)
+endif()

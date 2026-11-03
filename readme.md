@@ -10,10 +10,10 @@ Course project in:
 
 ## Features
 
-- Drivers for GPIO, ADC, timer, serial (USB) and non-volatile storage, behind platform-independent
-  interfaces
+- Drivers for GPIO, ADC, timer, serial (USB), non-volatile storage and a watchdog, behind
+  platform-independent interfaces
 - TMP36 temperature sensor; Wi-Fi and MQTT (ESP-IDF only)
-- Serial commands: LED on/off, blinking, temperature, settings saved across resets
+- Serial commands: LED on/off, blinking, temperature, settings saved across resets, a watchdog test
 
 Development: unit tests on the development PC (the *host*, as opposed to the board) with mocked hardware,
 and CI (formatting, ESP-IDF and Zephyr builds, unit tests) on every pull request.

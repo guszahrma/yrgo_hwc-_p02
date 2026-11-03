@@ -88,6 +88,7 @@ Then use the [serial commands](usage.md#serial-commands).
 | `adc::Esp32s3` (+ `Tmp36`) | `esp_adc/adc_oneshot.h` + calibration, average of 5 samples | Pin and `referenceVoltage` from `factory::Esp32s3` |
 | `serial::Esp32s3` | `driver/usb_serial_jtag.h` | The board's USB port |
 | `nvs::Esp32s3` | `nvs_flash.h` | Default NVS partition |
+| `watchdog::Esp32s3` | `esp_task_wdt.h` (task watchdog, TWDT), `esp_reset_reason()` | Timeout from `Logic` (`WatchdogTimeoutMs`, 3 s) |
 | `comm::wifi::Esp32s3` | `esp_wifi.h` | SSID and password from `esp32s3_local_config.h` |
 | `comm::mqtt::publish::Esp32s3` | `mqtt_client.h` (`espressif/mqtt`) | Broker URL, topic, client ID and credentials in the constructor |
 | `comm::mqtt::subscribe::Esp32s3` | `mqtt_client.h` (`espressif/mqtt`) | Broker URL, topic, client ID and credentials in the constructor |

@@ -86,6 +86,7 @@ tools/clang-format/check.sh
 | CMake uses `Unix Makefiles` instead of Ninja | `ninja-build` is missing: `sudo apt install -y ninja-build`. |
 | `esp32s3_local_config.h: No such file or directory` | Copy the Wi-Fi template, see [Create the Wi-Fi config](docs/espressif_environment.md#3-create-the-wi-fi-config-once). |
 | `task_wdt: Task watchdog got triggered ... IDLE0` | A task never blocks, so the idle task cannot run. See *Sleeps shorter than one tick* under ESP-IDF pitfalls. |
+| `task_wdt: Task watchdog got triggered ... - main (CPU 0)` | `Logic`'s loop stopped kicking the watchdog for 3 s: the `hang` command (expected), or something in the loop blocks. |
 
 ### Zephyr
 
@@ -113,6 +114,8 @@ tools/clang-format/check.sh
 | ADC noise | Average of `AdcSamples` (5) reads in `readValue()`; `readVoltage()` uses it | Single reads are noisy. `adc::Zephyr` does the same |
 | NVS initialisation | `nvs_flash_init()` in the NVS driver's constructor (erase and retry if the partition is full or from a newer version) | The driver works without the Wi-Fi driver having initialised flash first |
 | Pins | Arduino names (`D6`, `A6`) mapped to GPIO numbers in `driver/pin/esp32s3.h`; `PhysicalPinManager` stops two drivers from claiming the same pin | Code and wiring use the names printed on the board |
+| Watchdog | The task watchdog (TWDT): `esp_task_wdt_reconfigure()` (ESP-IDF has usually started it; `esp_task_wdt_init()` if not) with `trigger_panic = true` and both idle tasks still watched; the task that creates the driver is added with `esp_task_wdt_add(nullptr)` | `trigger_panic` restarts instead of only logging. The TWDT watches tasks, which fits `Logic`'s loop; the interrupt and RTC watchdogs are for lower-level hangs |
+| Testing the watchdog | The `hang` command; an invalid `period` is only rejected | A user error is not a reason to restart; `hang` stops the loop like a real hang |
 
 ### Pitfalls and lessons learned
 
@@ -141,6 +144,7 @@ tools/clang-format/check.sh
 | ADC attenuation | `zephyr,gain` in devicetree; `referenceVoltage` is ignored | Zephyr configures channels from devicetree, not at runtime |
 | Timer | Polled `timeout()`, restarts from "now" | `Logic` stays unchanged. A `k_timer` callback would be more idiomatic but changes the interface |
 | Serial | Our own command parser kept, not Zephyr's shell | `Logic` stays unchanged on both platforms |
+| Watchdog | `wdt0` (Timer Group 0) through the board's alias `watchdog0`, `WDT_FLAG_RESET_SOC`, `window.min = 0`; reset cause from `hwinfo_get_reset_cause()` (`CONFIG_HWINFO`) | Zephyr's ESP32 driver uses two stages with the same time (interrupt, then reset), so the board restarts after about **twice** the timeout (~6 s instead of 3 s). `window.max = timeoutMs / 2` would make it match ESP-IDF |
 | NVS | Settings subsystem (NVS backend), not the raw NVS API | String keys like ESP-IDF (raw NVS has numeric IDs). The namespace is the key prefix (`user_settings/blink_state`). Every write goes to flash at once, so `autoCommit`/`commit()` have no effect |
 | `std::cout` in `Logic` | Kept, via `CONFIG_POSIX_API` | `Logic` stays unchanged. Costs ~225 KB flash; Zephyr logging would be an improvement |
 | ESP-IDF and Zephyr in one repository | Yes | The shared logic is built for both in CI; reorganise (`common/`, `esp-idf/`, `zephyr/`) if the ESP-IDF build is dropped |

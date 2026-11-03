@@ -1,8 +1,8 @@
 # Setup
 
 Setting up a computer for the project: WSL, packages, cloning and attaching the board. This is the same for
-both platforms; after it, continue with [ESP-IDF environment](espressif_environment.md) or
-[Zephyr environment](zephyr_environment.md).
+both platforms; after it, continue with [ESP-IDF environment](platform_esp_idf.md) or
+[Zephyr environment](platform_zephyr.md).
 
 The recommended environment is **Ubuntu 24.04 in WSL2**. The USB board is passed from Windows to WSL with
 **usbipd-win**.
@@ -106,8 +106,8 @@ The project supports two platforms, ESP-IDF and Zephyr. You can set up either on
 
 | Platform | Setup guide |
 |---|---|
-| ESP-IDF 6.0 | [ESP-IDF environment](espressif_environment.md#setup) |
-| Zephyr 4.4.2 | [Zephyr environment](zephyr_environment.md#setup) |
+| ESP-IDF 6.0 | [ESP-IDF environment](platform_esp_idf.md#setup) |
+| Zephyr 4.4.2 | [Zephyr environment](platform_zephyr.md#setup) |
 
 > **Never mix environments in one terminal.** Use a fresh terminal for ESP-IDF and for Zephyr.
 

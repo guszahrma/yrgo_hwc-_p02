@@ -17,7 +17,7 @@ Where each board's setup, building and flashing are described:
 
 | Board | Setup | Building and flashing |
 |---|---|---|
-| Arduino Nano ESP32 | [Setup](setup.md) | [ESP-IDF environment](espressif_environment.md), [Zephyr environment](zephyr_environment.md#building-and-flashing) |
+| Arduino Nano ESP32 | [Setup](setup.md) | [ESP-IDF environment](platform_esp_idf.md), [Zephyr environment](platform_zephyr.md#building-and-flashing) |
 | Daisy Seed | [P02 on the Daisy Seed → Setup](p02_daisy_seed.md#setup-once) | [P02 on the Daisy Seed → Building and flashing](p02_daisy_seed.md#building-and-flashing) |
 
 ## What a board needs

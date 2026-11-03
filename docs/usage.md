@@ -40,7 +40,7 @@ How to add or change hardware is described in [Architecture](architecture.md#add
 ## Switching between ESP-IDF and Zephyr
 
 Only the Arduino Nano ESP32 runs both platforms. To switch, open a **new terminal** and follow the other
-platform's guide: [ESP-IDF environment](espressif_environment.md) or [Zephyr environment](zephyr_environment.md).
+platform's guide: [ESP-IDF environment](platform_esp_idf.md) or [Zephyr environment](platform_zephyr.md).
 Never activate both environments in one terminal.
 
 Flashing the other platform overwrites everything on the board: the two platforms use different partition

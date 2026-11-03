@@ -26,8 +26,8 @@ The Nano is the board the general guides use:
 |---|---|
 | Setup (WSL, usbipd, packages, udev rules) | [Setup](setup.md) |
 | First flash: leave Arduino mode | The board document's [First flash](../zephyr/boards/arduino/nano_esp32/doc/index.md#first-flash-leave-arduino-mode) |
-| Build and flash with ESP-IDF | [ESP-IDF environment](espressif_environment.md#building-and-flashing) |
-| Build and flash with Zephyr | [Zephyr environment](zephyr_environment.md#building-and-flashing) |
+| Build and flash with ESP-IDF | [ESP-IDF environment](platform_esp_idf.md#building-and-flashing) |
+| Build and flash with Zephyr | [Zephyr environment](platform_zephyr.md#building-and-flashing) |
 
 ## Wiring for P02
 

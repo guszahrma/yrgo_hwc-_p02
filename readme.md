@@ -47,7 +47,7 @@ administrator; the first time, see [Setup](docs/setup.md#4-attach-the-board-to-w
 usbipd attach --wsl --busid <BUSID> --auto-attach   # find the BUSID with: usbipd list
 ```
 
-**ESP-IDF** – requires ESP-IDF 6.0, see [ESP-IDF environment](docs/espressif_environment.md):
+**ESP-IDF** – requires ESP-IDF 6.0, see [ESP-IDF environment](docs/platform_esp_idf.md):
 
 ```bash
 . ~/esp/esp-idf/export.sh                                       # or the get_idf alias
@@ -59,7 +59,7 @@ idf.py -p /dev/tty_arduino_nano_esp32 flash monitor
 ```
 
 **Zephyr** – the setup script fetches Zephyr, the toolchain and the Python tools
-([Zephyr environment](docs/zephyr_environment.md)):
+([Zephyr environment](docs/platform_zephyr.md)):
 
 ```bash
 tools/zephyr_setup.sh            # first time only (~800 MB)
@@ -85,8 +85,8 @@ P02 also runs on the Electrosmith Daisy Seed (Zephyr): see [Daisy Seed](docs/p02
 | Document | Contents |
 |---|---|
 | [Setup](docs/setup.md) | WSL, usbipd, packages, cloning, first flash of a new board |
-| [ESP-IDF environment](docs/espressif_environment.md) | Installing ESP-IDF, building and flashing, drivers |
-| [Zephyr environment](docs/zephyr_environment.md) | Installing Zephyr, building and flashing, samples, drivers |
+| [ESP-IDF environment](docs/platform_esp_idf.md) | Installing ESP-IDF, building and flashing, drivers |
+| [Zephyr environment](docs/platform_zephyr.md) | Installing Zephyr, building and flashing, samples, drivers |
 | [Usage](docs/usage.md) | Serial commands, wiring, switching between ESP-IDF and Zephyr |
 | [Architecture](docs/architecture.md) | Interfaces, factories, adding hardware or drivers, folder structure |
 | [Boards](docs/boards.md) | Supported boards and what a board needs to run P02 |

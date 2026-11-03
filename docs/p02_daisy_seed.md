@@ -22,7 +22,7 @@ board targets, how an app starts, troubleshooting – is described in its board 
 
 In addition to the [general setup](setup.md) (WSL, usbipd, packages, clone):
 
-1. **Zephyr workspace.** [`tools/zephyr_setup.sh`](zephyr_environment.md#setup) installs everything the board
+1. **Zephyr workspace.** [`tools/zephyr_setup.sh`](platform_zephyr.md#setup) installs everything the board
    document lists: the Arm toolchain, the STM32 and MCUboot modules, and `smpmgr` (into `.venv`). `dfu-util`
    is among the packages in the general setup.
 2. **udev rules.** Install the project's rules ([fixed port names](setup.md#fixed-port-names)); they include

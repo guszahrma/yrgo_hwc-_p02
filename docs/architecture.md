@@ -36,7 +36,7 @@ Pins on ESP-IDF are handled by `driver::pin`:
 * `driver/pin/manager.h` (`PhysicalPinManager`) keeps track of which physical pins are in use, so that two
   drivers cannot claim the same pin.
 
-On Zephyr, pins come from devicetree instead (see [Zephyr environment](zephyr_environment.md#drivers)).
+On Zephyr, pins come from devicetree instead (see [Zephyr environment](platform_zephyr.md#drivers)).
 
 ## Adding or changing hardware
 
@@ -119,8 +119,8 @@ and `zephyr/app/daisy_seed_build/` (Zephyr), `.venv/` (Python tools for Zephyr a
 | MQTT | `comm::mqtt::publish/subscribe` | Publish and subscribe to topics | ✅ | – |
 | ML | `ml::lin_reg` | Adaptive linear regression, platform independent | ✅ | – |
 
-Which platform API each driver uses is listed in [ESP-IDF environment](espressif_environment.md#drivers)
-and [Zephyr environment](zephyr_environment.md#drivers).
+Which platform API each driver uses is listed in [ESP-IDF environment](platform_esp_idf.md#drivers)
+and [Zephyr environment](platform_zephyr.md#drivers).
 
 ## Known issues
 

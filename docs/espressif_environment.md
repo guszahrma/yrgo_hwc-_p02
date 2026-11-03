@@ -78,6 +78,7 @@ Then use the [serial commands](usage.md#serial-commands).
 | `sdkconfig` | The active configuration (generated, not committed) |
 | `build/*.bin`, `build/*.elf`, `build/*.map` | Firmware, ELF with symbols, memory map |
 | `idf.py fullclean` | Delete the build; run `set-target` again afterwards |
+| `idf.py -p /dev/tty_arduino_nano_esp32 erase-flash` | Erase the whole flash, including saved settings – e.g. after [switching from Zephyr](usage.md#switching-between-esp-idf-and-zephyr) |
 
 ## Drivers
 

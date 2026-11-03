@@ -39,14 +39,10 @@ How to add or change hardware is described in [Architecture](architecture.md#add
 
 ## Switching between ESP-IDF and Zephyr
 
-Switching works without any extra step: flashing the other platform writes its own bootloader and
-application. Keep in mind that this happens automatically – the two platforms use different partition
-layouts, so the other platform's code and data are overwritten, and saved settings start from the defaults
-on the new platform.
+Only the Arduino Nano ESP32 runs both platforms. To switch, open a **new terminal** and follow the other
+platform's guide: [ESP-IDF environment](espressif_environment.md) or [Zephyr environment](zephyr_environment.md).
+Never activate both environments in one terminal.
 
-If saved settings behave oddly after a switch, erase the whole flash once and flash again:
-
-| Platform | Command |
-|---|---|
-| ESP-IDF | `idf.py -p /dev/tty_arduino_nano_esp32 erase-flash` (in the ESP-IDF environment) |
-| Zephyr | `esptool --chip esp32s3 -p /dev/tty_arduino_nano_esp32 erase-flash` (in the Zephyr environment) |
+Flashing the other platform overwrites everything on the board: the two platforms use different partition
+layouts, so saved settings start from the defaults. If they behave oddly after a switch, erase the whole
+flash once and flash again (`erase-flash` under *Useful files and commands* in each guide).

@@ -119,6 +119,7 @@ increase `CONFIG_BOOT_DELAY` in the app's `prj.conf` (e.g. to `3000`).
 | `zephyr/app/build/zephyr/.config` | All active Kconfig options |
 | `zephyr/app/build/zephyr/zephyr.dts` | The final devicetree (board + overlays), with the source file of every line |
 | `zephyr/app/build/zephyr/zephyr.bin`, `zephyr.elf` | Firmware, ELF with symbols |
+| `esptool --chip esp32s3 -p /dev/tty_arduino_nano_esp32 erase-flash` | Nano ESP32: erase the whole flash, including saved settings – e.g. after [switching from ESP-IDF](usage.md#switching-between-esp-idf-and-zephyr) |
 
 ## Drivers
 

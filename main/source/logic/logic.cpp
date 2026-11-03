@@ -22,7 +22,6 @@ namespace logic
 Logic::Logic(driver::factory::Interface& factory) noexcept
     : myPeriodLengthMs{1000} // Set default blinking period to 1000 ms
     , myBlinkState{false}    // Initialize blink state to off
-    , myFault{false}
 {
     // Create the necessary drivers using the factory and initialize the system state.
     // For example, you might create a serial driver for communication and a GPIO driver for
@@ -85,7 +84,9 @@ void Logic::run() noexcept
 
     while (true)
     {
-        if (!myFault) { myWatchdog->kick(); }
+        // Tell the watchdog that the loop is still running. If the loop stops (see handleHang()),
+        // the kicks stop and the watchdog restarts the system.
+        myWatchdog->kick();
 
         if (mySerialDriver->readLine(buffer, sizeof(buffer)))
         {
@@ -106,6 +107,8 @@ void Logic::run() noexcept
                 handleOff();
             else if (cmd == "status")
                 handleStatus();
+            else if (cmd == "hang")
+                handleHang();
             else if (cmd == "blink")
             {
                 if (args == "on")
@@ -162,6 +165,8 @@ void Logic::handleHelp() noexcept
     std::cout << "  period <ms>" << std::endl;
     std::cout << "  status" << std::endl;
     std::cout << "  store" << std::endl;
+    std::cout << "  hang  (tests the watchdog: the board restarts after a few seconds)"
+              << std::endl;
     std::cout << "  help" << std::endl;
 }
 
@@ -219,8 +224,7 @@ void Logic::handlePeriod(uint16_t periodLengthMs) noexcept
     if ((MinPeriodMs > periodLengthMs) || (MaxPeriodMs < periodLengthMs))
     {
         std::cout << "Invalid period (valid: " << MinPeriodMs << "-" << MaxPeriodMs
-                  << " ms). The watchdog will restart the system" << std::endl;
-        myFault = true;
+                  << " ms), keeping " << myPeriodLengthMs << " ms" << std::endl;
         return;
     }
 
@@ -256,6 +260,23 @@ void Logic::handleStore() noexcept
     // Implement the logic to store the current state to non-volatile memory.
     // This is a placeholder implementation - replace with actual storage logic.
     mySerialDriver->print("Storing current state to non-volatile memory...\n");
+}
+
+// --------------------------------------------------------------------------------
+void Logic::handleHang() noexcept
+{
+    std::cout << std::endl << "Handling 'hang' command..." << std::endl;
+    std::cout << "Simulating a hung program: the watchdog is no longer kicked and restarts the "
+                 "system in a few seconds"
+              << std::endl;
+
+    // Stay here forever without kicking the watchdog, like a program stuck in a loop. Sleeping lets
+    // the other tasks run, so it is only the missing kicks that make the watchdog restart the
+    // system.
+    while (true)
+    {
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    }
 }
 
 // --------------------------------------------------------------------------------

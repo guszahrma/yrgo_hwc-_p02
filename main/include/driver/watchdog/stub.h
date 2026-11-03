@@ -11,7 +11,10 @@
 namespace driver::watchdog
 {
 /**
- * @brief Stub class for watchdog driver
+ * @brief Simulated watchdog for factory::Stub and tests, without hardware.
+ *
+ * It never restarts anything. It counts the kicks (kickCount()), and a test can pretend that the
+ * last reset was caused by the watchdog (constructor argument or simulateWatchdogReset()).
  */
 class Stub final : public Interface
 {

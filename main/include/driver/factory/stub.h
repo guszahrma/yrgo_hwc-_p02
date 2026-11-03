@@ -113,11 +113,11 @@ public:
     { return std::make_unique<driver::timer::Stub>(); }
 
     /**
-     * @brief Create a Watchdog object
+     * @brief Create a watchdog that restarts the system if it is not kicked in time
      *
-     * @param[in] timeoutMs The timeout
+     * @param[in] timeoutMs Time in milliseconds without a kick before the system restarts
      *
-     * @return unique pointer
+     * @return unique pointer to the simulated watchdog
      */
     std::unique_ptr<driver::watchdog::Interface>
     createWatchdog(std::uint32_t timeoutMs) noexcept override

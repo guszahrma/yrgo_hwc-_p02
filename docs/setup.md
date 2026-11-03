@@ -65,9 +65,6 @@ port and reconnects after every reset. Exit it with `Ctrl+T`, `q`.
 
 ## 4. Attach the board to WSL (PowerShell as administrator)
 
-This section and the next are for the Arduino Nano ESP32. For the Daisy Seed, see
-[Daisy Seed → Setup](p02_daisy_seed.md#setup-once).
-
 Run `usbipd list` once without the board connected and once with it, to see which device is the board and
 its BUSID (`6-4` in the example below):
 
@@ -77,18 +74,25 @@ usbipd bind --busid 6-4                        # only needed once during first s
 usbipd attach --wsl --busid 6-4 --auto-attach  # every time the computer or WSL restarts; keep the window open
 ```
 
-`--auto-attach` is needed because the ESP32-S3 disconnects and reconnects USB on every reset/flash.
+`--auto-attach` is needed because both boards disconnect and reconnect USB at every reset and flash. The
+Daisy Seed is a different USB device in its ROM bootloader: bind both of its devices.
 
 Check in WSL which mode the board is in:
 
 ```bash
-lsusb | grep -iE "303a|2341"; ls /dev/ttyACM*
+lsusb | grep -iE "303a|2341|0483|2fe3"; ls /dev/tty_*
 ```
 
-| USB ID | Meaning |
-|---|---|
-| `303a:1001` | ESP32-S3 USB-Serial/JTAG – ready to flash |
-| `2341:0070` | Still the Arduino factory firmware – esptool does **not** work, do step 5 first |
+| Board | USB ID | Meaning |
+|---|---|---|
+| Arduino Nano ESP32 | `303a:1001` | ESP32-S3 USB-Serial/JTAG – ready to flash, `/dev/tty_arduino_nano_esp32` |
+| Arduino Nano ESP32 | `2341:0070` | Still the Arduino factory firmware – esptool does **not** work, do step 5 first |
+| Daisy Seed | `0483:df11` | ROM bootloader (BOOT + RESET), for `dfu-util` – no serial port |
+| Daisy Seed | `2fe3:0004` | MCUboot's recovery mode or an app, `/dev/tty_daisy_seed` |
+
+No `/dev/tty_*` name, only a `/dev/ttyACM*`: the udev rules are not installed ([fixed port
+names](#fixed-port-names)). More about each board's USB devices is in its board document, linked from
+[Boards](boards.md).
 
 ## 5. First time: get the board out of Arduino mode
 

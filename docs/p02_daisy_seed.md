@@ -27,8 +27,8 @@ In addition to the [general setup](setup.md) (WSL, usbipd, packages, clone):
    is among the packages in the general setup.
 2. **udev rules.** Install the project's rules ([fixed port names](setup.md#fixed-port-names)); they include
    the Daisy's.
-3. **Attach the board to WSL.** The board is two USB devices; bind both, see the board document's
-   [Setup](../zephyr/boards/electrosmith/daisy_seed/doc/index.md#setup-once).
+3. **Attach the board to WSL.** See [Setup → Attach the board to WSL](setup.md#4-attach-the-board-to-wsl-powershell-as-administrator):
+   the board is two USB devices, bind both.
 4. **Backup (recommended before the first flash),** also in the board document's Setup. Keep it outside the
    repository, e.g. in `~/daisy_seed_backup`.
 

@@ -3,6 +3,8 @@
  */
 #pragma once
 
+#include <cassert>
+
 #include "driver/adc/stub.h"
 #include "driver/factory/interface.h"
 #include "driver/gpio/stub.h"
@@ -15,6 +17,13 @@
 
 namespace driver::factory
 {
+/**
+ * @brief Factory that creates stub drivers, for running Logic on the host in tests.
+ *
+ * The factory keeps a pointer to every stub it creates, so that a test can reach the stubs after
+ * Logic has taken them over, e.g. to simulate input or check what Logic did. Logic owns the stubs:
+ * the accessors (statusLed(), watchdog(), ...) may only be used while that Logic object exists.
+ */
 class Stub final : public Interface
 {
 public:
@@ -42,8 +51,12 @@ public:
         switch (id)
         {
             case GpioId::StatusLed:
-                return std::make_unique<driver::gpio::Stub>(
-                    static_cast<std::uint8_t>(driver::pin::stub::GpioPin::D6), direction);
+            {
+                auto gpio{std::make_unique<driver::gpio::Stub>(
+                    static_cast<std::uint8_t>(driver::pin::stub::GpioPin::D6), direction)};
+                myStatusLed = gpio.get(); // Logic owns the stub; keep a pointer for the tests
+                return gpio;
+            }
         }
 
         // Unreachable while every GpioId is handled above.
@@ -53,8 +66,8 @@ public:
     /**
      * @brief Create a stub ADC driver for a role.
      *
-     * @param[in] id        The ADC role, mapped to a stub pin.
-     * @param[in] direction Pin direction.
+     * @param[in] id               The ADC role, mapped to a stub pin.
+     * @param[in] referenceVoltage The reference voltage in volts.
      *
      * @return unique pointer to the stub ADC driver.
      */
@@ -64,8 +77,12 @@ public:
         switch (id)
         {
             case AdcId::TempSensor:
-                return std::make_unique<driver::adc::Stub>(driver::pin::stub::AdcPin::A6,
-                                                           referenceVoltage);
+            {
+                auto adc{std::make_unique<driver::adc::Stub>(driver::pin::stub::AdcPin::A6,
+                                                             referenceVoltage)};
+                myTempSensorAdc = adc.get(); // Logic owns the stub; keep a pointer for the tests
+                return adc;
+            }
         }
 
         // Unreachable while every AdcId is handled above.
@@ -73,44 +90,58 @@ public:
     }
 
     /**
-     * @brief Create an NVS storage
+     * @brief Create a stub NVS storage.
      *
-     * @param[in] namespaceName
+     * @param[in] namespaceName The NVS namespace.
      *
-     * @return unique pointer
+     * @return unique pointer to the stub NVS storage.
      */
     std::unique_ptr<driver::nvs::Interface> createNvs(const char* namespaceName) noexcept override
-    { return std::make_unique<driver::nvs::Stub>(namespaceName); }
+    {
+        auto nvs{std::make_unique<driver::nvs::Stub>(namespaceName)};
+        myNvs = nvs.get(); // Logic owns the stub; keep a pointer for the tests
+        return nvs;
+    }
 
     /**
-     * @brief Create serial object
+     * @brief Create a stub serial driver.
      *
-     * @return unique pointer
+     * @return unique pointer to the stub serial driver.
      */
     std::unique_ptr<driver::serial::Interface> createSerial() noexcept override
-    { return std::make_unique<driver::serial::Stub>(); }
+    {
+        auto serial{std::make_unique<driver::serial::Stub>()};
+        mySerial = serial.get(); // Logic owns the stub; keep a pointer for the tests
+        return serial;
+    }
 
     /**
-     * @brief Create a tempsensor object
+     * @brief Create a stub temperature sensor.
      *
-     * @param[in] adc
+     * @param[in] adc The ADC the sensor would read from (not used by the stub).
      *
-     * @return unique pointer
+     * @return unique pointer to the stub temperature sensor.
      */
     std::unique_ptr<driver::tempsensor::Interface>
     createTempSensor(driver::adc::Interface& adc) noexcept override
     {
         (void)(adc);
-        return std::make_unique<driver::tempsensor::Stub>(static_cast<std::uint16_t>(0));
+        auto tempSensor{std::make_unique<driver::tempsensor::Stub>(static_cast<std::uint16_t>(0))};
+        myTempSensor = tempSensor.get(); // Logic owns the stub; keep a pointer for the tests
+        return tempSensor;
     }
 
     /**
-     * @brief Create a timer object
+     * @brief Create a stub timer.
      *
-     * @return unique pointer
+     * @return unique pointer to the stub timer.
      */
     std::unique_ptr<driver::timer::Interface> createTimer() noexcept override
-    { return std::make_unique<driver::timer::Stub>(); }
+    {
+        auto timer{std::make_unique<driver::timer::Stub>()};
+        myTimer = timer.get(); // Logic owns the stub; keep a pointer for the tests
+        return timer;
+    }
 
     /**
      * @brief Create a watchdog that restarts the system if it is not kicked in time
@@ -121,6 +152,102 @@ public:
      */
     std::unique_ptr<driver::watchdog::Interface>
     createWatchdog(std::uint32_t timeoutMs) noexcept override
-    { return std::make_unique<driver::watchdog::Stub>(timeoutMs); }
+    {
+        auto watchdog{std::make_unique<driver::watchdog::Stub>(timeoutMs)};
+        myWatchdog = watchdog.get(); // Logic owns the stub; keep a pointer for the tests
+        return watchdog;
+    }
+
+    /**
+     * @brief The status LED stub created by createGpio(GpioId::StatusLed, ...).
+     *
+     * @return reference to the GPIO stub.
+     */
+    driver::gpio::Stub& statusLed() noexcept
+    {
+        assert(nullptr != myStatusLed && "createGpio(GpioId::StatusLed) has not been called");
+        return *myStatusLed;
+    }
+
+    /**
+     * @brief The temperature sensor's ADC stub created by createAdc(AdcId::TempSensor, ...).
+     *
+     * @return reference to the ADC stub.
+     */
+    driver::adc::Stub& tempSensorAdc() noexcept
+    {
+        assert(nullptr != myTempSensorAdc && "createAdc(AdcId::TempSensor) has not been called");
+        return *myTempSensorAdc;
+    }
+
+    /**
+     * @brief The NVS stub created by createNvs().
+     *
+     * @return reference to the NVS stub.
+     */
+    driver::nvs::Stub& nvs() noexcept
+    {
+        assert(nullptr != myNvs && "createNvs() has not been called");
+        return *myNvs;
+    }
+
+    /**
+     * @brief The serial stub created by createSerial().
+     *
+     * @return reference to the serial stub.
+     */
+    driver::serial::Stub& serial() noexcept
+    {
+        assert(nullptr != mySerial && "createSerial() has not been called");
+        return *mySerial;
+    }
+
+    /**
+     * @brief The temperature sensor stub created by createTempSensor().
+     *
+     * @return reference to the temperature sensor stub.
+     */
+    driver::tempsensor::Stub& tempSensor() noexcept
+    {
+        assert(nullptr != myTempSensor && "createTempSensor() has not been called");
+        return *myTempSensor;
+    }
+
+    /**
+     * @brief The timer stub created by createTimer().
+     *
+     * @return reference to the timer stub.
+     */
+    driver::timer::Stub& timer() noexcept
+    {
+        assert(nullptr != myTimer && "createTimer() has not been called");
+        return *myTimer;
+    }
+
+    /**
+     * @brief The watchdog stub created by createWatchdog().
+     *
+     * @return reference to the watchdog stub.
+     */
+    driver::watchdog::Stub& watchdog() noexcept
+    {
+        assert(nullptr != myWatchdog && "createWatchdog() has not been called");
+        return *myWatchdog;
+    }
+
+    Stub(const Stub&)            = delete;
+    Stub(Stub&&)                 = delete;
+    Stub& operator=(const Stub&) = delete;
+    Stub& operator=(Stub&&)      = delete;
+
+private:
+    // The stubs created last, owned by Logic (see the class description).
+    driver::gpio::Stub* myStatusLed{nullptr};
+    driver::adc::Stub* myTempSensorAdc{nullptr};
+    driver::nvs::Stub* myNvs{nullptr};
+    driver::serial::Stub* mySerial{nullptr};
+    driver::tempsensor::Stub* myTempSensor{nullptr};
+    driver::timer::Stub* myTimer{nullptr};
+    driver::watchdog::Stub* myWatchdog{nullptr};
 };
 } // namespace driver::factory

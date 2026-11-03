@@ -13,10 +13,10 @@ Each driver consists of an interface and one implementation per platform:
 | ESP-IDF implementation | `driver/<name>/esp32s3.h/.cpp` | Real driver using ESP-IDF |
 | Zephyr implementation | `driver/<name>/zephyr.h/.cpp` | Real driver using Zephyr |
 | Stub | `driver/<name>/stub.h` | Simulated driver for testing application logic without hardware |
+| Mock | `tests/include/<name>/<name>_mock.h`, `tests/source/<name>/<name>_mock.c` | Replaces the platform API (e.g. ESP-IDF's GPIO functions) in unit tests, so the real driver can run on the host. Only GPIO so far |
 
-For unit tests of a real driver there are also **mocks** in `tests/` (e.g. `tests/source/gpio/gpio_mock.c`):
-they replace the platform API (here ESP-IDF's GPIO functions), so `gpio::Esp32s3` itself can run on the host.
-A stub replaces a whole driver; a mock replaces what is underneath one.
+A stub replaces a whole driver, so `Logic` can be tested without hardware. A mock replaces what is underneath
+a driver, so the driver itself can be tested.
 
 Drivers are created through a **factory** (`driver::factory::Interface`) with one implementation per platform
 (`factory::Esp32s3`, `factory::Zephyr`, `factory::Stub`). The application logic (`logic::Logic`) only knows

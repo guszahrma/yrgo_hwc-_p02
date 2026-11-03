@@ -28,7 +28,7 @@ Esp32s3::Esp32s3(std::uint32_t timeoutMs) noexcept
         (1U << 0) | (1U << 1); // Watch the idle tasks on both cores, CPU0 & CPU1
     config.trigger_panic = true;
 
-    // ESP-idf usually already started the TWDT
+    // ESP-IDF usually starts its task watchdog timer (TWDT) at boot, so reconfigure it first
     esp_err_t err{esp_task_wdt_reconfigure(&config)};
 
     // If it wasn't started, initialize it

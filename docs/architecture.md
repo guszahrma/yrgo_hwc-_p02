@@ -92,7 +92,7 @@ The current wiring is listed in [Usage](usage.md#hardware-and-wiring).
 │   ├── CMakeLists.txt        # Test build: test files, code under test, mocks
 │   ├── googletest/           # GoogleTest (git submodule)
 │   ├── include/              # Declarations of the mocks
-│   └── source/               # The tests (testsuite.cpp) and the mock implementations
+│   └── source/               # One folder per module: tests (test_<name>.cpp) and mocks
 ├── tools/                    # Zephyr setup (zephyr_setup.sh, zephyr_env.sh)
 │   └── clang-format/         # Pinned clang-format version and scripts
 ├── docs/                     # Documentation (see the readme)

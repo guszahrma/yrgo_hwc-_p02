@@ -122,8 +122,6 @@ and [Zephyr environment](zephyr_environment.md#drivers).
 
 ## Known issues
 
-* `Logic`'s destructor resets the ADC before the temperature sensor that refers to it. Harmless today
-  (`run()` never returns), but wrong.
 * `gpio::Interface` says "high/low"; Zephyr's `gpio_pin_set_dt` means **active/inactive**. The two
   platforms differ for an active-low pin.
 * ESP-IDF: the ADC driver ignores the return values of `adc_oneshot_*`/`adc_cali_*`, so a failed read is

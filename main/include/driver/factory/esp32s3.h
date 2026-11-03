@@ -82,13 +82,13 @@ public:
     std::unique_ptr<driver::timer::Interface> createTimer() noexcept override;
 
     /**
-     * @brief Create a Watchdog object
+     * @brief Create a watchdog that restarts the system if it is not kicked in time
      *
-     * @param[in] timeoutMs The timeout
+     * @param[in] timeoutMs Time in milliseconds without a kick before the system restarts
      *
-     * @return unique pointer
+     * @return unique pointer to the hardware watchdog driver
      */
-    virtual std::unique_ptr<driver::watchdog::Interface>
+    std::unique_ptr<driver::watchdog::Interface>
     createWatchdog(std::uint32_t timeoutMs) noexcept override;
 
     Esp32s3(const Esp32s3&)            = delete;

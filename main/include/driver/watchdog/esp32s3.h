@@ -10,8 +10,10 @@
 namespace driver::watchdog
 {
 /**
- * @brief
+ * @brief Watchdog driver for the ESP32-S3, using ESP-IDF's task watchdog (TWDT).
  *
+ * Watches the task that creates it, and the idle tasks on both cores. If kick() is not called
+ * within the timeout, the system panics and restarts; causedLastReset() then returns true.
  */
 class Esp32s3 final : public Interface
 {

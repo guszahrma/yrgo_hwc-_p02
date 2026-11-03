@@ -123,14 +123,12 @@ tools/clang-format/check.sh
 
 ## ESP-IDF: design decisions and lessons learned
 
-> Draft – to be reviewed and extended.
-
 ### Design decisions
 
 | Decision | Choice | Why |
 |---|---|---|
 | ADC attenuation | Chosen from `referenceVoltage` in the constructor | The caller says which voltage range it needs; the driver picks the attenuation |
-| ADC noise | Average of `AdcSamples` (5) reads in `readValue()`; `readVoltage()` uses it | Single reads are noisy; the same on Zephyr |
+| ADC noise | Average of `AdcSamples` (5) reads in `readValue()`; `readVoltage()` uses it | Single reads are noisy. `adc::Zephyr` does the same |
 | NVS initialisation | `nvs_flash_init()` in the NVS driver's constructor (erase and retry if the partition is full or from a newer version) | The driver works without the Wi-Fi driver having initialised flash first |
 | Pins | Arduino names (`D6`, `A6`) mapped to GPIO numbers in `driver/pin/esp32s3.h`; `PhysicalPinManager` stops two drivers from claiming the same pin | Code and wiring use the names printed on the board |
 
@@ -159,7 +157,6 @@ tools/clang-format/check.sh
 | Where pins come from | Devicetree: drivers take a `gpio_dt_spec` / `adc_dt_spec` | Pin **and** polarity/gain come from the board's overlay in `zephyr/app/boards/`; no GPIO numbers in Zephyr code |
 | How the factory maps hardware | Roles (`GpioId::StatusLed`, `AdcId::TempSensor`) instead of pin numbers | Each factory decides what a role means: `factory::Esp32s3` a pin, `factory::Zephyr` a devicetree node |
 | ADC attenuation | `zephyr,gain` in devicetree; `referenceVoltage` is ignored | Zephyr configures channels from devicetree, not at runtime |
-| ADC noise | Average of `AdcSamples` (5) reads in `readValue()`; `readVoltage()` uses it | Single reads are noisy; the same on ESP-IDF |
 | Timer | Polled `timeout()`, restarts from "now" | `Logic` stays unchanged. A `k_timer` callback would be more idiomatic but changes the interface |
 | Serial | Our own command parser kept, not Zephyr's shell | `Logic` stays unchanged on both platforms |
 | NVS | Settings subsystem (NVS backend), not the raw NVS API | String keys like ESP-IDF (raw NVS has numeric IDs). The namespace is the key prefix (`user_settings/blink_state`). Every write goes to flash at once, so `autoCommit`/`commit()` have no effect |

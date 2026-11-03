@@ -40,8 +40,6 @@ path when the line is written to `~/.bashrc`, so the alias works from any direct
 echo "alias get_zephyr='source $(pwd)/tools/zephyr_env.sh'" >> ~/.bashrc
 ```
 
-Do not mix it with the ESP-IDF environment in the same terminal (see [Setup](setup.md#next-set-up-a-platform)).
-
 ## Building and flashing
 
 ### P02 (`zephyr/app/`)

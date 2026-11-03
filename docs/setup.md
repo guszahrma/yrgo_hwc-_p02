@@ -54,7 +54,9 @@ same, whatever runs on it:
 | Arduino Nano ESP32 | `/dev/tty_arduino_nano_esp32` |
 | Daisy Seed | `/dev/tty_daisy_seed` |
 
-Install them once (and again when [`tools/udev/99-p02.rules`](../tools/udev/99-p02.rules) changes):
+Each name is a symbolic link to the board's current `/dev/ttyACM<n>`, created by udev every time the board
+appears and removed when it disappears; `ls -l /dev/tty_*` shows which. Only installing the rules is
+manual – once, and again when [`tools/udev/99-p02.rules`](../tools/udev/99-p02.rules) changes:
 
 ```bash
 sudo cp tools/udev/99-p02.rules /etc/udev/rules.d/ && sudo udevadm control --reload-rules && sudo udevadm trigger

@@ -66,7 +66,7 @@ port and reconnects after every reset. Exit it with `Ctrl+T`, `q`.
 ## 4. Attach the board to WSL (PowerShell as administrator)
 
 This section and the next are for the Arduino Nano ESP32. For the Daisy Seed, see
-[Daisy Seed → Setup](daisy_seed.md#setup-once).
+[Daisy Seed → Setup](p02_daisy_seed.md#setup-once).
 
 Run `usbipd list` once without the board connected and once with it, to see which device is the board and
 its BUSID (`6-4` in the example below):
@@ -92,16 +92,9 @@ lsusb | grep -iE "303a|2341"; ls /dev/ttyACM*
 
 ## 5. First time: get the board out of Arduino mode
 
-The Nano ESP32 ships with the Arduino bootloader. Before the first flash:
-
-1. Connect pin **B1 to GND**.
-2. Press **reset** – the board starts in the ROM bootloader and shows up as `303a:1001`.
-3. Run `usbipd list` again; if the device is not shared, run `usbipd bind` + `attach` again.
-4. Flash, remove the wire and press reset.
-
-After this, esptool can put the board into flash mode by itself.
-
-> To restore the Arduino bootloader: B1 to GND + reset, then run *Burn Bootloader* in the Arduino IDE.
+The Nano ESP32 ships with the Arduino bootloader, which cannot be flashed from here (`2341:0070` in the
+table above). Before the first flash, start it in the ROM bootloader once (B1 to GND + RESET): see the
+board document's [First flash](../zephyr/boards/arduino/nano_esp32/doc/index.md#first-flash-leave-arduino-mode).
 
 ## Next: set up a platform
 

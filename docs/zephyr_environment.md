@@ -64,7 +64,7 @@ open. Exit with `Ctrl+T`, `q` – and quit it before the next `west flash`, whic
 Then use the [serial commands](usage.md#serial-commands).
 
 The Daisy Seed is built with MCUboot (`--sysbuild`) and flashed differently: see
-[Daisy Seed → Building and flashing](daisy_seed.md#building-and-flashing).
+[Daisy Seed → Building and flashing](p02_daisy_seed.md#building-and-flashing).
 
 ### Our samples (`zephyr/samples/`)
 
@@ -137,6 +137,6 @@ Where things are:
 | `main/include/driver/<name>/zephyr.h`, `main/source/driver/<name>/zephyr.cpp` | The drivers, next to the ESP32 and stub versions |
 | `main/source/driver/factory/zephyr.cpp` | Maps the roles (`GpioId::StatusLed`, ...) to devicetree |
 | `zephyr/app/` | The app: `CMakeLists.txt` (lists the sources from `main/`), `prj.conf`, `boards/<board>.overlay` (one per board: the wiring), `main.cpp` |
-| `zephyr/boards/arduino/nano_esp32/` | Our board definition (Zephyr has none for this board), see [Board](board.md) |
+| `zephyr/boards/arduino/nano_esp32/` | Our board definition (Zephyr has none for this board), see [Arduino Nano ESP32](../zephyr/boards/arduino/nano_esp32/doc/index.md) |
 | `zephyr/samples/blinky/` | First exercise: LEDs from devicetree |
 | `west.yml`, `tools/zephyr_setup.sh`, `tools/zephyr_env.sh` | The pinned Zephyr workspace |

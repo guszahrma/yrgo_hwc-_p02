@@ -28,20 +28,14 @@ values are loaded again when the board starts. Without `store`, a reset brings b
 
 ## Hardware and wiring
 
-| Role | Arduino pin | ESP32-S3 GPIO | ESP-IDF (`factory::Esp32s3`) | Zephyr (`zephyr/app/boards/<board>.overlay`) |
-|---|---|---|---|---|
-| `GpioId::StatusLed` – status LED | D6 | GPIO9 | Arduino pin `D6` | Alias `p02-led` on `&arduino_nano_header 6` |
-| `AdcId::TempSensor` – TMP36 | A6 | GPIO13 | Arduino pin `A6` | `zephyr,user` `io-channels = <&adc1 2>` (ADC2 channel 2) |
+P02 needs a status LED and a temperature sensor. Which pins they are on depends on the board:
 
-> **Note:** A6 is on ADC2 (A4–A7), which should not be used while Wi-Fi is active (the Wi-Fi driver uses
-> ADC2). Use A0–A3 (ADC1) for analog sensors if Wi-Fi is needed.
-
-On the Daisy Seed, the same roles are D26 (pin 33) and A3 (pin 25): see
-[Daisy Seed → Wiring](daisy_seed.md#wiring-for-p02).
+| Board | Wiring |
+|---|---|
+| Arduino Nano ESP32 | LED on D6, TMP36 on A6: [P02 on the Arduino Nano ESP32 → Wiring](p02_arduino_nano_esp32.md#wiring-for-p02) |
+| Daisy Seed | LED on D26 (pin 33), potentiometer on A3 (pin 25): [P02 on the Daisy Seed → Wiring](p02_daisy_seed.md#wiring-for-p02) |
 
 How to add or change hardware is described in [Architecture](architecture.md#adding-or-changing-hardware).
-The full ESP32-S3 pin mapping is in [`main/include/driver/pin/esp32s3.h`](../main/include/driver/pin/esp32s3.h);
-the board's pins and LEDs are in [Board](board.md).
 
 ## Switching between ESP-IDF and Zephyr
 

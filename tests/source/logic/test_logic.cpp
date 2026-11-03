@@ -2,8 +2,8 @@
  * @brief Unit tests for logic::Logic with factory::Stub
  */
 #include "driver/factory/stub.h"
-#include "gtest/gtest.h"
 #include "logic/logic.h"
+#include "gtest/gtest.h"
 
 TEST(Logic, StepKicksWatchdogOncePerPass)
 {

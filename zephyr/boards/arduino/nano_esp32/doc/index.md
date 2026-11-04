@@ -74,6 +74,7 @@ What the board definition provides:
 | UART | `uart0` on D0 (RX) / D1 (TX), enabled – Arduino's `Serial1`, not the console |
 | I2C | `i2c0` on A4 (SDA) / A5 (SCL), also named `arduino_nano_i2c` – disabled, enable in the app |
 | SPI | `spi2` on D11 (COPI) / D12 (CIPO) / D13 (SCK), also named `arduino_nano_spi` – disabled |
+| Watchdog | `wdt0` (Timer Group 0), alias `watchdog0` – enabled |
 | Flash partitions | Espressif's default layout (`partitions_0x0_amp.dtsi`), including `storage_partition` for settings |
 
 App overlays describe wiring with Arduino pin names instead of ESP32-S3 GPIO numbers, for instance:

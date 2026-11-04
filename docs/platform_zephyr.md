@@ -128,6 +128,7 @@ increase `CONFIG_BOOT_DELAY` in the app's `prj.conf` (e.g. to `3000`).
 | `adc::Zephyr` (+ `Tmp36`) | `adc_dt_spec`, `adc_read_dt`, average of 5 samples | The board's overlay: `zephyr,user` `io-channels` (A6 = ADC2 ch 2 on the Nano) |
 | `serial::Zephyr` | `uart_poll_in/out` on the console UART (USB) | `zephyr,console` |
 | `nvs::Zephyr` | Settings subsystem, NVS backend | `storage_partition` |
+| `watchdog::Zephyr` | `wdt_install_timeout`, `wdt_setup`, `wdt_feed`; `hwinfo_get_reset_cause()` | The board's alias `watchdog0` (`wdt0` on the Nano, the IWDG on the Daisy Seed); timeout from `Logic` (3 s) |
 
 Where things are:
 

@@ -19,12 +19,20 @@ Then type:
 | `help` | List commands |
 | `on` / `off` | Turn the LED on / off |
 | `blink on` / `blink off` | Start / stop blinking |
-| `period <ms>` | Set the blink period, e.g. `period 500` |
+| `period <ms>` | Set the blink period, 50–10 000 ms, e.g. `period 500`. Other values are rejected and the period is kept |
 | `status` | Show blink state, period and temperature |
 | `store` | Save blink state and period to non-volatile storage (loaded at startup) |
+| `hang` | Test the [watchdog](#watchdog): the program stops kicking it, as if it had hung, and the board restarts |
 
 `period` and `blink on` take effect immediately, but are not saved. Run `store` to keep them: the saved
 values are loaded again when the board starts. Without `store`, a reset brings back the previous values.
+
+## Watchdog
+
+The program kicks a watchdog on every pass of its main loop (timeout 3 s). If the loop stops – a bug, or
+the `hang` command – the kicks stop and the watchdog restarts the board. On the Arduino Nano ESP32 that
+takes about 3 s with ESP-IDF and about 6 s with Zephyr. At the next start the program prints
+`Last reset was caused by the watchdog`. On the Daisy Seed the watchdog is not tested yet.
 
 ## Hardware and wiring
 

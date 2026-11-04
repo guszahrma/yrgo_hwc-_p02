@@ -40,6 +40,7 @@ overlay (wiring); last `prj.conf`, which is already set for every board.
 | Board definition | Zephyr, or our own in `zephyr/boards/` | Found through `BOARD_ROOT` when it is ours |
 | Console (serial commands) | `zephyr,console` chosen by the board | USB CDC ACM or UART |
 | Settings storage (NVS) | `storage_partition` in the board's flash partitions | Must be in flash that P02 can write while it runs |
+| Watchdog | Alias `watchdog0` in the board definition | A watchdog with a Zephyr driver that can reset the chip (`WDT_FLAG_RESET_SOC`) |
 | Status LED (`GpioId::StatusLed`) | Alias `p02-led` in the app overlay | A GPIO output; polarity is set in devicetree |
 | Temperature sensor (`AdcId::TempSensor`) | `io-channels` in `zephyr,user` in the app overlay | One ADC channel, with gain and resolution set in the overlay; its range must cover the sensor's output |
 | C++17 and `std::cout` | `zephyr/app/prj.conf` | `CONFIG_CPP`, full libstdc++ and `CONFIG_POSIX_API`; `std::cout` costs ~225 KB of flash |

@@ -13,6 +13,7 @@
 #include "driver/serial/interface.h"
 #include "driver/tempsensor/interface.h"
 #include "driver/timer/interface.h"
+#include "driver/watchdog/interface.h"
 
 namespace driver::factory
 {
@@ -98,5 +99,15 @@ public:
      * @return unique pointer
      */
     virtual std::unique_ptr<driver::timer::Interface> createTimer() noexcept = 0;
+
+    /**
+     * @brief Create a watchdog that restarts the system if it is not kicked in time
+     *
+     * @param[in] timeoutMs Time in milliseconds without a kick before the system restarts
+     *
+     * @return unique pointer
+     */
+    virtual std::unique_ptr<driver::watchdog::Interface>
+    createWatchdog(std::uint32_t timeoutMs) noexcept = 0;
 };
 } // namespace driver::factory

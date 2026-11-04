@@ -22,6 +22,7 @@ namespace logic
 Logic::Logic(driver::factory::Interface& factory) noexcept
     : myPeriodLengthMs{1000} // Set default blinking period to 1000 ms
     , myBlinkState{false}    // Initialize blink state to off
+    , myHung{false}          // Kick the watchdog until 'hang'
 {
     // Create the necessary drivers using the factory and initialize the system state.
     // For example, you might create a serial driver for communication and a GPIO driver for
@@ -35,6 +36,12 @@ Logic::Logic(driver::factory::Interface& factory) noexcept
     myTimerDriver   = factory.createTimer();
     myTimerDriver->stop(); // Start the timer for blinking
     myNvsUserSettingsStorage = factory.createNvs("user_settings");
+    myWatchdog               = factory.createWatchdog(WatchdogTimeoutMs);
+
+    if (myWatchdog->causedLastReset())
+    {
+        mySerialDriver->print("Last reset was caused by the watchdog\n");
+    }
 
     // Initialize other necessary components and state variables here.
 }
@@ -78,6 +85,10 @@ void Logic::run() noexcept
 
     while (true)
     {
+        // Tell the watchdog that the loop is still running. After 'hang' (see handleHang()) the
+        // kicks stop, and the watchdog restarts the system as if the loop had hung.
+        if (!myHung) { myWatchdog->kick(); }
+
         if (mySerialDriver->readLine(buffer, sizeof(buffer)))
         {
             std::cout << std::endl << std::endl << "Reading line..." << buffer << std::endl;
@@ -97,6 +108,8 @@ void Logic::run() noexcept
                 handleOff();
             else if (cmd == "status")
                 handleStatus();
+            else if (cmd == "hang")
+                handleHang();
             else if (cmd == "blink")
             {
                 if (args == "on")
@@ -153,6 +166,8 @@ void Logic::handleHelp() noexcept
     std::cout << "  period <ms>" << std::endl;
     std::cout << "  status" << std::endl;
     std::cout << "  store" << std::endl;
+    std::cout << "  hang  (tests the watchdog: the board restarts after a few seconds)"
+              << std::endl;
     std::cout << "  help" << std::endl;
 }
 
@@ -207,6 +222,13 @@ void Logic::handlePeriod(uint16_t periodLengthMs) noexcept
     std::cout << std::endl
               << "Handling 'period' command..." << periodLengthMs << " ms" << std::endl;
 
+    if ((MinPeriodMs > periodLengthMs) || (MaxPeriodMs < periodLengthMs))
+    {
+        std::cout << "Invalid period (valid: " << MinPeriodMs << "-" << MaxPeriodMs
+                  << " ms), keeping " << myPeriodLengthMs << " ms" << std::endl;
+        return;
+    }
+
     // Implement the logic to set the blinking period.
     myTimerDriver->setPeriod(periodLengthMs);
     myPeriodLengthMs = periodLengthMs; // Store the new period length
@@ -242,6 +264,20 @@ void Logic::handleStore() noexcept
 }
 
 // --------------------------------------------------------------------------------
+void Logic::handleHang() noexcept
+{
+    std::cout << std::endl << "Handling 'hang' command..." << std::endl;
+    std::cout << "Simulating a hung program: the watchdog is no longer kicked and restarts the "
+                 "system in a few seconds"
+              << std::endl;
+
+    // Stop kicking the watchdog, as a hung program would. The flag rather than an endless loop
+    // here: the rest of the program keeps running until the restart, so 'hang' can also be tested
+    // on the host.
+    myHung = true;
+}
+
+// --------------------------------------------------------------------------------
 void Logic::loadStoredUserSettings() noexcept
 {
     std::cout << std::endl << "Loading stored user settings..." << std::endl;
@@ -256,6 +292,12 @@ void Logic::loadStoredUserSettings() noexcept
 
     myBlinkState     = (blinkState == "on") ? 1 : 0;
     myPeriodLengthMs = static_cast<uint16_t>(std::stoi(blinkPeriod));
+
+    // Old or corrupt data in NVS: fall back to the default instead of using an invalid period.
+    if ((MinPeriodMs > myPeriodLengthMs) || (MaxPeriodMs < myPeriodLengthMs))
+    {
+        myPeriodLengthMs = 1000;
+    }
 
     // Implement the logic to load the stored state from non-volatile memory.
     // This is a placeholder implementation - replace with actual loading logic.

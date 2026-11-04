@@ -85,6 +85,16 @@ public:
      */
     std::unique_ptr<driver::timer::Interface> createTimer() noexcept override;
 
+    /**
+     * @brief Create a watchdog that restarts the system if it is not kicked in time
+     *
+     * @param[in] timeoutMs Time in milliseconds without a kick before the system restarts
+     *
+     * @return unique pointer to the watchdog driver
+     */
+    std::unique_ptr<driver::watchdog::Interface>
+    createWatchdog(std::uint32_t timeoutMs) noexcept override;
+
     Zephyr(const Zephyr&)            = delete;
     Zephyr(Zephyr&&)                 = delete;
     Zephyr& operator=(const Zephyr&) = delete;

@@ -49,16 +49,20 @@ From the **repository root** (attach the board first, see [Setup](setup.md#4-att
 ```bash
 source tools/zephyr_env.sh
 west build -p always -b arduino_nano_esp32/esp32s3/procpu -s zephyr/app -d zephyr/app/build
-west flash -d zephyr/app/build --esp-device /dev/ttyACM0 && python -m serial.tools.miniterm --exit-char 24 /dev/ttyACM0 115200
+west flash -d zephyr/app/build --esp-device /dev/tty_arduino_nano_esp32 && tio /dev/tty_arduino_nano_esp32
 ```
 
 `-s` is the app and `-d` its build directory. Always give `-d`: without it, west builds in `./build`, which
 belongs to ESP-IDF. Inside `zephyr/app` the short form `west build -p always -b arduino_nano_esp32/esp32s3/procpu .`
-and `west flash --esp-device /dev/ttyACM0` do the same.
+and `west flash --esp-device /dev/tty_arduino_nano_esp32` do the same.
 
-Exit the monitor with `Ctrl+X` (`--exit-char 24`; the default `Ctrl+]` is awkward on a Swedish keyboard).
+The monitor is `tio`: it waits until the port is there and reconnects after every reset, so it can stay
+open. Exit with `Ctrl+T`, `q` – and quit it before the next `west flash`, which needs the port.
 
 Then use the [serial commands](usage.md#serial-commands).
+
+The Daisy Seed is built with MCUboot (`--sysbuild`) and flashed differently: see
+[Daisy Seed → Building and flashing](p02_daisy_seed.md#building-and-flashing).
 
 ### Our samples (`zephyr/samples/`)
 
@@ -67,7 +71,7 @@ Our apps find the board through `list(APPEND BOARD_ROOT ...)` in their own `CMak
 
 ```bash
 west build -p always -b arduino_nano_esp32/esp32s3/procpu -s zephyr/samples/blinky -d zephyr/samples/blinky/build
-west flash -d zephyr/samples/blinky/build --esp-device /dev/ttyACM0 && python -m serial.tools.miniterm --exit-char 24 /dev/ttyACM0 115200
+west flash -d zephyr/samples/blinky/build --esp-device /dev/tty_arduino_nano_esp32 && tio /dev/tty_arduino_nano_esp32
 ```
 
 Expected: the yellow LED blinks and the RGB LED cycles red → green → blue, with one line per second:
@@ -86,7 +90,7 @@ Example with `hello_world`:
 west build -p always -b arduino_nano_esp32/esp32s3/procpu -s $ZEPHYR_BASE/samples/hello_world -d hello_world_build -- \
   -DBOARD_ROOT=$P02_ROOT/zephyr \
   -DCONFIG_BOOT_DELAY=1000
-west flash -d hello_world_build --esp-device /dev/ttyACM0 && python -m serial.tools.miniterm --exit-char 24 /dev/ttyACM0 115200
+west flash -d hello_world_build --esp-device /dev/tty_arduino_nano_esp32 && tio /dev/tty_arduino_nano_esp32
 ```
 
 * `-p always` – pristine build (start from scratch)
@@ -101,7 +105,7 @@ Hello World! arduino_nano_esp32/esp32s3/procpu
 ```
 
 **Why `BOOT_DELAY`?** The console runs over the ESP32-S3's built-in USB. Every reset disconnects USB, and
-usbipd has to re-attach the board to WSL before the monitor can open `/dev/ttyACM0`. The 1 s boot delay
+usbipd has to re-attach the board to WSL before the monitor can open `/dev/tty_arduino_nano_esp32`. The 1 s boot delay
 keeps the boot output until the monitor is open. If the boot output is missing on your computer,
 increase `CONFIG_BOOT_DELAY` in the app's `prj.conf` (e.g. to `3000`).
 
@@ -113,14 +117,15 @@ increase `CONFIG_BOOT_DELAY` in the app's `prj.conf` (e.g. to `3000`).
 | `zephyr/app/build/zephyr/.config` | All active Kconfig options |
 | `zephyr/app/build/zephyr/zephyr.dts` | The final devicetree (board + overlays), with the source file of every line |
 | `zephyr/app/build/zephyr/zephyr.bin`, `zephyr.elf` | Firmware, ELF with symbols |
+| `esptool --chip esp32s3 -p /dev/tty_arduino_nano_esp32 erase-flash` | Nano ESP32: erase the whole flash, including saved settings – e.g. after [switching from ESP-IDF](usage.md#switching-between-esp-idf-and-zephyr) |
 
 ## Drivers
 
 | Driver | Zephyr API | Configured from |
 |---|---|---|
 | `timer::Zephyr` | `k_uptime_get()`, polled | – |
-| `gpio::Zephyr` | `gpio_dt_spec`, `gpio_pin_*_dt` | `app.overlay`: alias `p02-led` (D6) |
-| `adc::Zephyr` (+ `Tmp36`) | `adc_dt_spec`, `adc_read_dt`, average of 5 samples | `app.overlay`: `zephyr,user` `io-channels` (A6 = ADC2 ch 2) |
+| `gpio::Zephyr` | `gpio_dt_spec`, `gpio_pin_*_dt` | The board's overlay: alias `p02-led` (D6 on the Nano) |
+| `adc::Zephyr` (+ `Tmp36`) | `adc_dt_spec`, `adc_read_dt`, average of 5 samples | The board's overlay: `zephyr,user` `io-channels` (A6 = ADC2 ch 2 on the Nano) |
 | `serial::Zephyr` | `uart_poll_in/out` on the console UART (USB) | `zephyr,console` |
 | `nvs::Zephyr` | Settings subsystem, NVS backend | `storage_partition` |
 
@@ -130,7 +135,7 @@ Where things are:
 |---|---|
 | `main/include/driver/<name>/zephyr.h`, `main/source/driver/<name>/zephyr.cpp` | The drivers, next to the ESP32 and stub versions |
 | `main/source/driver/factory/zephyr.cpp` | Maps the roles (`GpioId::StatusLed`, ...) to devicetree |
-| `zephyr/app/` | The app: `CMakeLists.txt` (lists the sources from `main/`), `prj.conf`, `app.overlay`, `main.cpp` |
-| `zephyr/boards/arduino/nano_esp32/` | Our board definition (Zephyr has none for this board), see [Board](board.md) |
+| `zephyr/app/` | The app: `CMakeLists.txt` (lists the sources from `main/`), `prj.conf`, `boards/<board>.overlay` (one per board: the wiring), `main.cpp` |
+| `zephyr/boards/arduino/nano_esp32/` | Our board definition (Zephyr has none for this board), see [Arduino Nano ESP32](../zephyr/boards/arduino/nano_esp32/doc/index.md) |
 | `zephyr/samples/blinky/` | First exercise: LEDs from devicetree |
 | `west.yml`, `tools/zephyr_setup.sh`, `tools/zephyr_env.sh` | The pinned Zephyr workspace |

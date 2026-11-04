@@ -1,0 +1,158 @@
+/*
+ * Electrosmith Daisy Seed (Rev7 / Seed 1.2) – hardware shared by all targets of the board.
+ *
+ * Clocks, the user LED, the pin header, the USB console and the QSPI flash. SDRAM is added when
+ * something needs it.
+ */
+
+#include <st/h7/stm32h750Xb.dtsi>
+#include <st/h7/stm32h750ibkx-pinctrl.dtsi>
+#include "daisy_seed_connector.dtsi"
+
+/ {
+	chosen {
+		zephyr,sram = &sram0;
+	};
+
+	leds {
+		compatible = "gpio-leds";
+
+		user_led: led-user {
+			gpios = <&gpioc 7 GPIO_ACTIVE_HIGH>; /* PC7, the LED next to the BOOT button */
+			label = "User LED";
+		};
+	};
+
+	aliases {
+		led0 = &user_led;
+		watchdog0 = &iwdg;
+	};
+};
+
+/* Independent watchdog: it runs only once an app sets it up. */
+&iwdg {
+	status = "okay";
+};
+
+/* 48 MHz internal oscillator: the USB clock. */
+&clk_hsi48 {
+	status = "okay";
+};
+
+/* 16 MHz crystal. */
+&clk_hse {
+	clock-frequency = <DT_FREQ_M(16)>;
+	status = "okay";
+};
+
+/* 16 MHz / 4 = 4 MHz, x 240 = 960 MHz (VCO); / 2 = 480 MHz CPU clock. */
+&pll {
+	div-m = <4>;
+	mul-n = <240>;
+	div-p = <2>;
+	div-q = <4>;
+	div-r = <4>;
+	clocks = <&clk_hse>;
+	status = "okay";
+};
+
+/* CPU 480 MHz, AHB 240 MHz, APB buses 120 MHz (the chip's maximums). */
+&rcc {
+	clocks = <&pll>;
+	clock-frequency = <DT_FREQ_M(480)>;
+	d1cpre = <1>;
+	hpre = <2>;
+	d1ppre = <2>;
+	d2ppre1 = <2>;
+	d2ppre2 = <2>;
+	d3ppre = <2>;
+};
+
+&pwr {
+	power-supply = "ldo";
+};
+
+&flash0 {
+	status = "okay";
+
+	partitions {
+		compatible = "fixed-partitions";
+		#address-cells = <1>;
+		#size-cells = <1>;
+
+		/* The internal flash is a single 128 KB sector: all of it for MCUboot. */
+		boot_partition: partition@0 {
+			label = "mcuboot";
+			reg = <0x00000000 DT_SIZE_K(128)>;
+		};
+	};
+};
+
+/* 8 MB QSPI NOR flash, IS25LP064A (pins and chip from libDaisy, src/daisy_seed.cpp). */
+&quadspi {
+	pinctrl-0 = <&quadspi_clk_pf10 &quadspi_bk1_ncs_pg6
+		     &quadspi_bk1_io0_pf8 &quadspi_bk1_io1_pf9
+		     &quadspi_bk1_io2_pf7 &quadspi_bk1_io3_pf6>;
+	pinctrl-names = "default";
+	status = "okay";
+
+	ext_flash_ctrl: qspi-flash-controller@0 {
+		compatible = "st,stm32-qspi-nor";
+		reg = <0>;
+		size = <DT_SIZE_M(64)>; /* in bits: 64 Mbit = 8 MB */
+		qspi-max-frequency = <80000000>; /* the chip allows 133 MHz */
+		cs-high-time = <4>;
+		spi-bus-width = <4>;
+		/*
+		 * Quad page program with the address on one line (0x32). The driver's default, PP_1_4_4
+		 * (0x38, address on four lines), is the same 1-1-4 command on the IS25LP064A, so the chip
+		 * misreads the address and the data lands in the wrong place.
+		 */
+		writeoc = "PP_1_1_4";
+		status = "okay";
+
+		#address-cells = <1>;
+		#size-cells = <1>;
+		ranges = <0x0 0x90000000 DT_SIZE_M(8)>; /* memory-mapped at 0x90000000 */
+
+		ext_flash: ext-flash@0 {
+			compatible = "soc-nv-flash";
+			reg = <0x0 DT_SIZE_M(8)>;
+			write-block-size = <1>;
+			erase-block-size = <DT_SIZE_K(4)>; /* 4 KB sectors */
+
+			/* Shared by MCUboot and the ram_load target: the two must agree. */
+			partitions {
+				compatible = "fixed-partitions";
+				#address-cells = <1>;
+				#size-cells = <1>;
+
+				/* Application images. MCUboot copies the newest one into AXI SRAM. */
+				slot0_partition: partition@0 {
+					label = "image-0";
+					reg = <0x000000 DT_SIZE_M(1)>;
+				};
+
+				slot1_partition: partition@100000 {
+					label = "image-1";
+					reg = <0x100000 DT_SIZE_M(1)>;
+				};
+
+				/* NVS (Settings): P02's `store`. */
+				storage_partition: partition@200000 {
+					label = "storage";
+					reg = <0x200000 DT_SIZE_K(64)>;
+				};
+			};
+		};
+	};
+};
+
+/* The micro-USB port. The console is a USB serial port (CDC ACM), see Kconfig.defconfig. */
+zephyr_udc0: &usbotg_fs {
+	pinctrl-0 = <&usb_otg_fs_dm_pa11 &usb_otg_fs_dp_pa12>;
+	pinctrl-names = "default";
+	status = "okay";
+};
+
+#include <../boards/common/usb/cdc_acm_serial.dtsi>

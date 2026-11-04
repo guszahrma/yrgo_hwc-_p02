@@ -14,8 +14,9 @@ namespace driver::adc
  * @brief ADC driver for Zephyr.
  *
  * The channel, attenuation (zephyr,gain) and resolution come from devicetree (io-channels in
- * zephyr,user and the channel node in app.overlay), so there is no referenceVoltage parameter as
- * in the ESP32-S3 driver. Calibration is done by Zephyr's ESP32 ADC driver.
+ * zephyr,user and the channel node in the board's overlay, zephyr/app/boards/), so there is no
+ * referenceVoltage parameter as in the ESP32-S3 driver. Calibration, if any, is done by Zephyr's
+ * ADC driver for the chip (ESP32-S3, STM32H7).
  */
 class Zephyr final : public Interface
 {

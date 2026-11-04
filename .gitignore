@@ -66,3 +66,6 @@ main/include/communication/wifi/esp32s3_local_config.h
 
 # Track the pinned clang-format version despite the *.txt rule above.
 !tools/clang-format/version.txt
+
+# Ignore local Claude Code skills (not shared yet)
+.claude/skills/

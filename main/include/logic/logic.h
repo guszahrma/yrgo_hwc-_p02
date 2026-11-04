@@ -24,7 +24,7 @@
  *           blinkstate (on/off)
  *           period_length_ms (ms)
  *           current temperature (°C)
- * - hang → simulates a hung program to test the watchdog: the system restarts
+ * - hang → stops kicking the watchdog, as a hung program would, to test it: the system restarts
  */
 
 namespace logic
@@ -84,8 +84,9 @@ private:
     static constexpr std::uint16_t MinPeriodMs{50U};
     static constexpr std::uint16_t MaxPeriodMs{10000U};
 
-    std::uint16_t myPeriodLengthMs;                            // Blinking period in milliseconds
-    bool myBlinkState;                                         // false for off, true for on
+    std::uint16_t myPeriodLengthMs; // Blinking period in milliseconds
+    bool myBlinkState;              // false for off, true for on
+    bool myHung;                    // true after 'hang': the watchdog is no longer kicked
     std::unique_ptr<driver::serial::Interface> mySerialDriver; // Serial driver for communication
     std::unique_ptr<driver::gpio::Interface> myStatusLed; // Status LED (role GpioId::StatusLed)
     std::unique_ptr<driver::adc::Interface>

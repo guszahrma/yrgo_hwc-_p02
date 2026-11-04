@@ -22,6 +22,7 @@ namespace logic
 Logic::Logic(driver::factory::Interface& factory) noexcept
     : myPeriodLengthMs{1000} // Set default blinking period to 1000 ms
     , myBlinkState{false}    // Initialize blink state to off
+    , myHung{false}          // Kick the watchdog until 'hang'
 {
     // Create the necessary drivers using the factory and initialize the system state.
     // For example, you might create a serial driver for communication and a GPIO driver for
@@ -85,9 +86,9 @@ void Logic::step() noexcept
 
     char buffer[bufferSize]{};
 
-    // Tell the watchdog that the loop is still running. If the loop stops (see handleHang()),
-    // the kicks stop and the watchdog restarts the system.
-    myWatchdog->kick();
+    // Tell the watchdog that the loop is still running. After 'hang' (see handleHang()) the
+    // kicks stop, and the watchdog restarts the system as if the loop had hung.
+    if (!myHung) { myWatchdog->kick(); }
 
     // Handle a command if a whole line has arrived; otherwise sleep briefly so the loop does not
     // busy-wait.
@@ -269,13 +270,10 @@ void Logic::handleHang() noexcept
                  "system in a few seconds"
               << std::endl;
 
-    // Stay here forever without kicking the watchdog, like a program stuck in a loop. Sleeping lets
-    // the other tasks run, so it is only the missing kicks that make the watchdog restart the
-    // system.
-    while (true)
-    {
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
-    }
+    // Stop kicking the watchdog, as a hung program would. The flag rather than an endless loop
+    // here: the rest of the program keeps running until the restart, so 'hang' can also be tested
+    // on the host.
+    myHung = true;
 }
 
 // --------------------------------------------------------------------------------

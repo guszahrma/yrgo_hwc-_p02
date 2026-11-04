@@ -1,0 +1,59 @@
+/*
+ * Electrosmith Daisy Seed – the pin header (D0-D30, A0-A11) as a GPIO nexus.
+ *
+ * With this, apps and overlays refer to Daisy pin names instead of STM32 pin names:
+ *     gpios = <&daisy_seed_header 26 GPIO_ACTIVE_HIGH>;   D26, instead of <&gpiod 11 ...>
+ * or with the named constants from <dt-bindings/gpio/daisy-seed-header.h>:
+ *     gpios = <&daisy_seed_header DAISY_SEED_HEADER_D26 GPIO_ACTIVE_HIGH>;
+ * Wiring comments give all three names: D26 = pin 33 = PD11.
+ *
+ * Binding: dts/bindings/gpio/daisy-seed-header.yaml (our own; Zephyr has none for the Daisy).
+ * Pin names from libDaisy (src/daisy_seed.h). Physical pins: D0-D14 = pins 1-15, D15-D30 = pins 22-37.
+ *
+ * Special pins:
+ *   - D1-D14 and D29-D30 are wired for the SD card, SPI1, I2C1, UART1 and USB HS in Daisy's usual
+ *     setup; prefer the others for plain GPIO.
+ *   - The ADC uses channel numbers, not this header (io-channels = <&adc1 7>), as on the Nano.
+ */
+
+#include <dt-bindings/gpio/daisy-seed-header.h>
+
+/ {
+	daisy_seed_header: connector {
+		compatible = "daisy-seed-header";
+		#gpio-cells = <2>;
+		gpio-map-mask = <0xffffffff 0xffffffc0>;
+		gpio-map-pass-thru = <0 0x3f>;
+		gpio-map = <DAISY_SEED_HEADER_D0 0 &gpiob 12 0>,   /* D0                     = pin  1 = PB12 */
+			   <DAISY_SEED_HEADER_D1 0 &gpioc 11 0>,   /* D1 / SD card           = pin  2 = PC11 */
+			   <DAISY_SEED_HEADER_D2 0 &gpioc 10 0>,   /* D2 / SD card           = pin  3 = PC10 */
+			   <DAISY_SEED_HEADER_D3 0 &gpioc 9 0>,    /* D3 / SD card           = pin  4 = PC9  */
+			   <DAISY_SEED_HEADER_D4 0 &gpioc 8 0>,    /* D4 / SD card           = pin  5 = PC8  */
+			   <DAISY_SEED_HEADER_D5 0 &gpiod 2 0>,    /* D5 / SD card           = pin  6 = PD2  */
+			   <DAISY_SEED_HEADER_D6 0 &gpioc 12 0>,   /* D6 / SD card           = pin  7 = PC12 */
+			   <DAISY_SEED_HEADER_D7 0 &gpiog 10 0>,   /* D7 / SPI1 CS           = pin  8 = PG10 */
+			   <DAISY_SEED_HEADER_D8 0 &gpiog 11 0>,   /* D8 / SPI1 SCK          = pin  9 = PG11 */
+			   <DAISY_SEED_HEADER_D9 0 &gpiob 4 0>,    /* D9 / SPI1 MISO         = pin 10 = PB4  */
+			   <DAISY_SEED_HEADER_D10 0 &gpiob 5 0>,   /* D10 / SPI1 MOSI        = pin 11 = PB5  */
+			   <DAISY_SEED_HEADER_D11 0 &gpiob 8 0>,   /* D11 / I2C1 SCL         = pin 12 = PB8  */
+			   <DAISY_SEED_HEADER_D12 0 &gpiob 9 0>,   /* D12 / I2C1 SDA         = pin 13 = PB9  */
+			   <DAISY_SEED_HEADER_D13 0 &gpiob 6 0>,   /* D13 / UART1 TX         = pin 14 = PB6  */
+			   <DAISY_SEED_HEADER_D14 0 &gpiob 7 0>,   /* D14 / UART1 RX         = pin 15 = PB7  */
+			   <DAISY_SEED_HEADER_D15 0 &gpioc 0 0>,   /* D15 / A0               = pin 22 = PC0  */
+			   <DAISY_SEED_HEADER_D16 0 &gpioa 3 0>,   /* D16 / A1               = pin 23 = PA3  */
+			   <DAISY_SEED_HEADER_D17 0 &gpiob 1 0>,   /* D17 / A2               = pin 24 = PB1  */
+			   <DAISY_SEED_HEADER_D18 0 &gpioa 7 0>,   /* D18 / A3               = pin 25 = PA7  */
+			   <DAISY_SEED_HEADER_D19 0 &gpioa 6 0>,   /* D19 / A4               = pin 26 = PA6  */
+			   <DAISY_SEED_HEADER_D20 0 &gpioc 1 0>,   /* D20 / A5               = pin 27 = PC1  */
+			   <DAISY_SEED_HEADER_D21 0 &gpioc 4 0>,   /* D21 / A6               = pin 28 = PC4  */
+			   <DAISY_SEED_HEADER_D22 0 &gpioa 5 0>,   /* D22 / A7               = pin 29 = PA5  */
+			   <DAISY_SEED_HEADER_D23 0 &gpioa 4 0>,   /* D23 / A8               = pin 30 = PA4  */
+			   <DAISY_SEED_HEADER_D24 0 &gpioa 1 0>,   /* D24 / A9               = pin 31 = PA1  */
+			   <DAISY_SEED_HEADER_D25 0 &gpioa 0 0>,   /* D25 / A10              = pin 32 = PA0  */
+			   <DAISY_SEED_HEADER_D26 0 &gpiod 11 0>,  /* D26                    = pin 33 = PD11 */
+			   <DAISY_SEED_HEADER_D27 0 &gpiog 9 0>,   /* D27                    = pin 34 = PG9  */
+			   <DAISY_SEED_HEADER_D28 0 &gpioa 2 0>,   /* D28 / A11              = pin 35 = PA2  */
+			   <DAISY_SEED_HEADER_D29 0 &gpiob 14 0>,  /* D29 / USB HS D-        = pin 36 = PB14 */
+			   <DAISY_SEED_HEADER_D30 0 &gpiob 15 0>;  /* D30 / USB HS D+        = pin 37 = PB15 */
+	};
+};

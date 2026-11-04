@@ -68,5 +68,8 @@ private:
 
     /** Current number of bytes stored in the internal buffer. */
     std::size_t myInternalLen;
+
+    /** True while a monitor has the port open (DTR set), as seen at the last readLine(). */
+    bool myPortOpen;
 };
 } // namespace driver::serial

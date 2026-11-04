@@ -62,7 +62,8 @@ std::unique_ptr<driver::nvs::Interface> Zephyr::createNvs(const char* namespaceN
 // -----------------------------------------------------------------------------
 std::unique_ptr<driver::serial::Interface> Zephyr::createSerial() noexcept
 {
-    // The console device: USB-C on the nano. (zephyr,console in the board)
+    // The console device (zephyr,console in the board): USB-C on the Nano, a USB serial port
+    // (CDC ACM) on the Daisy's micro-USB.
     return std::make_unique<driver::serial::Zephyr>(DEVICE_DT_GET(DT_CHOSEN(zephyr_console)));
 }
 

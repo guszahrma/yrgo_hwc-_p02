@@ -25,7 +25,13 @@
 
 	aliases {
 		led0 = &user_led;
+		watchdog0 = &iwdg;
 	};
+};
+
+/* Independent watchdog: it runs only once an app sets it up. */
+&iwdg {
+	status = "okay";
 };
 
 /* 48 MHz internal oscillator: the USB clock. */

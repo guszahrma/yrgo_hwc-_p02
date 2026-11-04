@@ -66,6 +66,7 @@ What the board definition provides:
 |---|---|
 | Console | USB serial port (CDC ACM) on the micro-USB port, USB ID `2fe3:0004`, product name `Daisy Seed` |
 | LED | `led0` = user LED (PC7) |
+| Watchdog | `watchdog0` = the independent watchdog (IWDG1) |
 | Pin header | `daisy_seed_header`: Daisy pin names D0–D30 and A0–A11 (constants in `<dt-bindings/gpio/daisy-seed-header.h>`) |
 | QSPI flash | `ext_flash`, partitions `slot0` (1 MB) and `slot1` (1 MB) for app images, `storage` (64 KB) for settings |
 | Bootloader | MCUboot, built automatically with `--sysbuild` for `ram_load` |

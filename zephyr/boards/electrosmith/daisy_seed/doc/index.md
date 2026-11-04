@@ -237,6 +237,7 @@ the ROM bootloader cannot write the QSPI flash.
 | The board stays `0483:df11` after `west flash` | As intended: press RESET to start the program |
 | `smpmgr ... connection timeout` | The board is not in recovery mode, or not attached yet: press RESET and wait for the port |
 | `smpmgr`: `Frame could not be parsed` | The app is running, not recovery mode: press RESET |
+| RESET starts the app instead of recovery mode, once | The chip remembered other resets that MCUboot did not see, e.g. watchdog resets of a program on the plain target. MCUboot then treats RESET as one of them, and clears the record: press RESET again |
 | `smpmgr`: `Error reading MCUMgr parameters ... ENOTSUP` | Harmless: MCUboot does not support that query |
 | `dfu-util`: `Invalid DFU suffix signature` | Harmless: `zephyr.bin` has no DFU suffix |
 | Port busy, or `device reports readiness to read but returned no data` | Another program has the port open, often a serial monitor: quit it. `fuser -v /dev/ttyACM*` shows who |

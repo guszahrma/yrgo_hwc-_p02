@@ -216,7 +216,7 @@ inline bool isAvailable(AdcPin pin) noexcept
 {
     auto& manager      = PhysicalPinManager::instance();
     const auto physPin = static_cast<std::uint8_t>(toNumber(pin));
-    return manager.isInUse(physPin);
+    return !manager.isInUse(physPin);
 }
 
 /**
@@ -228,6 +228,6 @@ inline bool isAvailable(GpioPin pin) noexcept
 {
     auto& manager      = PhysicalPinManager::instance();
     const auto physPin = static_cast<std::uint8_t>(toNumber(pin));
-    return manager.isInUse(physPin);
+    return !manager.isInUse(physPin);
 }
 } // namespace driver::pin::esp32s3

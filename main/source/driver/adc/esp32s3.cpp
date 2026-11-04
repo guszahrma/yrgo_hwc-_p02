@@ -26,6 +26,7 @@ Esp32s3::Esp32s3(driver::pin::esp32s3::AdcPin pin, float referenceVoltage)
     , myHandle{nullptr}
     , myChannel{ADC_CHANNEL_0}
     , myCaliHandle{nullptr}
+    , myPinAcquired{false}
 {
     if (!acquirePin(getPhysPin(pin)))
     {
@@ -34,12 +35,15 @@ Esp32s3::Esp32s3(driver::pin::esp32s3::AdcPin pin, float referenceVoltage)
         return;
     }
 
+    myPinAcquired = true;
+
     if (MaxVoltage < referenceVoltage)
     {
         std::printf("ESP32-S3 ADC init failed: referenceVoltage %.2f exceeds maximum %.2f V.\n",
                     referenceVoltage, MaxVoltage);
 
         releasePin(getPhysPin(pin));
+        myPinAcquired = false; // released here so the destructor doesnt release it again
         return;
     }
 
@@ -94,8 +98,13 @@ Esp32s3::~Esp32s3() noexcept
 {
     if (nullptr != myCaliHandle) { adc_cali_delete_scheme_curve_fitting(myCaliHandle); }
     if (nullptr != myHandle) { adc_oneshot_del_unit(myHandle); }
-    releasePin(getPhysPin(myPin));
-    std::printf("ESP32-S3 ADC released on pin %s.\n", driver::pin::esp32s3::toString(myPin));
+
+    // Only release the pin if this driver got it, otherwise it belongs to another driver
+    if (myPinAcquired)
+    {
+        releasePin(getPhysPin(myPin));
+        std::printf("ESP32-S3 ADC released on pin %s.\n", driver::pin::esp32s3::toString(myPin));
+    }
 }
 
 uint16_t Esp32s3::readValue() noexcept

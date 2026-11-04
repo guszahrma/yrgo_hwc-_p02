@@ -1,6 +1,5 @@
 idf_component_register(
     SRCS
-           SRCS
         "source/main.cpp"
         "source/logic/logic.cpp"
         "source/driver/adc/esp32s3.cpp"
@@ -25,12 +24,8 @@ idf_component_register(
         nvs_flash
         esp_event
         espressif__mqtt
-
     PRIV_REQUIRES
         esp_driver_uart
-        esp_driver_gpio
         esp_driver_usb_serial_jtag
-
-        esp_adc
         esp_timer
 )

@@ -28,3 +28,11 @@ TEST(GpioEsp32s3, PinsAreIndependent)
     EXPECT_TRUE(led.read());
     EXPECT_FALSE(other.read());
 }
+
+TEST(GpioEsp32s3, HighPinNumber)
+{
+    // Pins above 31 need 64-bit shifts in the mock (e.g. GPIO45 = RGB LED blue).
+    driver::gpio::Esp32s3 led{45U, driver::gpio::Direction::OUTPUT};
+    led.write(true);
+    EXPECT_TRUE(led.read());
+}

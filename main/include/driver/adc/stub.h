@@ -27,24 +27,30 @@ public:
      * stub).
      */
     explicit Stub(driver::pin::stub::AdcPin pin, float referenceVoltage = defaultVref) noexcept
-        : myPin(pin)
-        , myValue(defaultValue)
-        , myReferenceVoltage(referenceVoltage)
+        : myPin{pin}
+        , myValue{defaultValue}
+        , myReferenceVoltage{referenceVoltage}
+        , myPinAcquired{false}
     {
         if (!acquirePin(static_cast<std::uint8_t>(driver::pin::stub::toNumber(pin))))
         {
             std::printf("ADC Stub construction failed: pin %s already in use or invalid.\n",
                         driver::pin::stub::toString(pin));
+            return;
         }
+        myPinAcquired = true;
         std::printf("ADC Stub constructed on pin %s, value is set as default to %u.\n",
                     driver::pin::stub::toString(pin), myValue);
     }
 
-    /** @brief Releases the acquired pin. */
+    /** @brief Releases the acquired pin if this stub acquired it. */
     ~Stub() noexcept override
     {
-        releasePin(static_cast<std::uint8_t>(driver::pin::stub::toNumber(myPin)));
-        std::printf("ADC Stub destroyed on pin %s.\n", driver::pin::stub::toString(myPin));
+        if (myPinAcquired)
+        {
+            releasePin(static_cast<std::uint8_t>(driver::pin::stub::toNumber(myPin)));
+            std::printf("ADC Stub destroyed on pin %s.\n", driver::pin::stub::toString(myPin));
+        }
     }
 
     /**
@@ -96,5 +102,8 @@ private:
     const driver::pin::stub::AdcPin myPin;
     std::uint16_t myValue;
     float myReferenceVoltage;
+
+    /** True only while this stub owns the pin. */
+    bool myPinAcquired;
 };
 } // namespace driver::adc

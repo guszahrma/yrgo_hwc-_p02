@@ -2,7 +2,6 @@
  * @file Implementation of the Logic class for handling commands and controlling the LED and other
  * components.
  */
-
 #include <charconv>
 #include <chrono>
 #include <cstdint>
@@ -49,14 +48,9 @@ Logic::Logic(driver::factory::Interface& factory) noexcept
 // --------------------------------------------------------------------------------
 Logic::~Logic() noexcept
 {
-    // Clean up resources, if necessary.
-    // For example, you might want to delete any dynamically allocated drivers or other resources
-    // here.
-    mySerialDriver.reset();
-    myStatusLed.reset();
-    myTempSensorAdc.reset();
-    myTimerDriver->stop(); // Stop the timer when the Logic instance is destroyed
-    myTimerDriver.reset();
+    // Stop blinking. The drivers themselves are destroyed automatically afterwards, in reverse
+    // order of declaration, so the temperature sensor goes before the ADC it refers to.
+    myTimerDriver->stop();
 }
 
 // --------------------------------------------------------------------------------
@@ -116,20 +110,23 @@ void Logic::run() noexcept
                     handleBlinkOn();
                 else if (args == "off")
                     handleBlinkOff();
+                else
+                    mySerialDriver->print("Usage: blink on | blink off\n");
             }
             else if (cmd == "period")
             {
                 std::uint16_t ms{};
 
-                //! @note Please add an inline comment for this; it's always a good thing to do
-                //!       when using lambdas (lambdas = a necessary evil; works fine, but
-                //!       usually totally unreadable, haha).
-                // I left @note as is since I don't understand the function.
-                auto [ptr, ec] = std::from_chars(args.data(), args.data() + args.size(), ms);
-                if (ec == std::errc{})
+                // Parse the argument as a number. std::from_chars returns where it stopped (ptr)
+                // and an error code (ec), unpacked with a structured binding. ec is set if args is
+                // empty, not a number or too large for std::uint16_t.
+                const auto [ptr, ec] = std::from_chars(args.data(), args.data() + args.size(), ms);
+
+                // ptr must reach the end of args, so "500abc" is not accepted as 500.
+                if ((std::errc{} == ec) && (args.data() + args.size() == ptr))
                     handlePeriod(ms);
                 else
-                    handleUnknownCommand(cmd);
+                    mySerialDriver->print("Usage: period <ms>, e.g. period 500\n");
             }
             else if (cmd == "store")
                 handleStore();
@@ -290,13 +287,27 @@ void Logic::loadStoredUserSettings() noexcept
     if (!(myNvsUserSettingsStorage->getString("blink_period", blinkPeriod)))
         blinkPeriod = "1000"; // Default to 1000 ms if not found
 
-    myBlinkState     = (blinkState == "on") ? 1 : 0;
-    myPeriodLengthMs = static_cast<uint16_t>(std::stoi(blinkPeriod));
+    myBlinkState = (blinkState == "on");
 
-    // Old or corrupt data in NVS: fall back to the default instead of using an invalid period.
-    if ((MinPeriodMs > myPeriodLengthMs) || (MaxPeriodMs < myPeriodLengthMs))
+    // Parse the stored period without exceptions (std::stoi throws on bad data, and this function
+    // is noexcept) and without silent wrap-around (a cast to uint16_t turns 70000 into 4464).
+    constexpr std::uint16_t DefaultPeriodMs{1000U};
+
+    std::uint32_t parsed{};
+    const auto [ptr, ec] =
+        std::from_chars(blinkPeriod.data(), blinkPeriod.data() + blinkPeriod.size(), parsed);
+
+    // Valid only if it is a number, the whole string was read and it is in the range that `period`
+    // accepts (old or corrupt data in NVS falls back to the default)
+    const bool valid{(std::errc{} == ec) && (blinkPeriod.data() + blinkPeriod.size() == ptr) &&
+                     (MinPeriodMs <= parsed) && (MaxPeriodMs >= parsed)};
+
+    if (valid) { myPeriodLengthMs = static_cast<std::uint16_t>(parsed); }
+    else
     {
-        myPeriodLengthMs = 1000;
+        std::cout << "Invalid stored blink period '" << blinkPeriod << "', using "
+                  << DefaultPeriodMs << " ms" << std::endl;
+        myPeriodLengthMs = DefaultPeriodMs;
     }
 
     // Implement the logic to load the stored state from non-volatile memory.

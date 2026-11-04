@@ -70,5 +70,9 @@ private:
     adc_oneshot_unit_handle_t myHandle;
     adc_channel_t myChannel;
     adc_cali_handle_t myCaliHandle;
+
+    /** True only while this driver owns the pin, so the destructor never releases another drivers
+     * pin */
+    bool myPinAcquired;
 };
 } // namespace driver::adc

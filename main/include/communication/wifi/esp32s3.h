@@ -31,7 +31,11 @@ class Esp32s3 final : public Interface
 public:
     Esp32s3(std::string ssid     = std::string(defaultSsid),
             std::string password = std::string(defaultPassword)) noexcept;
-    ~Esp32s3() noexcept override = default;
+
+    /**
+     * @brief Releases A4–A7 if init() reserved them
+     */
+    ~Esp32s3() noexcept override;
 
     /**
      *  @brief Initialize the ESP32-S3 WiFi module.
@@ -62,5 +66,8 @@ public:
 private:
     std::string mySsid;
     std::string myPassword;
+
+    /** True once init() has reserved A4-A7 (ADC2) for WIFI, so the destructor can release them */
+    bool myPinsAcquired;
 };
 } // namespace comm::wifi

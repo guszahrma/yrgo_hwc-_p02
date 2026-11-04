@@ -1,5 +1,5 @@
 /*
- * P02 wiring on the breadboard for the Zephyr app.
+ * P02 wiring on the breadboard for the Zephyr app – Arduino Nano ESP32.
  *
  * Status LED on D6 (GPIO9): D6 -> 330 ohm -> LED anode, LED cathode -> GND.
  * The pin drives the LED directly, so it is active high.

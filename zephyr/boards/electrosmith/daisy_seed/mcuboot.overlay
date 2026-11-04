@@ -1,0 +1,10 @@
+/*
+ * MCUboot on the Daisy Seed: runs from internal flash and from DTCM, so that the whole AXI SRAM is free
+ * for the app it loads (RAM-load mode).
+ */
+/ {
+	chosen {
+		zephyr,sram = &dtcm;
+		zephyr,code-partition = &boot_partition;
+	};
+};

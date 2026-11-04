@@ -11,6 +11,19 @@ C++17 drivers and a small command-line application (`logic::Logic`) for the Ardu
 own factory (`factory::Esp32s3`, `factory::Zephyr`, plus `factory::Stub` for tests) and its own driver
 implementations next to the interfaces in `main/`. See [docs/architecture.md](docs/architecture.md).
 
+## Glossary
+
+| Term | Meaning |
+|---|---|
+| P02 | The application: the entry point (`main/source/main.cpp` on ESP-IDF, `zephyr/app/src/main.cpp` on Zephyr) creates the platform's factory and runs `logic::Logic`. Board definitions, MCUboot and Zephyr's samples are not P02 |
+| Board | The hardware (e.g. Arduino Nano ESP32, Daisy Seed): chip, memory, pins, LEDs, buttons |
+| Board definition | Zephyr's description of a board (`zephyr/boards/<vendor>/<board>/`): devicetree, Kconfig, flash runner, and on the Daisy MCUboot. Used by any Zephyr app on the board, not only P02, so it is documented with the board |
+| Board document | One per board, in the board definition directory (`zephyr/boards/<vendor>/<board>/doc/index.md`, like Zephyr's own boards, so it is copied with the board): the board and its board definition. Can be copied into another project without removing anything – nothing about P02, and nothing outside the board definition and Zephyr: no repository scripts, no `$P02_ROOT`, no links to other docs. It says *what* the board needs (toolchain, modules, udev rules, `<board root>` in commands); the P02 board document says how this repository provides it. Design decisions about the board definition are summarised in it (one line each); the full table, lessons and verification notes are in the board definition's own `AGENTS.md`, which is copied with it |
+| P02 board document | One per board, `docs/p02_<board>.md`: what is true only for P02 on that board (wiring, app overlay, P02's memory use; building and flashing P02 only where it differs from the platform guides – the Nano's is in `platform_esp_idf.md` and `platform_zephyr.md`, the Daisy's in its P02 board document). Decisions about P02 on a board stay in AGENTS.md |
+| Board target | The full name given to `west build -b`: `arduino_nano_esp32/esp32s3/procpu`, `daisy_seed`, `daisy_seed/stm32h750xx/ram_load`. One board definition can have several |
+| App overlay | `zephyr/app/boards/<board target, / → _>.overlay`: P02's wiring on one board target (`p02-led`, `zephyr,user`). Not part of the board definition |
+| `docs/boards.md` | What is true for P02 on every board: what a board needs, the supported boards |
+
 ## Commands
 
 All commands run from the repository root. Never mix the ESP-IDF and Zephyr environments in one shell.
@@ -20,13 +33,13 @@ All commands run from the repository root. Never mix the ESP-IDF and Zephyr envi
 . ~/esp/esp-idf/export.sh
 idf.py set-target esp32s3            # first time only
 idf.py build
-idf.py -p /dev/ttyACM0 flash monitor
+idf.py -p /dev/tty_arduino_nano_esp32 flash monitor
 
 # Zephyr
 tools/zephyr_setup.sh                # first time only
 source tools/zephyr_env.sh
 west build -p always -b arduino_nano_esp32/esp32s3/procpu -s zephyr/app -d zephyr/app/build
-west flash -d zephyr/app/build --esp-device /dev/ttyACM0 && python -m serial.tools.miniterm --exit-char 24 /dev/ttyACM0 115200
+west flash -d zephyr/app/build --esp-device /dev/tty_arduino_nano_esp32 && tio /dev/tty_arduino_nano_esp32
 
 # Unit tests on the host (GoogleTest). Building also runs them (custom target "run" in
 # tests/CMakeLists.txt); no CTest. Compiled with -Wall -Werror, so a warning fails the build.
@@ -51,6 +64,9 @@ tools/clang-format/check.sh
 * Hardware is requested from the factory by role (`GpioId`, `AdcId`), never by pin number.
 * Workflow: one feature per branch and PR, review, merge with a merge commit (see
   [docs/contributing.md](docs/contributing.md)).
+* `docs/`, `readme.md` and board documents are for people: what to do and a short why. Mechanism, evidence
+  ("verified on the board"), exact error bytes and history go in an `AGENTS.md` (the root one, or the board
+  definition's own).
 * `.gitignore` ignores files without an extension; `Kconfig` and `*_defconfig` are excepted, `sdkconfig`
   is not committed.
 
@@ -68,12 +84,14 @@ tools/clang-format/check.sh
 
 | Error | Cause / fix |
 |---|---|
-| `Could not open COM3` | Windows port name used in WSL. Use `/dev/ttyACM0`. |
+| `Could not open COM3` | Windows port name used in WSL. Use `/dev/tty_arduino_nano_esp32` (see [fixed port names](docs/setup.md#fixed-port-names)). |
 | `Path '/dev/ttyACM0' is not readable` | The user is not in the `dialout` group. See [Setup step 2](docs/setup.md#2-packages-in-ubuntu), then run `wsl --shutdown` in PowerShell. |
 | `usbipd: error: Device is not shared` | Run `usbipd bind --busid <id>` as administrator first. |
 | No `/dev/ttyACM*` in WSL | Check that `usbipd attach` is running and that the board is not in Arduino mode (`2341:0070`). |
+| `/dev/ttyACM*` exists, but not `/dev/tty_arduino_nano_esp32` / `/dev/tty_daisy_seed` | The udev rules are not installed: see [fixed port names](docs/setup.md#fixed-port-names). On the Daisy, also software built before the USB product name `Daisy Seed`: flash MCUboot and P02 again. |
+| `smpmgr`, `esptool` or `tio`: port busy / `multiple access on port` | Another program has the port open, often `tio` in another terminal. Quit it (`Ctrl+T`, `q`); `fuser -v /dev/ttyACM*` shows who. |
 | `SerialException: device reports readiness to read but returned no data` | The board disconnected from USB (reset/re-attach). Start the monitor again. |
-| `could not open port /dev/ttyACM0` right after flashing | usbipd had not re-attached the board yet when the monitor started. Wait a moment, or add `sleep 2 &&` before the monitor command. |
+| `idf.py monitor` cannot open the port right after flashing | usbipd had not re-attached the board yet when the monitor started. Wait a moment and run `idf.py -p /dev/tty_arduino_nano_esp32 monitor`. (`tio` waits by itself.) |
 | `tools/...sh: Permission denied`, or `git status` shows a script as modified with no changes (`git diff --summary`: `mode change 100755 => 100644`) | The file lost its executable bit (e.g. edited from Windows). `chmod +x <file>`. |
 
 ### ESP-IDF
@@ -84,7 +102,7 @@ tools/clang-format/check.sh
 | `libusb-1.0.so.0: cannot open shared object file` (during install) | `sudo apt install -y libusb-1.0-0`, then run `install.sh` again. |
 | `Current directory '.../esp-idf' is not buildable` | You are in the ESP-IDF directory. `cd` to the repository root. Remove `~/esp/esp-idf/build`. |
 | CMake uses `Unix Makefiles` instead of Ninja | `ninja-build` is missing: `sudo apt install -y ninja-build`. |
-| `esp32s3_local_config.h: No such file or directory` | Copy the Wi-Fi template, see [Create the Wi-Fi config](docs/espressif_environment.md#3-create-the-wi-fi-config-once). |
+| `esp32s3_local_config.h: No such file or directory` | Copy the Wi-Fi template, see [Create the Wi-Fi config](docs/platform_esp_idf.md#3-create-the-wi-fi-config-once). |
 | `task_wdt: Task watchdog got triggered ... IDLE0` | A task never blocks, so the idle task cannot run. See *Sleeps shorter than one tick* under ESP-IDF pitfalls. |
 
 ### Zephyr
@@ -93,7 +111,7 @@ tools/clang-format/check.sh
 |---|---|
 | `error: the Zephyr workspace is not set up` | Run `tools/zephyr_setup.sh` first (once per clone). |
 | `west: unknown command "build"` | `ZEPHYR_BASE` is not set. Run `source tools/zephyr_env.sh`. |
-| `No board named 'arduino_nano_esp32' found` | Zephyr cannot find our board. Our apps: `list(APPEND BOARD_ROOT ...)` must come before `find_package(Zephyr)` in `CMakeLists.txt`. Zephyr's samples: add `-- -DBOARD_ROOT=$P02_ROOT/zephyr`. |
+| `No board named 'arduino_nano_esp32' found` | Zephyr cannot find our board. Our apps: `list(APPEND BOARD_ROOT ...)` must come before `find_package(Zephyr)` in `CMakeLists.txt`. Zephyr's samples, and any build with `--sysbuild` (also `zephyr/app`, e.g. the Daisy's `ram_load`): add `-- -DBOARD_ROOT=$P02_ROOT/zephyr` – sysbuild looks up the board before the app's `CMakeLists.txt` runs. |
 | `devicetree error: ... 'pinctrl-names' is marked as required` (after enabling `i2c0`/`spi2`) | Disabled nodes are not checked against their bindings – errors only show when a node is enabled. Test the board with each bus enabled. |
 | `CMake was unable to find a build program corresponding to "Ninja"` | `pip install ninja` in the Zephyr venv, or `sudo apt install ninja-build`. |
 | `west blobs fetch` fails with `504 Gateway Time-out` | Temporary GitHub error. Run `west blobs fetch hal_espressif` again. |
@@ -123,7 +141,7 @@ tools/clang-format/check.sh
 * **ADC2 (A4–A7) cannot be used while Wi-Fi is active.** Use A0–A3 (ADC1) for analog sensors if Wi-Fi is
   needed.
 * The Nano ESP32 ships with the Arduino bootloader – the first flash needs B1 to GND (see
-  [Setup](docs/setup.md#5-first-time-get-the-board-out-of-arduino-mode)).
+  [the board document](zephyr/boards/arduino/nano_esp32/doc/index.md#first-flash-leave-arduino-mode)).
 
 ---
 
@@ -136,7 +154,7 @@ tools/clang-format/check.sh
 | How Zephyr gets into the project | `west.yml` in this repository, which is the west workspace (T2); Zephyr and `hal_espressif` in `deps/` | Zephyr is ~80 repositories that west fetches; git submodules cannot follow Zephyr's own manifest. The version is pinned in git, setup is one script, and CI builds the port |
 | Where the Zephyr drivers live | Next to the ESP32 ones in `main/` (`driver/<name>/zephyr.h/.cpp`) | Each driver's interface, ESP32, stub and Zephyr versions stay together; each build system lists its own files |
 | Board | Own out-of-tree board definition, found through `BOARD_ROOT` | The Nano ESP32 is not in Zephyr; app overlays can use Arduino pin names (`arduino_nano_header`) |
-| Where pins come from | Devicetree: drivers take a `gpio_dt_spec` / `adc_dt_spec` | Pin **and** polarity/gain come from `app.overlay`; no GPIO numbers in Zephyr code |
+| Where pins come from | Devicetree: drivers take a `gpio_dt_spec` / `adc_dt_spec` | Pin **and** polarity/gain come from the board's overlay in `zephyr/app/boards/`; no GPIO numbers in Zephyr code |
 | How the factory maps hardware | Roles (`GpioId::StatusLed`, `AdcId::TempSensor`) instead of pin numbers | Each factory decides what a role means: `factory::Esp32s3` a pin, `factory::Zephyr` a devicetree node |
 | ADC attenuation | `zephyr,gain` in devicetree; `referenceVoltage` is ignored | Zephyr configures channels from devicetree, not at runtime |
 | Timer | Polled `timeout()`, restarts from "now" | `Logic` stays unchanged. A `k_timer` callback would be more idiomatic but changes the interface |
@@ -161,8 +179,8 @@ tools/clang-format/check.sh
 
 #### Board and devicetree
 
-* LEDs, GPIO numbers and strapping pins are listed in [docs/board.md](docs/board.md).
-* `gpio0` = GPIO 0–31, `gpio1` = GPIO 32–48 (pin = GPIO − 32).
+* The Nano's LEDs, GPIO numbers, strapping pins, `gpio0`/`gpio1` and ADC numbering are in its board
+  definition: [`doc/index.md`](zephyr/boards/arduino/nano_esp32/doc/index.md) and [`AGENTS.md`](zephyr/boards/arduino/nano_esp32/AGENTS.md).
 * When copying another board, change **every** board-specific value: copied SPI pinctrl landed on the
   I2C pins and nothing complained.
 * **Disabled nodes are not checked against their bindings.** Errors only show when a node is enabled –
@@ -170,12 +188,14 @@ tools/clang-format/check.sh
 * **Label, node name and alias** – `p02_led: led-d6 { ... }`, `aliases { p02-led = &p02_led; }`:
   label (`_`) for `&p02_led` in devicetree, node name (`-`) for description, alias (lowercase, `-`) for
   `DT_ALIAS(p02_led)` in code. Name aliases after the **role**, not the pin.
+* **App overlays** in `zephyr/app/boards/` are named after the full target, `/` → `_`
+  (`arduino_nano_esp32_procpu.overlay`), or the same without the SoC (`<board>_<variant>.overlay`) –
+  **not** the bare board name: `arduino_nano_esp32.overlay` is silently ignored. A board overlay replaces
+  `app.overlay`. Check the `Found devicetree overlay:` line in the build output.
 * New nodes go inside `/ { }`; changing an existing node (`&adc1 { }`) is written at the top level.
 * A node with the same name as one in the board is **merged** into it; give the app's wiring its own
   parent (`p02-leds`).
 * The same property twice in a node is not an error – the last one wins.
-* ADC: `adc0` = the chip's ADC1, `adc1` = ADC2. `io-channels = <&adc1 2>` takes the **channel** number
-  (A6 = GPIO13 = ADC2 ch 2), not the GPIO number. `ADC_GAIN_1_4` = 12 dB (~3.1 V full scale).
 * Read the **first** line of a devicetree error; a missing `;` is reported on the line after.
 
 #### Kconfig and CMake
@@ -215,4 +235,61 @@ tools/clang-format/check.sh
 * Every reset re-enumerates USB, and usbipd has to re-attach the board to WSL. `CONFIG_BOOT_DELAY=1000`
   keeps the boot output, and the monitor is started right after `west flash`. With a slower usbipd, add a
   `sleep` before the monitor (see [Troubleshooting → Setup](#setup-wsl-usb-serial)).
-* `miniterm --exit-char 24` exits with `Ctrl+X`; the default `Ctrl+]` is awkward on a Swedish keyboard.
+* The monitor is `tio`, not `miniterm`: `tio` waits for the port and reconnects after every reset. `miniterm`
+  crashed when the board left USB (RESET pressed), and as it still held `/dev/ttyACM0`, the board came back as
+  `/dev/ttyACM1`. The fixed names from `tools/udev/99-p02.rules` (`/dev/tty_daisy_seed`,
+  `/dev/tty_arduino_nano_esp32`) do not change. Exit `tio` with `Ctrl+T`, `q`; quit it before `west flash` or
+  `smpmgr`, which need the port to themselves.
+* **The first command after opening the monitor had junk in front of it** ("unknown command"
+  with e.g. `Zephyr` in it), seen with `tio` and `miniterm`. Cause: Linux gives a tty `ECHO` on by default.
+  On quit, `tio` restores the settings it found at open (`ECHO` on) and then closes the port; in between,
+  the output P02 keeps printing (timer debug lines) is sent straight back. P02 takes it as input, and the part
+  after the last line break stays in `serial::Zephyr::readLine()`'s buffer, in front of the next command.
+  Shown on the Daisy with a test that restores the settings like `tio` before closing: with `ECHO` restored,
+  `help` was read as `Zephyr timer timZephyr timer timhelp`; with `-echo`, as `help`. Opening the port was not
+  the problem (a clean `help` even with `ECHO` on). The same echo is behind smpmgr's
+  `Frame could not be parsed` when P02 runs. Fixed twice: `tools/udev/99-p02.rules` sets `-echo` on both
+  ports when the board appears (Linux keeps it until the board disconnects); this leaves one echo when the
+  rule's own `stty` opens the port, seen as junk in the first command after a power cycle. So
+  `serial::Zephyr::readLine()` also drops its input when DTR goes high, i.e. a monitor opens the port
+  (`CONFIG_UART_LINE_CTRL`; CDC ACM only, the Nano's USB-Serial/JTAG reports no DTR). Verified on the Daisy
+  with `tio`: clean first commands after a restart, and with `ECHO` on and no rule. The Nano still shows
+  `!help` when `tio` is already waiting while the board attaches: udev creates the symlink before the rule's
+  `stty` runs, so `tio` can open the port with `ECHO` still on, and a `!` the Nano sends at that point (source
+  unknown; P02 does not print it) comes back. Opening `tio` after the attach is complete avoids it; the Nano
+  cannot drop the input itself (no DTR).
+
+---
+
+## Daisy Seed (work in progress): P02 on the Daisy
+
+The board definition is in `zephyr/boards/electrosmith/daisy_seed/`, with its own board document
+(`doc/index.md`) and its own [`AGENTS.md`](zephyr/boards/electrosmith/daisy_seed/AGENTS.md): design decisions
+about the board definition (targets, MCUboot, recovery mode, QSPI, USB), the bring-up and its lessons.
+Read that file before changing anything in the board directory. P02 on the Daisy for people:
+[docs/p02_daisy_seed.md](docs/p02_daisy_seed.md).
+
+| Decision | Choice | Why |
+|---|---|---|
+| Where P02 runs | MCUboot in the 128 KB internal flash; P02 stored in the 8 MB QSPI flash | P02 is ~258 KB; the STM32H750 has 128 KB internal flash |
+| RAM load, not XIP | P02 is built for `daisy_seed/stm32h750xx/ram_load` and uses 283 KB of the 512 KB AXI SRAM (code, data and stack) | `store` writes NVS in QSPI, which a program running from QSPI cannot do (details in the board definition's `AGENTS.md`) |
+| Main stack | `CONFIG_MAIN_STACK_SIZE=4096` in `zephyr/app/prj.conf` | Zephyr's default 1 KB overflowed on `store` (Settings → NVS → flash driver in the main thread); with the MPU stack guard the app halted. The Nano's board already used 4 KB, so it never showed there |
+| App wiring | One overlay per board in `zephyr/app/boards/` providing `p02-led` and `zephyr,user`: `arduino_nano_esp32_procpu.overlay`, `daisy_seed_ram_load.overlay` | `factory::Zephyr` uses only those names; `boards/<board>.overlay` replaces `app.overlay`. See *App overlays* under Board and devicetree for the file name. |
+| Wiring comments | Give all three names: Daisy name, physical pin, STM32 name (`/* D15 = pin 22 = PC0 */`) | Only the physical pin number matches the board's print; the STM32 name is what the datasheet and errors use |
+| CI | A separate job per board: the Nano's `zephyr-build` stays, a new Daisy job builds Zephyr's blinky on `daisy_seed` and P02 with MCUboot (`--sysbuild`) on `daisy_seed/stm32h750xx/ram_load` | Each job is its own check in the PR, so it shows directly whether Zephyr works for the Nano and/or the Daisy. Cost: the workspace setup runs in both jobs (in parallel) – runner time and energy, judged worth it. Later: per-board setup, so each job downloads only its own toolchain |
+| Role mapping | External parts, like the Nano: `StatusLed` = LED on D26 = pin 33 = PD11 (330 Ω to GND, active high); `TempSensor` = potentiometer simulating a TMP36 on A3/D18 = pin 25 = PA7 (ADC1 ch 7), fed from 3V3 pin 38 / GND pin 40 | Pins 16, 20–24 are used by another project on the same breadboard. D1–D14 and D29–D30 are kept free for the Daisy's usual buses (SD card, SPI, I2C, UART, USB HS). Verified on the board: pin 33 = D26 (blinky on the external LED through `daisy_seed_header`) and pin 25 = A3 (Zephyr's `adc_dt` sample with this overlay follows the pot, ~0–3300 mV). Breadboard tip: on the side with pins 21–40, the row number counts the other way, so one row off is an easy mistake |
+| Modules | `hal_stm32`, `cmsis_6` (Cortex-M; `cmsis` is for Cortex-A/R), `mcuboot` and `zcbor` (MCUboot's serial recovery) in `west.yml`; `arm-zephyr-eabi` in `tools/zephyr_setup.sh` | Needed to build for the STM32H750 |
+
+Build directories: today's pattern names the **application**, not the board – our apps build in
+`<app>/build` (`zephyr/app/build`), Zephyr's samples in `<sample>_build` at the root (`hello_world_build`),
+CI in `build-zephyr/<app>`. With two boards, a build for one board overwrites the other's. Proposal, not
+yet applied: add the board as a subdirectory, `<build dir>/<board>` (`zephyr/app/build/daisy_seed`,
+`blinky_build/arduino_nano_esp32`), for all boards and applications.
+
+Open items: **P02 sometimes starts with its USB off** after a software reset (`smpmgr os reset`, the end of
+`west flash`), never seen after power-on or RESET. P02 runs, but the PC sees no device on the port (UsbTreeView:
+port empty). A probe on the board showed `usbd_init()` failing with `-EIO` (likely `HAL_PCD_Init`, the USB
+core reset timing out) and a retry 1 s later failing too; RESET recovers. Not reproducible on demand (a few times
+in an afternoon). Next step if it returns: save the USB/RCC/PWR registers in `__noinit` RAM on failure and print
+them after RESET, and try a retry after an RCC reset of OTG FS. Seen with `board.c` in place; whether it also
+happens without it is not yet known. Other open items: a `zephyr/module.yml` with `board_root: zephyr`, so builds find our boards without `-DBOARD_ROOT` (needed today even for `zephyr/app` with `--sysbuild`); P02 on `native_sim` (emulated LED, ADC and flash; its own branch); the outdated TODO in `factory/zephyr.cpp` `createNvs()` (the `driver/watchdog` branches rewrite it).

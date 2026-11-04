@@ -25,6 +25,10 @@ manifest:
         path-prefix: deps
         name-allowlist:
           - hal_espressif # ESP32-S3 drivers and binary blobs
+          - hal_stm32 # STM32H750 drivers (Daisy Seed)
+          - cmsis_6 # Cortex-M core headers (Daisy Seed)
+          - mcuboot # Bootloader that loads P02 from QSPI flash into RAM (Daisy Seed)
+          - zcbor # CBOR library used by MCUboot's serial recovery (mcumgr) (Daisy Seed)
 
   self:
     path: .

@@ -1,0 +1,20 @@
+# Sysbuild defaults: an app built for daisy_seed/stm32h750xx/ram_load with --sysbuild gets MCUboot in
+# RAM-load mode (MCUboot copies the app from QSPI into AXI SRAM). See sysbuild.cmake.
+
+if BOARD_DAISY_SEED_STM32H750XX_RAM_LOAD
+
+choice BOOTLOADER
+	default BOOTLOADER_MCUBOOT
+endchoice
+
+choice MCUBOOT_MODE
+	default MCUBOOT_MODE_RAM_LOAD
+endchoice
+
+# Hash check only: a signature with MCUboot's public development key would protect nothing and costs
+# internal flash.
+choice BOOT_SIGNATURE_TYPE
+	default BOOT_SIGNATURE_TYPE_NONE
+endchoice
+
+endif

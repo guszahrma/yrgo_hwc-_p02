@@ -1,0 +1,17 @@
+/*
+ * Electrosmith Daisy Seed – plain target: the program runs from the 128 KB internal flash, with no
+ * bootloader. Used for bringing up the board with small programs (blinky). P02 does not fit here.
+ */
+
+/dts-v1/;
+#include "daisy_seed-common.dtsi"
+
+/ {
+	model = "Electrosmith Daisy Seed";
+	compatible = "electrosmith,daisy-seed";
+
+	chosen {
+		zephyr,flash = &flash0;
+		zephyr,flash-controller = &flash;
+	};
+};

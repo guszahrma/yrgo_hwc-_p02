@@ -25,7 +25,7 @@ Zephyr::createGpio(GpioId id, driver::gpio::Direction direction) noexcept
     {
         case GpioId::StatusLed:
         {
-            // Status LED: Aalias p02-led in app.overlay (D6 via the arduino nano header.)
+            // Status LED: alias p02-led in the board's overlay (zephyr/app/boards/).
             static const gpio_dt_spec spec = GPIO_DT_SPEC_GET(DT_ALIAS(p02_led), gpios);
             return std::make_unique<driver::gpio::Zephyr>(spec, direction);
         }
@@ -44,7 +44,8 @@ std::unique_ptr<driver::adc::Interface> Zephyr::createAdc(AdcId id, float refere
     {
         case AdcId::TempSensor:
         {
-            // TMP36: index 0 in io-channels of zephyr,user in app.overlay (A6).
+            // TMP36: index 0 in io-channels of zephyr,user in the board's overlay
+            // (zephyr/app/boards/).
             static const adc_dt_spec spec = ADC_DT_SPEC_GET(DT_PATH(zephyr_user));
             return std::make_unique<driver::adc::Zephyr>(spec);
         }
@@ -61,7 +62,8 @@ std::unique_ptr<driver::nvs::Interface> Zephyr::createNvs(const char* namespaceN
 // -----------------------------------------------------------------------------
 std::unique_ptr<driver::serial::Interface> Zephyr::createSerial() noexcept
 {
-    // The console device: USB-C on the nano. (zephyr,console in the board)
+    // The console device (zephyr,console in the board): USB-C on the Nano, a USB serial port
+    // (CDC ACM) on the Daisy's micro-USB.
     return std::make_unique<driver::serial::Zephyr>(DEVICE_DT_GET(DT_CHOSEN(zephyr_console)));
 }
 

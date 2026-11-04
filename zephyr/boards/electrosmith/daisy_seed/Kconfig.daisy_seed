@@ -1,0 +1,4 @@
+# Electrosmith Daisy Seed – chip selection.
+
+config BOARD_DAISY_SEED
+	select SOC_STM32H750XX

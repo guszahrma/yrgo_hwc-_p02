@@ -7,7 +7,7 @@
 
 int main()
 {
-    // The Zephyr build uses the Zephyr drivers (NVS is still a stub).
+    // The Zephyr build uses the Zephyr drivers.
     driver::factory::Zephyr factory{};
     logic::Logic logic{factory};
     logic.run();

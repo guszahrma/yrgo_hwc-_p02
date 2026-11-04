@@ -9,7 +9,6 @@
 #include <cstdlib>
 #include <cstring>
 #include <iostream>
-#include <limits>
 #include <string_view>
 #include <thread>
 
@@ -298,9 +297,10 @@ void Logic::loadStoredUserSettings() noexcept
     const auto [ptr, ec] =
         std::from_chars(blinkPeriod.data(), blinkPeriod.data() + blinkPeriod.size(), parsed);
 
-    // Valid only if it is a number, the whole string was read and it fits in a uint16_t
+    // Valid only if it is a number, the whole string was read and it is in the range that `period`
+    // accepts (old or corrupt data in NVS falls back to the default)
     const bool valid{(std::errc{} == ec) && (blinkPeriod.data() + blinkPeriod.size() == ptr) &&
-                     (0U < parsed) && (std::numeric_limits<std::uint16_t>::max() >= parsed)};
+                     (MinPeriodMs <= parsed) && (MaxPeriodMs >= parsed)};
 
     if (valid) { myPeriodLengthMs = static_cast<std::uint16_t>(parsed); }
     else
@@ -308,12 +308,6 @@ void Logic::loadStoredUserSettings() noexcept
         std::cout << "Invalid stored blink period '" << blinkPeriod << "', using "
                   << DefaultPeriodMs << " ms" << std::endl;
         myPeriodLengthMs = DefaultPeriodMs;
-    }
-
-    // Old or corrupt data in NVS: fall back to the default instead of using an invalid period.
-    if ((MinPeriodMs > myPeriodLengthMs) || (MaxPeriodMs < myPeriodLengthMs))
-    {
-        myPeriodLengthMs = 1000;
     }
 
     // Implement the logic to load the stored state from non-volatile memory.

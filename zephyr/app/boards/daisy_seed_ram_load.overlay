@@ -1,0 +1,55 @@
+/*
+ * P02 wiring on the breadboard for the Zephyr app – Electrosmith Daisy Seed.
+ *
+ * Status LED on D26 = pin 33 = PD11: D26 -> 330 ohm -> LED anode, LED cathode -> GND (pin 40).
+ * The pin drives the LED directly, so it is active high.
+ *
+ * TempSensor, simulated by a potentiometer: the wiper -> A3/D18 = pin 25 = PA7 (ADC1 channel 7), the
+ * outer legs -> 3V3 (pin 38) and GND (pin 40). P02 converts the voltage with the TMP36 formula.
+ *
+ * Pins 16 and 20-24 are used by another project on the same breadboard.
+ *
+ * Only P02's own wiring belongs here. The LED on the board itself (led0) is defined by the board
+ * (zephyr/boards/electrosmith/daisy_seed/daisy_seed-common.dtsi).
+ */
+
+#include <zephyr/dt-bindings/adc/adc.h>
+#include <zephyr/dt-bindings/gpio/gpio.h>
+
+/ {
+	aliases {
+		p02-led = &p02_led;
+	};
+
+	p02-leds {
+		compatible = "gpio-leds";
+
+		p02_led: led-d26 {
+			gpios = <&daisy_seed_header DAISY_SEED_HEADER_D26 GPIO_ACTIVE_HIGH>; /* D26 = pin 33 = PD11 */
+			label = "P02 status LED (D26)";
+		};
+	};
+
+	zephyr,user {
+		io-channels = <&adc1 7>; /* A3/D18 = pin 25 = PA7 = ADC1 channel 7 */
+	};
+};
+
+&adc1 {
+	pinctrl-0 = <&adc1_inp7_pa7>;
+	pinctrl-names = "default";
+	st,adc-clock-source = "SYNC";
+	st,adc-prescaler = <4>;
+	status = "okay";
+	#address-cells = <1>;
+	#size-cells = <0>;
+
+	/* A3: full range 0-3.3 V (the ADC's reference is the Daisy's 3V3). */
+	channel@7 {
+		reg = <7>;
+		zephyr,gain = "ADC_GAIN_1";
+		zephyr,reference = "ADC_REF_INTERNAL";
+		zephyr,acquisition-time = <ADC_ACQ_TIME(ADC_ACQ_TIME_TICKS, 65)>;
+		zephyr,resolution = <12>;
+	};
+};

@@ -6,8 +6,8 @@
 #   .west/config    Makes the repository the west workspace, with west.yml as its manifest.
 #   deps/           The Zephyr release and modules that west.yml pins.
 #
-# The Zephyr SDK (compiler) is installed once per user in ~/zephyr-sdk-<version>, and only if no
-# ESP32-S3 toolchain is found there already.
+# The Zephyr SDK (compilers) is installed once per user in ~/zephyr-sdk-<version>; each toolchain is
+# installed only if it is not found there already.
 #
 # Running the script again is safe: it brings the workspace up to date with west.yml.
 #
@@ -21,8 +21,8 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
-# Toolchain for the Arduino Nano ESP32 (ESP32-S3, Xtensa).
-TOOLCHAIN="xtensa-espressif_esp32s3_zephyr-elf"
+# Toolchains: the Arduino Nano ESP32 (ESP32-S3, Xtensa) and the Daisy Seed (STM32H750, Cortex-M7).
+TOOLCHAINS=(xtensa-espressif_esp32s3_zephyr-elf arm-zephyr-eabi)
 
 ################################################################################
 # Terminate the script if a host tool the workspace needs is missing.
@@ -43,13 +43,13 @@ check_host_tools() {
 
 check_host_tools
 
-# The Python environment, with west and ninja.
+# The Python environment, with west, ninja and smpmgr (sends apps to MCUboot over USB, Daisy Seed).
 if [ ! -x .venv/bin/python3 ]; then
     echo "==== Creating the Python environment in .venv"
     python3 -m venv .venv
 fi
 .venv/bin/pip install --quiet --upgrade pip
-.venv/bin/pip install --quiet west ninja
+.venv/bin/pip install --quiet west ninja smpmgr
 
 # Make the repository the west workspace. `west init -l` would put the workspace in the parent
 # directory (the home directory) instead, so the configuration is written directly.
@@ -66,12 +66,14 @@ echo "==== Fetching Zephyr and its modules (the first time takes a few minutes)"
 echo "==== Installing Zephyr's Python requirements"
 ZEPHYR_BASE="$ROOT/deps/zephyr" .venv/bin/west packages pip --install
 
-if compgen -G "$HOME/zephyr-sdk-*/gnu/$TOOLCHAIN" > /dev/null; then
-    echo "==== Zephyr SDK with $TOOLCHAIN already installed"
-else
-    echo "==== Installing the Zephyr SDK ($TOOLCHAIN)"
-    (cd deps/zephyr && ZEPHYR_BASE="$ROOT/deps/zephyr" "$ROOT/.venv/bin/west" sdk install -t "$TOOLCHAIN")
-fi
+for toolchain in "${TOOLCHAINS[@]}"; do
+    if compgen -G "$HOME/zephyr-sdk-*/gnu/$toolchain" > /dev/null; then
+        echo "==== Zephyr SDK with $toolchain already installed"
+    else
+        echo "==== Installing the Zephyr SDK ($toolchain)"
+        (cd deps/zephyr && ZEPHYR_BASE="$ROOT/deps/zephyr" "$ROOT/.venv/bin/west" sdk install -t "$toolchain")
+    fi
+done
 
 echo "==== Fetching the Espressif binary blobs"
 ZEPHYR_BASE="$ROOT/deps/zephyr" .venv/bin/west blobs fetch hal_espressif

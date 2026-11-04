@@ -36,7 +36,7 @@ Pins on ESP-IDF are handled by `driver::pin`:
 * `driver/pin/manager.h` (`PhysicalPinManager`) keeps track of which physical pins are in use, so that two
   drivers cannot claim the same pin.
 
-On Zephyr, pins come from devicetree instead (see [Zephyr environment](zephyr_environment.md#drivers)).
+On Zephyr, pins come from devicetree instead (see [Zephyr environment](platform_zephyr.md#drivers)).
 
 ## Adding or changing hardware
 
@@ -48,7 +48,7 @@ is. To add or change hardware:
 2. Map the role in each platform's factory:
    - ESP-IDF: `main/source/driver/factory/esp32s3.cpp` (via the Arduino pin names in
      `driver/pin/esp32s3.h`)
-   - Zephyr: `main/source/driver/factory/zephyr.cpp`, and describe the wiring in `zephyr/app/app.overlay`
+   - Zephyr: `main/source/driver/factory/zephyr.cpp`, and describe the wiring in the board's overlay in `zephyr/app/boards/`
      (an alias for a GPIO, `io-channels` in `zephyr,user` for an ADC channel)
    - Stub: `main/include/driver/factory/stub.h`
 3. The compiler warns (`-Wswitch`) if a factory does not handle a new role.
@@ -79,14 +79,16 @@ The current wiring is listed in [Usage](usage.md#hardware-and-wiring).
 │   ├── include/
 │   │   ├── arch/env/         # Platform selection (real hardware / test environment)
 │   │   ├── communication/    # wifi, mqtt (publish/subscribe) – ESP-IDF only
-│   │   ├── driver/           # adc, factory, gpio, nvs, pin, serial, tempsensor, timer
+│   │   ├── driver/           # adc, factory, gpio, nvs, pin, serial, tempsensor, timer, watchdog
 │   │   ├── logic/            # Application logic (command parser)
 │   │   └── ml/               # Linear regression
 │   └── source/               # Implementations, same layout as include/
 ├── zephyr/
 │   ├── app/                  # P02 on Zephyr: logic::Logic with factory::Zephyr
+│   │   └── boards/           # The wiring: one devicetree overlay per board
 │   ├── boards/               # Out-of-tree Zephyr boards (<vendor>/<board>/), add new boards here
-│   │   └── arduino/nano_esp32/   # Our board definition: arduino_nano_esp32
+│   │   ├── arduino/nano_esp32/       # Our board definition: arduino_nano_esp32
+│   │   └── electrosmith/daisy_seed/  # Our board definition: daisy_seed (with MCUboot setup)
 │   └── samples/blinky/       # First Zephyr app: yellow LED + RGB colour cycle
 ├── tests/                    # Unit tests on the host (GoogleTest, mocked hardware)
 │   ├── CMakeLists.txt        # Test build: test files, code under test, mocks
@@ -100,8 +102,8 @@ The current wiring is listed in [Usage](usage.md#hardware-and-wiring).
 └── .github/workflows/ci.yml  # CI: formatting, ESP-IDF and Zephyr builds, unit tests
 ```
 
-Generated and not committed: `sdkconfig` and `build/` (ESP-IDF), `.west/`, `deps/` and `zephyr/*/build/`
-(Zephyr), `.venv/` (Python tools for Zephyr and clang-format).
+Generated and not committed: `sdkconfig` and `build/` (ESP-IDF), `.west/`, `deps/`, `zephyr/*/build/`
+and `zephyr/app/daisy_seed_build/` (Zephyr), `.venv/` (Python tools for Zephyr and clang-format).
 
 ## Drivers
 
@@ -112,13 +114,14 @@ Generated and not committed: `sdkconfig` and `build/` (ESP-IDF), `.west/`, `deps
 | Serial | `driver::serial` | Over the board's USB port, `readLine()` is non-blocking | ✅ | ✅ |
 | Timer | `driver::timer` | Software timer, polled with `timeout()` | ✅ | ✅ |
 | NVS | `driver::nvs` | Strings + integers (template), keys max 15 characters | ✅ | ✅ |
+| Watchdog | `driver::watchdog` | Restarts the system if `kick()` is not called in time; `causedLastReset()` | ✅ | ✅ |
 | Temp sensor | `driver::tempsensor` | `Tmp36` uses an `adc::Interface`, platform independent | ✅ | ✅ |
 | Wi-Fi | `comm::wifi` | Scans for and connects to the configured network | ✅ | – |
 | MQTT | `comm::mqtt::publish/subscribe` | Publish and subscribe to topics | ✅ | – |
 | ML | `ml::lin_reg` | Adaptive linear regression, platform independent | ✅ | – |
 
-Which platform API each driver uses is listed in [ESP-IDF environment](espressif_environment.md#drivers)
-and [Zephyr environment](zephyr_environment.md#drivers).
+Which platform API each driver uses is listed in [ESP-IDF environment](platform_esp_idf.md#drivers)
+and [Zephyr environment](platform_zephyr.md#drivers).
 
 ## Known issues
 

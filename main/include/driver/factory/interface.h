@@ -13,6 +13,7 @@
 #include "driver/serial/interface.h"
 #include "driver/tempsensor/interface.h"
 #include "driver/timer/interface.h"
+#include "driver/watchdog/interface.h"
 
 namespace driver::factory
 {
@@ -21,7 +22,7 @@ namespace driver::factory
  */
 enum class GpioId : std::uint8_t
 {
-    StatusLed, // Status LED (D6 on the Arduino Nano ESP32).
+    StatusLed, // Status LED (D6 on the Arduino Nano ESP32, D26 on the Daisy Seed).
 };
 
 /**
@@ -29,7 +30,7 @@ enum class GpioId : std::uint8_t
  */
 enum class AdcId : std::uint8_t
 {
-    TempSensor, // TMP36 temperature sensor (A6 on the Arduino Nano ESP32).
+    TempSensor, // TMP36 temperature sensor (A6 on the Arduino Nano ESP32, A3 on the Daisy Seed).
 };
 
 /**
@@ -98,5 +99,15 @@ public:
      * @return unique pointer
      */
     virtual std::unique_ptr<driver::timer::Interface> createTimer() noexcept = 0;
+
+    /**
+     * @brief Create a watchdog that restarts the system if it is not kicked in time
+     *
+     * @param[in] timeoutMs Time in milliseconds without a kick before the system restarts
+     *
+     * @return unique pointer
+     */
+    virtual std::unique_ptr<driver::watchdog::Interface>
+    createWatchdog(std::uint32_t timeoutMs) noexcept = 0;
 };
 } // namespace driver::factory

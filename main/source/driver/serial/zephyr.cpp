@@ -2,6 +2,8 @@
  * @file Zephyr serial driver implementation.
  */
 
+#include <cstdint>
+
 #include <zephyr/device.h>
 #include <zephyr/drivers/uart.h>
 #include <zephyr/kernel.h>
@@ -16,6 +18,7 @@ Zephyr::Zephyr(const device* uart) noexcept
     , myReady{false}
     , myInternalBuf{}
     , myInternalLen{0U}
+    , myPortOpen{false}
 {
     if (nullptr == myUart)
     {
@@ -52,6 +55,22 @@ bool Zephyr::readLine(char* buffer, std::size_t maxSize) noexcept
     if ((!myReady) || (nullptr == buffer) || (0U == maxSize)) { return false; }
 
     unsigned char byte{};
+
+    // A monitor has just opened the port (DTR set): drop what was received before. When the PC
+    // opens a USB serial port with echo on, it sends the app's waiting output straight back, which
+    // would otherwise end up in front of the first command. Only USB serial ports (CDC ACM) report
+    // DTR.
+    std::uint32_t dtr{};
+    if (0 == uart_line_ctrl_get(myUart, UART_LINE_CTRL_DTR, &dtr))
+    {
+        const bool portOpen{0U != dtr};
+        if (portOpen && !myPortOpen)
+        {
+            while (0 == uart_poll_in(myUart, &byte)) {}
+            myInternalLen = 0U;
+        }
+        myPortOpen = portOpen;
+    }
 
     // uart_poll_in() returns 0 when a character was read and -1 when there is none (non-blocking).
     while (0 == uart_poll_in(myUart, &byte))

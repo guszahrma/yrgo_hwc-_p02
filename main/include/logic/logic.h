@@ -24,6 +24,7 @@
  *           blinkstate (on/off)
  *           period_length_ms (ms)
  *           current temperature (°C)
+ * - hang → stops kicking the watchdog, as a hung program would, to test it: the system restarts
  */
 
 namespace logic
@@ -66,10 +67,19 @@ private:
     void handleHelp() noexcept;
     void handleUnknownCommand(const std::string_view& cmd) noexcept;
     void handleStore() noexcept;
+    void handleHang() noexcept;
     void loadStoredUserSettings() noexcept;
 
-    std::uint16_t myPeriodLengthMs;                            // Blinking period in milliseconds
-    bool myBlinkState;                                         // false for off, true for on
+    /** Watchdog timeout: the system restarts if Logic stops kicking for this long. */
+    static constexpr std::uint32_t WatchdogTimeoutMs{3000U};
+
+    /** Valid range for the blink period; other values are rejected. */
+    static constexpr std::uint16_t MinPeriodMs{50U};
+    static constexpr std::uint16_t MaxPeriodMs{10000U};
+
+    std::uint16_t myPeriodLengthMs; // Blinking period in milliseconds
+    bool myBlinkState;              // false for off, true for on
+    bool myHung;                    // true after 'hang': the watchdog is no longer kicked
     std::unique_ptr<driver::serial::Interface> mySerialDriver; // Serial driver for communication
     std::unique_ptr<driver::gpio::Interface> myStatusLed; // Status LED (role GpioId::StatusLed)
     std::unique_ptr<driver::adc::Interface>
@@ -79,5 +89,6 @@ private:
     std::unique_ptr<driver::tempsensor::Interface> myTempSensor; // TMP36 temperature sensor driver
     std::unique_ptr<driver::nvs::Interface>
         myNvsUserSettingsStorage; // NVS driver for non-volatile storage of Usersettings
+    std::unique_ptr<driver::watchdog::Interface> myWatchdog;
 };
 } // namespace logic

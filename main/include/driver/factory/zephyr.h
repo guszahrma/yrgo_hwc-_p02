@@ -13,8 +13,9 @@ namespace driver::factory
 /**
  * @brief Driver factory for Zephyr.
  *
- * Maps P02's roles to devicetree (zephyr/app/app.overlay): GpioId::StatusLed -> alias p02-led,
- * AdcId::TempSensor -> io-channels in zephyr,user. NVS uses nvs::Zephyr (Settings subsystem).
+ * Maps P02's roles to devicetree (each board's overlay in zephyr/app/boards/):
+ * GpioId::StatusLed -> alias p02-led, AdcId::TempSensor -> io-channels in zephyr,user. NVS uses
+ * nvs::Zephyr (Settings subsystem).
  */
 class Zephyr final : public Interface
 {
@@ -83,6 +84,16 @@ public:
      * @return unique pointer to the hardware timer driver
      */
     std::unique_ptr<driver::timer::Interface> createTimer() noexcept override;
+
+    /**
+     * @brief Create a watchdog that restarts the system if it is not kicked in time
+     *
+     * @param[in] timeoutMs Time in milliseconds without a kick before the system restarts
+     *
+     * @return unique pointer to the watchdog driver
+     */
+    std::unique_ptr<driver::watchdog::Interface>
+    createWatchdog(std::uint32_t timeoutMs) noexcept override;
 
     Zephyr(const Zephyr&)            = delete;
     Zephyr(Zephyr&&)                 = delete;

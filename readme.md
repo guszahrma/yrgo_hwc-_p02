@@ -10,10 +10,10 @@ Course project in:
 
 ## Features
 
-- Drivers for GPIO, ADC, timer, serial (USB) and non-volatile storage, behind platform-independent
-  interfaces
+- Drivers for GPIO, ADC, timer, serial (USB), non-volatile storage and a watchdog, behind
+  platform-independent interfaces
 - TMP36 temperature sensor; Wi-Fi and MQTT (ESP-IDF only)
-- Serial commands: LED on/off, blinking, temperature, settings saved across resets
+- Serial commands: LED on/off, blinking, temperature, settings saved across resets, a watchdog test
 
 Development: unit tests on the development PC (the *host*, as opposed to the board) with mocked hardware,
 and CI (formatting, ESP-IDF and Zephyr builds, unit tests) on every pull request.
@@ -47,7 +47,7 @@ administrator; the first time, see [Setup](docs/setup.md#4-attach-the-board-to-w
 usbipd attach --wsl --busid <BUSID> --auto-attach   # find the BUSID with: usbipd list
 ```
 
-**ESP-IDF** – requires ESP-IDF 6.0, see [ESP-IDF environment](docs/espressif_environment.md):
+**ESP-IDF** – requires ESP-IDF 6.0, see [ESP-IDF environment](docs/platform_esp_idf.md):
 
 ```bash
 . ~/esp/esp-idf/export.sh                                       # or the get_idf alias
@@ -55,21 +55,21 @@ cp main/include/communication/wifi/esp32s3_local_config_template.h \
    main/include/communication/wifi/esp32s3_local_config.h      # first time only (needed to build)
 idf.py set-target esp32s3                                       # first time only
 idf.py build
-idf.py -p /dev/ttyACM0 flash monitor
+idf.py -p /dev/tty_arduino_nano_esp32 flash monitor
 ```
 
 **Zephyr** – the setup script fetches Zephyr, the toolchain and the Python tools
-([Zephyr environment](docs/zephyr_environment.md)):
+([Zephyr environment](docs/platform_zephyr.md)):
 
 ```bash
 tools/zephyr_setup.sh            # first time only (~800 MB)
 source tools/zephyr_env.sh       # or the get_zephyr alias
 west build -p always -b arduino_nano_esp32/esp32s3/procpu -s zephyr/app -d zephyr/app/build
-west flash -d zephyr/app/build --esp-device /dev/ttyACM0 && python -m serial.tools.miniterm --exit-char 24 /dev/ttyACM0 115200
+west flash -d zephyr/app/build --esp-device /dev/tty_arduino_nano_esp32 && tio /dev/tty_arduino_nano_esp32
 ```
 
 Then type `help` in the monitor ([serial commands](docs/usage.md#serial-commands)). Exit the monitor with
-`Ctrl+]` or `Ctrl+T`, `Ctrl+X` (ESP-IDF), or `Ctrl+X` (Zephyr).
+`Ctrl+]` or `Ctrl+T`, `Ctrl+X` (ESP-IDF), or `Ctrl+T`, `q` (Zephyr, `tio`).
 
 ## Hardware
 
@@ -78,16 +78,20 @@ Then type `help` in the monitor ([serial commands](docs/usage.md#serial-commands
 | Status LED | D6 | LED + resistor to GND |
 | Temperature sensor | A6 | TMP36: Vout to A6, V+ to 3V3 or VBUS (2.7–5.5 V), 0.1 µF capacitor between V+ and GND |
 
+P02 also runs on the Electrosmith Daisy Seed (Zephyr): see [Daisy Seed](docs/p02_daisy_seed.md#wiring-for-p02).
+
 ## Documentation
 
 | Document | Contents |
 |---|---|
 | [Setup](docs/setup.md) | WSL, usbipd, packages, cloning, first flash of a new board |
-| [ESP-IDF environment](docs/espressif_environment.md) | Installing ESP-IDF, building and flashing, drivers |
-| [Zephyr environment](docs/zephyr_environment.md) | Installing Zephyr, building and flashing, samples, drivers |
+| [ESP-IDF environment](docs/platform_esp_idf.md) | Installing ESP-IDF, building and flashing, drivers |
+| [Zephyr environment](docs/platform_zephyr.md) | Installing Zephyr, building and flashing, samples, drivers |
 | [Usage](docs/usage.md) | Serial commands, wiring, switching between ESP-IDF and Zephyr |
 | [Architecture](docs/architecture.md) | Interfaces, factories, adding hardware or drivers, folder structure |
-| [Board](docs/board.md) | Arduino Nano ESP32 facts and our Zephyr board definition |
+| [Boards](docs/boards.md) | Supported boards and what a board needs to run P02 |
+| [P02 on the Arduino Nano ESP32](docs/p02_arduino_nano_esp32.md) | How P02 uses the Nano, wiring. The board itself: [Arduino Nano ESP32](zephyr/boards/arduino/nano_esp32/doc/index.md) |
+| [P02 on the Daisy Seed](docs/p02_daisy_seed.md) | Electrosmith Daisy Seed (Zephyr only, work in progress): setup, building, flashing, wiring. The board itself: [Daisy Seed](zephyr/boards/electrosmith/daisy_seed/doc/index.md) |
 | [Contributing](docs/contributing.md) | Workflow, tests, code style, CI |
 
 Troubleshooting tables, design decisions and lessons learned are collected in [`AGENTS.md`](AGENTS.md),

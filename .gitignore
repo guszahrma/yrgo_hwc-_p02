@@ -69,3 +69,6 @@ main/include/communication/wifi/esp32s3_local_config.h
 
 # Ignore local Claude Code settings (per developer)
 .claude/settings.local.json
+
+# Ignore local Claude Code skills (not shared yet)
+.claude/skills/

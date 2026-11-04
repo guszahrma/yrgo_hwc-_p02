@@ -1,0 +1,28 @@
+# Daisy Seed pin header – our own binding, modelled on Zephyr's arduino-nano-header.yaml. Zephyr has
+# none for the Daisy. Found because Zephyr searches <board directory>/dts/bindings.
+
+description: |
+    GPIO pins exposed on the Electrosmith Daisy Seed's two 20-pin headers.
+
+    This binding provides a nexus mapping for the 31 GPIO pins D0-D30. The parent pin number is the
+    Daisy pin number: 0 = D0 ... 30 = D30. A0-A11 are the same pins as D15-D25 and D28.
+
+    Physical pins (only 1, 10, 21, 32 and 40 are labelled on the board; 1-20 run down one side,
+    21-40 back up the other). Power, audio and ground pins are not exposed by this binding.
+
+        pin  1  D0                      pin 40  DGND
+        pin  2  D1                      pin 39  VIN
+        ...                             pin 38  3V3 digital
+        pin 15  D14                     pin 37  D30
+        pin 16  audio in L              ...
+        pin 17  audio in R              pin 25  D18 / A3
+        pin 18  audio out L             pin 24  D17 / A2
+        pin 19  audio out R             pin 23  D16 / A1
+        pin 20  AGND                    pin 22  D15 / A0
+                                        pin 21  3V3 analog
+
+    Use the DAISY_SEED_HEADER_* constants in <dt-bindings/gpio/daisy-seed-header.h> for pin names.
+
+compatible: "daisy-seed-header"
+
+include: [gpio-nexus.yaml, base.yaml]

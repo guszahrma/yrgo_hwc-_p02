@@ -50,7 +50,7 @@ git and must **never** be committed.
 Install ESP-IDF 6.0 with Espressif's installer and open the ESP-IDF PowerShell
 (`C:\Espressif\tools\Microsoft.v6.0.PowerShell_profile.ps1`). If needed:
 `Set-ExecutionPolicy RemoteSigned -Scope CurrentUser`. The commands below are the same, but the port is
-called `COMx` instead of `/dev/ttyACM0`.
+called `COMx` instead of `/dev/tty_arduino_nano_esp32`.
 
 ## Building and flashing
 
@@ -62,11 +62,11 @@ From the **repository root** (attach the board first, see [Setup](setup.md#4-att
 . ~/esp/esp-idf/export.sh     # or use the get_idf alias
 idf.py set-target esp32s3     # first time only / after fullclean
 idf.py build
-idf.py -p /dev/ttyACM0 flash monitor
+idf.py -p /dev/tty_arduino_nano_esp32 flash monitor
 ```
 
 Exit the monitor with `Ctrl+]` or `Ctrl+T`, `Ctrl+X`. If the monitor cannot find the port right after
-flashing (the board is still being re-attached), wait a few seconds and run `idf.py -p /dev/ttyACM0 monitor`.
+flashing (the board is still being re-attached), wait a few seconds and run `idf.py -p /dev/tty_arduino_nano_esp32 monitor`.
 
 Then use the [serial commands](usage.md#serial-commands).
 
@@ -78,6 +78,7 @@ Then use the [serial commands](usage.md#serial-commands).
 | `sdkconfig` | The active configuration (generated, not committed) |
 | `build/*.bin`, `build/*.elf`, `build/*.map` | Firmware, ELF with symbols, memory map |
 | `idf.py fullclean` | Delete the build; run `set-target` again afterwards |
+| `idf.py -p /dev/tty_arduino_nano_esp32 erase-flash` | Erase the whole flash, including saved settings – e.g. after [switching from Zephyr](usage.md#switching-between-esp-idf-and-zephyr) |
 
 ## Drivers
 

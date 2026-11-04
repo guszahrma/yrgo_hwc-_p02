@@ -22,7 +22,7 @@ namespace driver::factory
  */
 enum class GpioId : std::uint8_t
 {
-    StatusLed, // Status LED (D6 on the Arduino Nano ESP32).
+    StatusLed, // Status LED (D6 on the Arduino Nano ESP32, D26 on the Daisy Seed).
 };
 
 /**
@@ -30,7 +30,7 @@ enum class GpioId : std::uint8_t
  */
 enum class AdcId : std::uint8_t
 {
-    TempSensor, // TMP36 temperature sensor (A6 on the Arduino Nano ESP32).
+    TempSensor, // TMP36 temperature sensor (A6 on the Arduino Nano ESP32, A3 on the Daisy Seed).
 };
 
 /**

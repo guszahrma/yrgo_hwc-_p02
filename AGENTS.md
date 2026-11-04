@@ -133,7 +133,7 @@ tools/clang-format/check.sh
 | NVS initialisation | `nvs_flash_init()` in the NVS driver's constructor (erase and retry if the partition is full or from a newer version) | The driver works without the Wi-Fi driver having initialised flash first |
 | Pins | Arduino names (`D6`, `A6`) mapped to GPIO numbers in `driver/pin/esp32s3.h`; `PhysicalPinManager` stops two drivers from claiming the same pin | Code and wiring use the names printed on the board |
 | Watchdog | The task watchdog (TWDT): `esp_task_wdt_reconfigure()` (ESP-IDF has usually started it; `esp_task_wdt_init()` if not) with `trigger_panic = true` and both idle tasks still watched; the task that creates the driver is added with `esp_task_wdt_add(nullptr)` | `trigger_panic` restarts instead of only logging. The TWDT watches tasks, which fits `Logic`'s loop; the interrupt and RTC watchdogs are for lower-level hangs |
-| Testing the watchdog | The `hang` command; an invalid `period` is only rejected | A user error is not a reason to restart; `hang` stops the loop like a real hang |
+| Testing the watchdog | The `hang` command, which sets a flag (`myHung`) that stops the kicks; an invalid `period` is only rejected | A user error is not a reason to restart. A flag rather than an endless loop in `handleHang()`: the rest of the program keeps running until the restart, so `hang` can be tested on the host |
 
 ### Pitfalls and lessons learned
 

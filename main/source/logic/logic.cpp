@@ -56,14 +56,22 @@ Logic::~Logic() noexcept
 // --------------------------------------------------------------------------------
 void Logic::run() noexcept
 {
-    // Implementation for running the logic loop will go here.
-    // This will include reading commands from the serial input, processing them, and controlling
-    // the LED and other components accordingly. It will also handle the blinking logic and period
-    // adjustments.
+    loadStoredUserSettings();
 
-    // The loop should be designed to be non-blocking and responsive, allowing for real-time command
-    // processing and state updates.
+    mySerialDriver->print(
+        "write relevant command, write help to get a list of available commands\n");
 
+    // The main loop: one pass at a time, forever. Tests call step() directly instead, so that they
+    // get control back after each pass.
+    while (true)
+    {
+        step();
+    }
+}
+
+// --------------------------------------------------------------------------------
+void Logic::step() noexcept
+{
     constexpr std::size_t bufferSize{64};
 
     // Must be at least one FreeRTOS tick (10 ms with CONFIG_FREERTOS_HZ=100): shorter sleeps
@@ -72,82 +80,73 @@ void Logic::run() noexcept
 
     char buffer[bufferSize]{};
 
-    loadStoredUserSettings();
+    // Tell the watchdog that the loop is still running. After 'hang' (see handleHang()) the
+    // kicks stop, and the watchdog restarts the system as if the loop had hung.
+    if (!myHung) { myWatchdog->kick(); }
 
-    mySerialDriver->print(
-        "write relevant command, write help to get a list of available commands\n");
-
-    while (true)
+    // Handle a command if a whole line has arrived; otherwise sleep briefly so the loop does not
+    // busy-wait.
+    if (mySerialDriver->readLine(buffer, sizeof(buffer)))
     {
-        // Tell the watchdog that the loop is still running. After 'hang' (see handleHang()) the
-        // kicks stop, and the watchdog restarts the system as if the loop had hung.
-        if (!myHung) { myWatchdog->kick(); }
+        std::cout << std::endl << std::endl << "Reading line..." << buffer << std::endl;
 
-        if (mySerialDriver->readLine(buffer, sizeof(buffer)))
+        std::string_view input{buffer, std::strlen(buffer)};
+
+        // Split into first word and the rest
+        auto spacePos = input.find(' ');
+        auto cmd      = input.substr(0, spacePos);
+        auto args =
+            (spacePos != std::string_view::npos) ? input.substr(spacePos + 1) : std::string_view{};
+        if ("help" == cmd || "Help" == cmd)
+            handleHelp();
+        else if (cmd == "on")
+            handleOn();
+        else if (cmd == "off")
+            handleOff();
+        else if (cmd == "status")
+            handleStatus();
+        else if (cmd == "hang")
+            handleHang();
+        else if (cmd == "blink")
         {
-            std::cout << std::endl << std::endl << "Reading line..." << buffer << std::endl;
-
-            std::string_view input{buffer, std::strlen(buffer)};
-
-            // Split into first word and the rest
-            auto spacePos = input.find(' ');
-            auto cmd      = input.substr(0, spacePos);
-            auto args     = (spacePos != std::string_view::npos) ? input.substr(spacePos + 1)
-                                                                 : std::string_view{};
-            if ("help" == cmd || "Help" == cmd)
-                handleHelp();
-            else if (cmd == "on")
-                handleOn();
-            else if (cmd == "off")
-                handleOff();
-            else if (cmd == "status")
-                handleStatus();
-            else if (cmd == "hang")
-                handleHang();
-            else if (cmd == "blink")
-            {
-                if (args == "on")
-                    handleBlinkOn();
-                else if (args == "off")
-                    handleBlinkOff();
-                else
-                    mySerialDriver->print("Usage: blink on | blink off\n");
-            }
-            else if (cmd == "period")
-            {
-                std::uint16_t ms{};
-
-                // Parse the argument as a number. std::from_chars returns where it stopped (ptr)
-                // and an error code (ec), unpacked with a structured binding. ec is set if args is
-                // empty, not a number or too large for std::uint16_t.
-                const auto [ptr, ec] = std::from_chars(args.data(), args.data() + args.size(), ms);
-
-                // ptr must reach the end of args, so "500abc" is not accepted as 500.
-                if ((std::errc{} == ec) && (args.data() + args.size() == ptr))
-                    handlePeriod(ms);
-                else
-                    mySerialDriver->print("Usage: period <ms>, e.g. period 500\n");
-            }
-            else if (cmd == "store")
-                handleStore();
+            if (args == "on")
+                handleBlinkOn();
+            else if (args == "off")
+                handleBlinkOff();
             else
-                handleUnknownCommand(cmd);
+                mySerialDriver->print("Usage: blink on | blink off\n");
         }
-        else
+        else if (cmd == "period")
         {
-            std::this_thread::sleep_for(
-                std::chrono::milliseconds(sleepDuration_ms)); // Sleep briefly to avoid busy-waiting
-                                                              // when no input is available
-        }
+            std::uint16_t ms{};
 
-        // timeout can retrurn true if timer is running and the set period has elapsed, otherwise
-        // false
-        if (myTimerDriver->timeout())
-        {
-            // Toggle the LED state
-            myStatusLed->toggle();
-            myTimerDriver->start(); // Restart the timer for the next period
+            // Parse the argument as a number. std::from_chars returns where it stopped (ptr) and an
+            // error code (ec), unpacked with a structured binding. ec is set if args is empty, not
+            // a number or too large for std::uint16_t.
+            const auto [ptr, ec] = std::from_chars(args.data(), args.data() + args.size(), ms);
+
+            // ptr must reach the end of args, so "500abc" is not accepted as 500.
+            if ((std::errc{} == ec) && (args.data() + args.size() == ptr))
+                handlePeriod(ms);
+            else
+                mySerialDriver->print("Usage: period <ms>, e.g. period 500\n");
         }
+        else if (cmd == "store")
+            handleStore();
+        else
+            handleUnknownCommand(cmd);
+    }
+    else
+    {
+        std::this_thread::sleep_for(std::chrono::milliseconds(sleepDuration_ms));
+    }
+
+    // Blinking: toggle the LED each time the blink period has elapsed. timeout() is only true while
+    // the timer is running, i.e. after 'blink on'.
+    if (myTimerDriver->timeout())
+    {
+        myStatusLed->toggle();
+        myTimerDriver->start(); // Restart the timer for the next period
     }
 }
 

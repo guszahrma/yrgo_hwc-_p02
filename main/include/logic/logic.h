@@ -44,13 +44,20 @@ public:
     ~Logic() noexcept;
 
     /**
-     * @brief Runs the main logic loop.
-     * Continuously listens for commands from the serial input and executes the corresponding
-     * actions. Will later be extended to also receive commands from MQTT and possibly other
-     * sources. The loop should be designed to be non-blocking and responsive, allowing for
-     * real-time command processing and state updates.
+     * @brief Runs the application: loads the stored user settings, prints the welcome text and
+     *        then calls step() forever. Never returns.
+     *
+     * Commands come from the serial input; MQTT and other sources may be added later.
      */
     void run() noexcept;
+
+    /**
+     * @brief Runs one pass of the main loop: kicks the watchdog, handles a command if a line has
+     *        arrived, and toggles the LED when the blink period has elapsed.
+     *
+     * run() calls it forever on the board; tests call it one pass at a time.
+     */
+    void step() noexcept;
 
     Logic(const Logic&)            = delete;
     Logic(Logic&&)                 = delete;

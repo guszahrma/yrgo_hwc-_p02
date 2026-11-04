@@ -30,13 +30,15 @@ set(FW_SRC ${MAIN_DIR}/source)
 
 # Test files.
 set(TST_FILES
-    source/testsuite.cpp
+    source/gpio/test_gpio.cpp
     source/gpio/gpio_mock.c
+    source/logic/test_logic.cpp
 )
 
 # Source files.
 set(SRC_FILES
     ${FW_SRC}/driver/gpio/esp32s3.cpp
+    ${FW_SRC}/logic/logic.cpp
 )
 
 # All source files.

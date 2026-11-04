@@ -240,6 +240,24 @@ tools/clang-format/check.sh
   `/dev/ttyACM1`. The fixed names from `tools/udev/99-p02.rules` (`/dev/tty_daisy_seed`,
   `/dev/tty_arduino_nano_esp32`) do not change. Exit `tio` with `Ctrl+T`, `q`; quit it before `west flash` or
   `smpmgr`, which need the port to themselves.
+* **The first command after opening the monitor had junk in front of it** ("unknown command"
+  with e.g. `Zephyr` in it), seen with `tio` and `miniterm`. Cause: Linux gives a tty `ECHO` on by default.
+  On quit, `tio` restores the settings it found at open (`ECHO` on) and then closes the port; in between,
+  the output P02 keeps printing (timer debug lines) is sent straight back. P02 takes it as input, and the part
+  after the last line break stays in `serial::Zephyr::readLine()`'s buffer, in front of the next command.
+  Shown on the Daisy with a test that restores the settings like `tio` before closing: with `ECHO` restored,
+  `help` was read as `Zephyr timer timZephyr timer timhelp`; with `-echo`, as `help`. Opening the port was not
+  the problem (a clean `help` even with `ECHO` on). The same echo is behind smpmgr's
+  `Frame could not be parsed` when P02 runs. Fixed twice: `tools/udev/99-p02.rules` sets `-echo` on both
+  ports when the board appears (Linux keeps it until the board disconnects); this leaves one echo when the
+  rule's own `stty` opens the port, seen as junk in the first command after a power cycle. So
+  `serial::Zephyr::readLine()` also drops its input when DTR goes high, i.e. a monitor opens the port
+  (`CONFIG_UART_LINE_CTRL`; CDC ACM only, the Nano's USB-Serial/JTAG reports no DTR). Verified on the Daisy
+  with `tio`: clean first commands after a restart, and with `ECHO` on and no rule. The Nano still shows
+  `!help` when `tio` is already waiting while the board attaches: udev creates the symlink before the rule's
+  `stty` runs, so `tio` can open the port with `ECHO` still on, and a `!` the Nano sends at that point (source
+  unknown; P02 does not print it) comes back. Opening `tio` after the attach is complete avoids it; the Nano
+  cannot drop the input itself (no DTR).
 
 ---
 

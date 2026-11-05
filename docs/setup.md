@@ -53,6 +53,7 @@ same, whatever runs on it:
 |---|---|
 | Arduino Nano ESP32 | `/dev/tty_arduino_nano_esp32` |
 | Daisy Seed | `/dev/tty_daisy_seed` |
+| Nucleo-G0B1RE | `/dev/tty_nucleo_g0b1re` |
 
 Each name is a symbolic link to the board's current `/dev/ttyACM<n>`, created by udev every time the board
 appears and removed when it disappears; `ls -l /dev/tty_*` shows which. Only installing the rules is

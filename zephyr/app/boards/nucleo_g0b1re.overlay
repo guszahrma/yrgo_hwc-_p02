@@ -1,0 +1,48 @@
+/*
+ * P02 wiring for the Zephyr app – ST Nucleo-G0B1RE.
+ *
+ * Status LED on D6 = PB14 (Arduino header): D6 -> 330 ohm -> LED anode, LED cathode -> GND.
+ * The pin drives the LED directly, so it is active high.
+ *
+ * TMP36 temperature sensor on A0 = PA0 (ADC1 channel 0): Vout -> A0, Vs -> 3V3, GND -> GND (all three on
+ * the Arduino header). With the flat side facing you, the TMP36's pins are Vs, Vout, GND.
+ *
+ * Only P02's own wiring belongs here. The LED on the board itself (led0 = LD4 on PA5) is defined by
+ * the board (Zephyr's boards/st/nucleo_g0b1re), which also enables adc1 with PA0 in its pinctrl.
+ */
+
+#include <zephyr/dt-bindings/adc/adc.h>
+#include <zephyr/dt-bindings/gpio/gpio.h>
+
+/ {
+	aliases {
+		p02-led = &p02_led;
+	};
+
+	p02-leds {
+		compatible = "gpio-leds";
+
+		p02_led: led-d6 {
+			gpios = <&arduino_header ARDUINO_HEADER_R3_D6 GPIO_ACTIVE_HIGH>; /* D6 = PB14 */
+			label = "P02 status LED (D6)";
+		};
+	};
+
+	zephyr,user {
+		io-channels = <&adc1 0>; /* A0 = PA0 = ADC1 channel 0 */
+	};
+};
+
+&adc1 {
+	#address-cells = <1>;
+	#size-cells = <0>;
+
+	/* A0: full range 0-3.3 V (the ADC's reference is VREF+, tied to 3V3 on the Nucleo). */
+	channel@0 {
+		reg = <0>;
+		zephyr,gain = "ADC_GAIN_1";
+		zephyr,reference = "ADC_REF_INTERNAL";
+		zephyr,acquisition-time = <ADC_ACQ_TIME_DEFAULT>;
+		zephyr,resolution = <12>;
+	};
+};

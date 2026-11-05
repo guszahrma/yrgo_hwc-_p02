@@ -10,8 +10,10 @@ and a page about P02 on that board (wiring, building and flashing).
 |---|---|---|---|---|---|
 | Arduino Nano ESP32 (ABX00083) | Yes | Yes | `arduino_nano_esp32/esp32s3/procpu` | [Arduino Nano ESP32](../zephyr/boards/arduino/nano_esp32/doc/index.md) | [P02 on the Arduino Nano ESP32](p02_arduino_nano_esp32.md) |
 | Electrosmith Daisy Seed (Seed 1.2 / Rev7) | No | Yes, work in progress | `daisy_seed/stm32h750xx/ram_load` (with MCUboot) | [Daisy Seed](../zephyr/boards/electrosmith/daisy_seed/doc/index.md) | [P02 on the Daisy Seed](p02_daisy_seed.md) |
+| ST Nucleo-G0B1RE | No | Yes, work in progress | `nucleo_g0b1re` | Zephyr's [Nucleo-G0B1RE](https://docs.zephyrproject.org/latest/boards/st/nucleo_g0b1re/doc/index.html) | [P02 on the Nucleo-G0B1RE](p02_nucleo_g0b1re.md) |
 
-Neither board is in Zephyr, so both have out-of-tree board definitions in [`zephyr/boards/`](../zephyr/boards/).
+The Nano ESP32 and the Daisy Seed are not in Zephyr, so they have out-of-tree board definitions in
+[`zephyr/boards/`](../zephyr/boards/). The Nucleo-G0B1RE is in Zephyr: it needs only an app overlay.
 
 Where each board's setup, building and flashing are described:
 
@@ -19,6 +21,7 @@ Where each board's setup, building and flashing are described:
 |---|---|---|
 | Arduino Nano ESP32 | [Setup](setup.md) | [ESP-IDF environment](platform_esp_idf.md), [Zephyr environment](platform_zephyr.md#building-and-flashing) |
 | Daisy Seed | [P02 on the Daisy Seed → Setup](p02_daisy_seed.md#setup-once) | [P02 on the Daisy Seed → Building and flashing](p02_daisy_seed.md#building-and-flashing) |
+| Nucleo-G0B1RE | [P02 on the Nucleo-G0B1RE → Setup](p02_nucleo_g0b1re.md#setup-once) | [P02 on the Nucleo-G0B1RE → Building and flashing](p02_nucleo_g0b1re.md#building-and-flashing) |
 
 ## What a board needs
 
@@ -35,8 +38,8 @@ overlay (wiring); last `prj.conf`, which is already set for every board.
 | Need | Provided by | Details |
 |---|---|---|
 | Chip supported by Zephyr | Zephyr's architectures and SoCs | e.g. ARM Cortex-M, Xtensa, RISC-V. Not 8-bit AVR, so not the Arduino Uno R3 |
-| Flash for the program | The chip or external flash | P02's image is ~421 KB on the Nano ESP32 and ~258 KB on the Daisy Seed (Cortex-M7) |
-| RAM | The chip | ~53 KB for variables and stacks on the Nano ESP32, ~60 KB on the Daisy Seed, plus the code if it runs from RAM (Daisy Seed: ~283 KB in all). The Arduino Uno R4 (32 KB RAM, 256 KB flash) is too small |
+| Flash for the program | The chip or external flash | P02's image is ~421 KB on the Nano ESP32 and ~258 KB on the Daisy Seed (Cortex-M7), ~206 KB on the Nucleo-G0B1RE (Cortex-M0+) |
+| RAM | The chip | ~53 KB for variables and stacks on the Nano ESP32, ~60 KB on the Daisy Seed, ~17 KB on the Nucleo-G0B1RE, plus the code if it runs from RAM (Daisy Seed: ~283 KB in all). The Arduino Uno R4 (32 KB RAM, 256 KB flash) is too small |
 | Board definition | Zephyr, or our own in `zephyr/boards/` | Found through `BOARD_ROOT` when it is ours |
 | Console (serial commands) | `zephyr,console` chosen by the board | USB CDC ACM or UART |
 | Settings storage (NVS) | `storage_partition` in the board's flash partitions | Must be in flash that P02 can write while it runs |

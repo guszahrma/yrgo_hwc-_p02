@@ -78,7 +78,8 @@ Then type `help` in the monitor ([serial commands](docs/usage.md#serial-commands
 | Status LED | D6 | LED + resistor to GND |
 | Temperature sensor | A6 | TMP36: Vout to A6, V+ to 3V3 or VBUS (2.7–5.5 V), 0.1 µF capacitor between V+ and GND |
 
-P02 also runs on the Electrosmith Daisy Seed (Zephyr): see [Daisy Seed](docs/p02_daisy_seed.md#wiring-for-p02).
+P02 also runs on the Electrosmith Daisy Seed and the ST Nucleo-G0B1RE (Zephyr): see
+[Daisy Seed](docs/p02_daisy_seed.md#wiring-for-p02) and [Nucleo-G0B1RE](docs/p02_nucleo_g0b1re.md#wiring-for-p02).
 
 ## Documentation
 
@@ -92,6 +93,7 @@ P02 also runs on the Electrosmith Daisy Seed (Zephyr): see [Daisy Seed](docs/p02
 | [Boards](docs/boards.md) | Supported boards and what a board needs to run P02 |
 | [P02 on the Arduino Nano ESP32](docs/p02_arduino_nano_esp32.md) | How P02 uses the Nano, wiring. The board itself: [Arduino Nano ESP32](zephyr/boards/arduino/nano_esp32/doc/index.md) |
 | [P02 on the Daisy Seed](docs/p02_daisy_seed.md) | Electrosmith Daisy Seed (Zephyr only, work in progress): setup, building, flashing, wiring. The board itself: [Daisy Seed](zephyr/boards/electrosmith/daisy_seed/doc/index.md) |
+| [P02 on the Nucleo-G0B1RE](docs/p02_nucleo_g0b1re.md) | ST Nucleo-G0B1RE (Zephyr only, work in progress): setup, building, flashing, wiring. The board itself is in Zephyr |
 | [Contributing](docs/contributing.md) | Workflow, tests, code style, CI |
 
 Troubleshooting tables, design decisions and lessons learned are collected in [`AGENTS.md`](AGENTS.md),

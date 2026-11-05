@@ -19,8 +19,8 @@ implementations next to the interfaces in `main/`. See [docs/architecture.md](do
 | Board | The hardware (e.g. Arduino Nano ESP32, Daisy Seed): chip, memory, pins, LEDs, buttons |
 | Board definition | Zephyr's description of a board (`zephyr/boards/<vendor>/<board>/`): devicetree, Kconfig, flash runner, and on the Daisy MCUboot. Used by any Zephyr app on the board, not only P02, so it is documented with the board |
 | Board document | One per board, in the board definition directory (`zephyr/boards/<vendor>/<board>/doc/index.md`, like Zephyr's own boards, so it is copied with the board): the board and its board definition. Can be copied into another project without removing anything – nothing about P02, and nothing outside the board definition and Zephyr: no repository scripts, no `$P02_ROOT`, no links to other docs. It says *what* the board needs (toolchain, modules, udev rules, `<board root>` in commands); the P02 board document says how this repository provides it. Design decisions about the board definition are summarised in it (one line each); the full table, lessons and verification notes are in the board definition's own `AGENTS.md`, which is copied with it |
-| P02 board document | One per board, `docs/p02_<board>.md`: what is true only for P02 on that board (wiring, app overlay, P02's memory use; building and flashing P02 only where it differs from the platform guides – the Nano's is in `platform_esp_idf.md` and `platform_zephyr.md`, the Daisy's in its P02 board document). Decisions about P02 on a board stay in AGENTS.md |
-| Board target | The full name given to `west build -b`: `arduino_nano_esp32/esp32s3/procpu`, `daisy_seed`, `daisy_seed/stm32h750xx/ram_load`. One board definition can have several |
+| P02 board document | One per board, `docs/p02_<board>.md`: what is true only for P02 on that board (wiring, app overlay, P02's memory use; building and flashing P02 only where it differs from the platform guides – the Nano's is in `platform_esp_idf.md` and `platform_zephyr.md`, the Daisy's and the Nucleo-G0B1RE's in their P02 board documents). Decisions about P02 on a board stay in AGENTS.md |
+| Board target | The full name given to `west build -b`: `arduino_nano_esp32/esp32s3/procpu`, `daisy_seed`, `daisy_seed/stm32h750xx/ram_load`, `nucleo_g0b1re`. One board definition can have several |
 | App overlay | `zephyr/app/boards/<board target, / → _>.overlay`: P02's wiring on one board target (`p02-led`, `zephyr,user`). Not part of the board definition |
 | `docs/boards.md` | What is true for P02 on every board: what a board needs, the supported boards |
 
@@ -118,6 +118,7 @@ tools/clang-format/check.sh
 | `west blobs fetch` fails with `504 Gateway Time-out` | Temporary GitHub error. Run `west blobs fetch hal_espressif` again. |
 | Flashing works but the monitor shows nothing | Boot output was printed before the monitor connected (usbipd re-attached the board slowly). Increase `CONFIG_BOOT_DELAY` in the app's `prj.conf`, e.g. to `3000`. |
 | Strange compiler errors when building for the ESP32-S3 | The course's `env.sh` is active in the terminal. Open a new terminal and run `source tools/zephyr_env.sh`. |
+| `west flash`: `libusb_open() failed with LIBUSB_ERROR_ACCESS` (OpenOCD, Nucleo) | The ST-Link's USB device belongs to root: install `tools/udev/99-p02.rules` again (it gives `dialout` access to `0483:374b`). |
 | `CMake Error: Not a file: .../cmake/pristine.cmake` | The build directory was made with another Zephyr installation. Delete it once: `rm -rf zephyr/app/build`. |
 
 ---
@@ -196,6 +197,10 @@ tools/clang-format/check.sh
   (`arduino_nano_esp32_procpu.overlay`), or the same without the SoC (`<board>_<variant>.overlay`) –
   **not** the bare board name: `arduino_nano_esp32.overlay` is silently ignored. A board overlay replaces
   `app.overlay`. Check the `Found devicetree overlay:` line in the build output.
+* **Arduino R3 header indexes start with A0–A5**: `<&arduino_header 6 ...>` is **D0**, not D6. Use the
+  names from `arduino-header-r3.h` (`ARDUINO_HEADER_R3_D6` = 12) and check the index in
+  `build/zephyr/zephyr.dts`. Caught on the Nucleo-G0B1RE before flashing. The Nano's overlay writes
+  `<&arduino_nano_header 6 ...>`; whether its header starts at D0 has not been checked.
 * New nodes go inside `/ { }`; changing an existing node (`&adc1 { }`) is written at the top level.
 * A node with the same name as one in the board is **merged** into it; give the app's wiring its own
   parent (`p02-leds`).
@@ -300,3 +305,24 @@ happens without it is not yet known. Other open items: a `zephyr/module.yml` wit
 (`watchdog0` = IWDG, added with #77, not tested with P02 yet): check that `hang` restarts the board, and
 whether `Last reset was caused by the watchdog` is printed – `mcuboot_hooks.c` clears the reset flags
 (`RCC->RSR`) before P02 reads them, so `causedLastReset()` is expected to be false there.
+
+---
+
+## Nucleo-G0B1RE (work in progress): P02 on the Nucleo
+
+The ST Nucleo-G0B1RE (STM32G0B1RE, Cortex-M0+, 512 KB flash, 144 KB RAM, on-board ST-Link/V2-1 `0483:374b`)
+is in Zephyr (`deps/zephyr/boards/st/nucleo_g0b1re/`), so there is no board definition or board document
+here. P02 on the Nucleo for people: [docs/p02_nucleo_g0b1re.md](docs/p02_nucleo_g0b1re.md).
+
+| Decision | Choice | Why |
+|---|---|---|
+| Board definition | Zephyr's own `nucleo_g0b1re` | It already has a console (USART2 via the ST-Link), `watchdog0` = IWDG, `adc1` with PA0/PA1 and a 64 KB `storage_partition` |
+| No MCUboot | P02 links from the start of flash (~206 KB) | The board's `zephyr,code-partition` is the 200 KB `slot0_partition`, but without a bootloader Zephyr ignores it (`CONFIG_USE_DT_CODE_PARTITION` off) and the FLASH region is all 512 KB. The image ends well before `storage_partition` at 0x70000; nothing stops it from growing into it, so watch the size |
+| Flash runner | `--runner openocd` | The board's first runner is STM32CubeProgrammer (not installed); OpenOCD comes with the Zephyr SDK |
+| Role mapping | `StatusLed` = external LED on D6 = PB14 (330 Ω to GND, active high); `TempSensor` = TMP36 on A0 = PA0 (ADC1 ch 0), Vs from 3V3 | D6 as on the Nano, so the wiring is the same. The on-board LD4 (PA5 = D13) was tried first and dropped in favour of the external LED. A0 because the board already has PA0 in `adc1`'s pinctrl |
+| udev | `0483:374b` → `/dev/tty_nucleo_g0b1re` (`-echo`), and `MODE=0660 GROUP=dialout` on the USB device | OpenOCD failed with `LIBUSB_ERROR_ACCESS` without it. The rule matches any ST-Link/V2-1 (most Nucleo-64 boards) |
+| Build directory | `zephyr/app/build/nucleo_g0b1re` | The board subdirectory proposed under the Daisy Seed, so a Nucleo build does not overwrite the other boards' |
+
+Open items: run P02 on the board (LED, `temp`, `store` after a reset, `hang` → IWDG restart and the reset
+cause); a CI job for the board; the wiring picture the user drew shows an MB1814C (USB-C, STLINK-V3), while
+the board here reports an ST-Link/V2-1 – check which board revision it is.

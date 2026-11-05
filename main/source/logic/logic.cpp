@@ -8,7 +8,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
-#include <iostream>
+#include <string>
 #include <string_view>
 #include <thread>
 
@@ -16,12 +16,14 @@
 
 namespace logic
 {
+// All output goes through the serial driver, not std::cout: <iostream> costs ~160 KB of flash on
+// Zephyr (streams and locales). Lines with numbers are formatted with std::snprintf first.
 
 // --------------------------------------------------------------------------------
 Logic::Logic(driver::factory::Interface& factory) noexcept
-    : myPeriodLengthMs{1000} // Set default blinking period to 1000 ms
-    , myBlinkState{false}    // Initialize blink state to off
-    , myHung{false}          // Kick the watchdog until 'hang'
+    : myPeriodLengthMs{DefaultPeriodMs} // Until loadStoredUserSettings() reads the stored one
+    , myBlinkState{false}               // Initialize blink state to off
+    , myHung{false}                     // Kick the watchdog until 'hang'
 {
     // Create the necessary drivers using the factory and initialize the system state.
     // For example, you might create a serial driver for communication and a GPIO driver for
@@ -30,9 +32,10 @@ Logic::Logic(driver::factory::Interface& factory) noexcept
     mySerialDriver = factory.createSerial();
     myStatusLed =
         factory.createGpio(driver::factory::GpioId::StatusLed, driver::gpio::Direction::OUTPUT);
-    myTempSensorAdc = factory.createAdc(driver::factory::AdcId::TempSensor, 3.3f);
-    myTempSensor    = factory.createTempSensor(*myTempSensorAdc);
-    myTimerDriver   = factory.createTimer();
+    myTempSensorAdc =
+        factory.createAdc(driver::factory::AdcId::TempSensor, TempSensorReferenceVoltage);
+    myTempSensor  = factory.createTempSensor(*myTempSensorAdc);
+    myTimerDriver = factory.createTimer();
     myTimerDriver->stop(); // Start the timer for blinking
     myNvsUserSettingsStorage = factory.createNvs("user_settings");
     myWatchdog               = factory.createWatchdog(WatchdogTimeoutMs);
@@ -72,13 +75,11 @@ void Logic::run() noexcept
 // --------------------------------------------------------------------------------
 void Logic::step() noexcept
 {
-    constexpr std::size_t bufferSize{64};
-
     // Must be at least one FreeRTOS tick (10 ms with CONFIG_FREERTOS_HZ=100): shorter sleeps
     // busy-wait in ESP-IDF, so the idle task never runs and the task watchdog fires
     constexpr std::uint8_t sleepDuration_ms{10};
 
-    char buffer[bufferSize]{};
+    char buffer[InputLineSize]{};
 
     // Tell the watchdog that the loop is still running. After 'hang' (see handleHang()) the
     // kicks stop, and the watchdog restarts the system as if the loop had hung.
@@ -88,7 +89,9 @@ void Logic::step() noexcept
     // busy-wait.
     if (mySerialDriver->readLine(buffer, sizeof(buffer)))
     {
-        std::cout << std::endl << std::endl << "Reading line..." << buffer << std::endl;
+        mySerialDriver->print("\n\nReading line...");
+        mySerialDriver->print(buffer);
+        mySerialDriver->print("\n");
 
         std::string_view input{buffer, std::strlen(buffer)};
 
@@ -153,31 +156,34 @@ void Logic::step() noexcept
 // --------------------------------------------------------------------------------
 void Logic::handleHelp() noexcept
 {
-    std::cout << std::endl << "Handling 'Help' command..." << std::endl;
-    std::cout << std::endl << "Available commands:" << std::endl;
-    std::cout << "  on" << std::endl;
-    std::cout << "  off" << std::endl;
-    std::cout << "  blink on" << std::endl;
-    std::cout << "  blink off" << std::endl;
-    std::cout << "  period <ms>" << std::endl;
-    std::cout << "  status" << std::endl;
-    std::cout << "  store" << std::endl;
-    std::cout << "  hang  (tests the watchdog: the board restarts after a few seconds)"
-              << std::endl;
-    std::cout << "  help" << std::endl;
+    mySerialDriver->print("\nHandling 'Help' command...\n"
+                          "\nAvailable commands:\n"
+                          "  on\n"
+                          "  off\n"
+                          "  blink on\n"
+                          "  blink off\n"
+                          "  period <ms>\n"
+                          "  status\n"
+                          "  store\n"
+                          "  hang  (tests the watchdog: the board restarts after a few seconds)\n"
+                          "  help\n");
 }
 
 // --------------------------------------------------------------------------------
 void Logic::handleUnknownCommand(const std::string_view& cmd) noexcept
 {
-    std::cout << std::endl << "Handling unknown command: " << cmd << std::endl;
-    std::cout << "Type 'help' to see the list of available commands." << std::endl;
+    // A string_view is not null-terminated: %.*s prints exactly cmd.size() characters.
+    char line[OutputLineSize]{};
+    std::snprintf(line, sizeof(line), "\nHandling unknown command: %.*s\n",
+                  static_cast<int>(cmd.size()), cmd.data());
+    mySerialDriver->print(line);
+    mySerialDriver->print("Type 'help' to see the list of available commands.\n");
 }
 
 // --------------------------------------------------------------------------------
 void Logic::handleOn() noexcept
 {
-    std::cout << std::endl << "Handling 'on' command..." << std::endl;
+    mySerialDriver->print("\nHandling 'on' command...\n");
 
     // Implement the logic to turn the LED on.
     myStatusLed->write(true);
@@ -186,7 +192,7 @@ void Logic::handleOn() noexcept
 // --------------------------------------------------------------------------------
 void Logic::handleOff() noexcept
 {
-    std::cout << std::endl << "Handling 'off' command..." << std::endl;
+    mySerialDriver->print("\nHandling 'off' command...\n");
 
     // Implement the logic to turn the LED off.
     myStatusLed->write(false);
@@ -195,7 +201,7 @@ void Logic::handleOff() noexcept
 // --------------------------------------------------------------------------------
 void Logic::handleBlinkOn() noexcept
 {
-    std::cout << std::endl << "Handling 'blink on' command..." << std::endl;
+    mySerialDriver->print("\nHandling 'blink on' command...\n");
 
     // Implement the logic to turn blinking on.
     myTimerDriver->start(); // Start the timer for blinking
@@ -205,7 +211,7 @@ void Logic::handleBlinkOn() noexcept
 // --------------------------------------------------------------------------------
 void Logic::handleBlinkOff() noexcept
 {
-    std::cout << std::endl << "Handling 'blink off' command..." << std::endl;
+    mySerialDriver->print("\nHandling 'blink off' command...\n");
 
     // Implement the logic to turn blinking off.
     myTimerDriver->stop(); // Stop the timer for blinking
@@ -215,13 +221,17 @@ void Logic::handleBlinkOff() noexcept
 // --------------------------------------------------------------------------------
 void Logic::handlePeriod(uint16_t periodLengthMs) noexcept
 {
-    std::cout << std::endl
-              << "Handling 'period' command..." << periodLengthMs << " ms" << std::endl;
+    char line[OutputLineSize]{};
+    std::snprintf(line, sizeof(line), "\nHandling 'period' command...%u ms\n",
+                  static_cast<unsigned>(periodLengthMs));
+    mySerialDriver->print(line);
 
     if ((MinPeriodMs > periodLengthMs) || (MaxPeriodMs < periodLengthMs))
     {
-        std::cout << "Invalid period (valid: " << MinPeriodMs << "-" << MaxPeriodMs
-                  << " ms), keeping " << myPeriodLengthMs << " ms" << std::endl;
+        std::snprintf(line, sizeof(line), "Invalid period (valid: %u-%u ms), keeping %u ms\n",
+                      static_cast<unsigned>(MinPeriodMs), static_cast<unsigned>(MaxPeriodMs),
+                      static_cast<unsigned>(myPeriodLengthMs));
+        mySerialDriver->print(line);
         return;
     }
 
@@ -249,7 +259,7 @@ void Logic::handleStatus() noexcept
 // --------------------------------------------------------------------------------
 void Logic::handleStore() noexcept
 {
-    std::cout << std::endl << "Handling 'store' command..." << std::endl;
+    mySerialDriver->print("\nHandling 'store' command...\n");
 
     myNvsUserSettingsStorage->setString("blink_state", myBlinkState ? "on" : "off");
     myNvsUserSettingsStorage->setString("blink_period", std::to_string(myPeriodLengthMs));
@@ -262,10 +272,10 @@ void Logic::handleStore() noexcept
 // --------------------------------------------------------------------------------
 void Logic::handleHang() noexcept
 {
-    std::cout << std::endl << "Handling 'hang' command..." << std::endl;
-    std::cout << "Simulating a hung program: the watchdog is no longer kicked and restarts the "
-                 "system in a few seconds"
-              << std::endl;
+    mySerialDriver->print("\nHandling 'hang' command...\n");
+    mySerialDriver->print(
+        "Simulating a hung program: the watchdog is no longer kicked and restarts "
+        "the system in a few seconds\n");
 
     // Stop kicking the watchdog, as a hung program would. The flag rather than an endless loop
     // here: the rest of the program keeps running until the restart, so 'hang' can also be tested
@@ -276,7 +286,7 @@ void Logic::handleHang() noexcept
 // --------------------------------------------------------------------------------
 void Logic::loadStoredUserSettings() noexcept
 {
-    std::cout << std::endl << "Loading stored user settings..." << std::endl;
+    mySerialDriver->print("\nLoading stored user settings...\n");
 
     std::string blinkState;
     std::string blinkPeriod;
@@ -284,14 +294,12 @@ void Logic::loadStoredUserSettings() noexcept
     if (!(myNvsUserSettingsStorage->getString("blink_state", blinkState)))
         blinkState = "off"; // Default to "off" if not found
     if (!(myNvsUserSettingsStorage->getString("blink_period", blinkPeriod)))
-        blinkPeriod = "1000"; // Default to 1000 ms if not found
+        blinkPeriod = std::to_string(DefaultPeriodMs); // Default if not found
 
     myBlinkState = (blinkState == "on");
 
     // Parse the stored period without exceptions (std::stoi throws on bad data, and this function
     // is noexcept) and without silent wrap-around (a cast to uint16_t turns 70000 into 4464).
-    constexpr std::uint16_t DefaultPeriodMs{1000U};
-
     std::uint32_t parsed{};
     const auto [ptr, ec] =
         std::from_chars(blinkPeriod.data(), blinkPeriod.data() + blinkPeriod.size(), parsed);
@@ -304,8 +312,10 @@ void Logic::loadStoredUserSettings() noexcept
     if (valid) { myPeriodLengthMs = static_cast<std::uint16_t>(parsed); }
     else
     {
-        std::cout << "Invalid stored blink period '" << blinkPeriod << "', using "
-                  << DefaultPeriodMs << " ms" << std::endl;
+        char line[OutputLineSize]{};
+        std::snprintf(line, sizeof(line), "Invalid stored blink period '%s', using %u ms\n",
+                      blinkPeriod.c_str(), static_cast<unsigned>(DefaultPeriodMs));
+        mySerialDriver->print(line);
         myPeriodLengthMs = DefaultPeriodMs;
     }
 

@@ -38,15 +38,15 @@ overlay (wiring); last `prj.conf`, which is already set for every board.
 | Need | Provided by | Details |
 |---|---|---|
 | Chip supported by Zephyr | Zephyr's architectures and SoCs | e.g. ARM Cortex-M, Xtensa, RISC-V. Not 8-bit AVR, so not the Arduino Uno R3 |
-| Flash for the program | The chip or external flash | P02's image is ~421 KB on the Nano ESP32 and ~258 KB on the Daisy Seed (Cortex-M7), ~206 KB on the Nucleo-G0B1RE (Cortex-M0+) |
-| RAM | The chip | ~53 KB for variables and stacks on the Nano ESP32, ~60 KB on the Daisy Seed, ~17 KB on the Nucleo-G0B1RE, plus the code if it runs from RAM (Daisy Seed: ~283 KB in all). The Arduino Uno R4 (32 KB RAM, 256 KB flash) is too small |
+| Flash for the program | The chip or external flash | P02's image is ~141 KB on the Nano ESP32, ~133 KB on the Daisy Seed (Cortex-M7) and ~48 KB on the Nucleo-G0B1RE (Cortex-M0+) |
+| RAM | The chip | ~53 KB for variables and stacks on the Nano ESP32, ~11 KB on the Nucleo-G0B1RE, plus the code if it runs from RAM (Daisy Seed: ~153 KB in all). The Arduino Uno R4 (32 KB RAM, 256 KB flash) is too small |
 | Board definition | Zephyr, or our own in `zephyr/boards/` | Found through `BOARD_ROOT` when it is ours |
 | Console (serial commands) | `zephyr,console` chosen by the board | USB CDC ACM or UART |
 | Settings storage (NVS) | `storage_partition` in the board's flash partitions | Must be in flash that P02 can write while it runs |
 | Watchdog | Alias `watchdog0` in the board definition | A watchdog with a Zephyr driver that can reset the chip (`WDT_FLAG_RESET_SOC`) |
 | Status LED (`GpioId::StatusLed`) | Alias `p02-led` in the app overlay | A GPIO output; polarity is set in devicetree |
 | Temperature sensor (`AdcId::TempSensor`) | `io-channels` in `zephyr,user` in the app overlay | One ADC channel, with gain and resolution set in the overlay; its range must cover the sensor's output |
-| C++17 and `std::cout` | `zephyr/app/prj.conf` | `CONFIG_CPP`, full libstdc++ and `CONFIG_POSIX_API`; `std::cout` costs ~225 KB of flash |
+| C++17 | `zephyr/app/prj.conf` | `CONFIG_CPP`, full libstdc++, and `CONFIG_POSIX_API` for `std::this_thread::sleep_for`. P02 prints through the serial driver, not `std::cout`, which would add ~160 KB of flash |
 | Main stack | `zephyr/app/prj.conf` | 4 KB (`CONFIG_MAIN_STACK_SIZE=4096`); Zephyr's default 1 KB overflows on `store` |
 
 The app overlay is `zephyr/app/boards/<board>.overlay`, named after the full board target with `/` → `_`

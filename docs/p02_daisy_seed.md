@@ -12,8 +12,8 @@ board targets, how an app starts, troubleshooting – is described in its board 
 
 | What | On the Daisy Seed |
 |---|---|
-| Board target | `daisy_seed/stm32h750xx/ram_load`: P02's image (~258 KB) does not fit in the 128 KB internal flash. MCUboot copies it from the QSPI flash into RAM, so `store` can write to the QSPI flash |
-| RAM | ~283 KB of the 512 KB AXI SRAM, code included |
+| Board target | `daisy_seed/stm32h750xx/ram_load`: P02's image (~133 KB) does not fit in the 128 KB internal flash. MCUboot copies it from the QSPI flash into RAM, so `store` can write to the QSPI flash |
+| RAM | ~153 KB of the 512 KB AXI SRAM, code included |
 | Settings (`store`) | The `storage` partition in the QSPI flash |
 | Console | USB serial port on the micro-USB port, `/dev/tty_daisy_seed` |
 | App overlay | [`zephyr/app/boards/daisy_seed_ram_load.overlay`](../zephyr/app/boards/daisy_seed_ram_load.overlay) |

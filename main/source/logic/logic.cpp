@@ -24,6 +24,9 @@ Logic::Logic(driver::factory::Interface& factory) noexcept
     : myPeriodLengthMs{DefaultPeriodMs} // Until loadStoredUserSettings() reads the stored one
     , myBlinkState{false}               // Initialize blink state to off
     , myHung{false}                     // Kick the watchdog until 'hang'
+    , myBoard{factory.board()}
+    , myBoardTarget{factory.boardTarget()}
+    , myPlatform{factory.platform()}
 {
     // Create the necessary drivers using the factory and initialize the system state.
     // For example, you might create a serial driver for communication and a GPIO driver for
@@ -246,6 +249,15 @@ void Logic::handleStatus() noexcept
     // Implement the logic to print the current status.
     // This is a placeholder implementation - replace with actual status printing logic.
     mySerialDriver->print("Status:\r\n");
+    mySerialDriver->print("Board: ");
+    mySerialDriver->print(myBoard);
+    mySerialDriver->print("\r\n");
+    mySerialDriver->print("Board target: ");
+    mySerialDriver->print(myBoardTarget);
+    mySerialDriver->print("\r\n");
+    mySerialDriver->print("Platform: ");
+    mySerialDriver->print(myPlatform);
+    mySerialDriver->print("\r\n");
     mySerialDriver->print("Blink State: ");
     mySerialDriver->print(myBlinkState ? "on\r\n" : "off\r\n");
     mySerialDriver->print("Blink Period: ");

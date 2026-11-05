@@ -84,4 +84,13 @@ Zephyr::createWatchdog(std::uint32_t timeoutMs) noexcept
     return std::make_unique<driver::watchdog::Zephyr>(DEVICE_DT_GET(DT_ALIAS(watchdog0)),
                                                       timeoutMs);
 }
+
+// -----------------------------------------------------------------------------
+const char* Zephyr::board() const noexcept { return CONFIG_BOARD; }
+
+// -----------------------------------------------------------------------------
+const char* Zephyr::boardTarget() const noexcept { return CONFIG_BOARD_TARGET; }
+
+// -----------------------------------------------------------------------------
+const char* Zephyr::platform() const noexcept { return "Zephyr"; }
 } // namespace driver::factory

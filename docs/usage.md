@@ -20,7 +20,7 @@ Then type:
 | `on` / `off` | Turn the LED on / off |
 | `blink on` / `blink off` | Start / stop blinking |
 | `period <ms>` | Set the blink period, 50–10 000 ms, e.g. `period 500`. Other values are rejected and the period is kept |
-| `status` | Show blink state, period and temperature |
+| `status` | Show the board, board target and platform (ESP-IDF or Zephyr), blink state, period and temperature |
 | `store` | Save blink state and period to non-volatile storage (loaded at startup) |
 | `hang` | Test the [watchdog](#watchdog): the program stops kicking it, as if it had hung, and the board restarts |
 

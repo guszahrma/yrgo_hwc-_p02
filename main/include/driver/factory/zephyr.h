@@ -95,6 +95,27 @@ public:
     std::unique_ptr<driver::watchdog::Interface>
     createWatchdog(std::uint32_t timeoutMs) noexcept override;
 
+    /**
+     * @brief The board, from the build (CONFIG_BOARD)
+     *
+     * @return C-string literal, e.g. "daisy_seed"
+     */
+    const char* board() const noexcept override;
+
+    /**
+     * @brief The board target, from the build (CONFIG_BOARD_TARGET)
+     *
+     * @return C-string literal, e.g. "daisy_seed/stm32h750xx/ram_load"
+     */
+    const char* boardTarget() const noexcept override;
+
+    /**
+     * @brief The platform
+     *
+     * @return "Zephyr"
+     */
+    const char* platform() const noexcept override;
+
     Zephyr(const Zephyr&)            = delete;
     Zephyr(Zephyr&&)                 = delete;
     Zephyr& operator=(const Zephyr&) = delete;

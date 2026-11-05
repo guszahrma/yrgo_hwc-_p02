@@ -13,9 +13,10 @@
 # Don't ignore license files.
 !LICENSE
 
-# Don't ignore Zephyr files without an extension (board Kconfig and defconfig).
+# Don't ignore Zephyr files without an extension (board Kconfig and defconfig, the app's VERSION).
 !Kconfig
 !*_defconfig
+!VERSION
 
 # Ignore .txt files.
 *.txt

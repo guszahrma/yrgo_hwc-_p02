@@ -1,0 +1,16 @@
+# Sysbuild settings for P02 that depend on the board. Settings for every board are in sysbuild.conf.
+#
+# A Kconfig.sysbuild in the app directory replaces sysbuild's Kconfig root, so the file ends by sourcing
+# it. The defaults below come first on purpose: Kconfig uses the first default of a choice whose condition
+# is true, and Zephyr's own defaults (swap using offset; overwrite only on Espressif chips) are in the
+# sourced files.
+
+# The MCUboot mode: one that can roll an update back. Swap using move works with equal slots, as on these
+# boards. The Daisy Seed is not listed: its board keeps RAM load (zephyr/boards/electrosmith/daisy_seed/
+# Kconfig.sysbuild).
+choice MCUBOOT_MODE
+	default MCUBOOT_MODE_SWAP_USING_MOVE if BOARD_NUCLEO_G0B1RE
+	default MCUBOOT_MODE_SWAP_USING_MOVE if BOARD_ARDUINO_NANO_ESP32
+endchoice
+
+source "share/sysbuild/Kconfig"

@@ -42,7 +42,7 @@ Logic::Logic(driver::factory::Interface& factory) noexcept
 
     if (myWatchdog->causedLastReset())
     {
-        mySerialDriver->print("Last reset was caused by the watchdog\n");
+        mySerialDriver->print("Last reset was caused by the watchdog\r\n");
     }
 
     // Initialize other necessary components and state variables here.
@@ -62,7 +62,7 @@ void Logic::run() noexcept
     loadStoredUserSettings();
 
     mySerialDriver->print(
-        "write relevant command, write help to get a list of available commands\n");
+        "write relevant command, write help to get a list of available commands\r\n");
 
     // The main loop: one pass at a time, forever. Tests call step() directly instead, so that they
     // get control back after each pass.
@@ -89,9 +89,9 @@ void Logic::step() noexcept
     // busy-wait.
     if (mySerialDriver->readLine(buffer, sizeof(buffer)))
     {
-        mySerialDriver->print("\n\nReading line...");
+        mySerialDriver->print("\r\n\r\nReading line...");
         mySerialDriver->print(buffer);
-        mySerialDriver->print("\n");
+        mySerialDriver->print("\r\n");
 
         std::string_view input{buffer, std::strlen(buffer)};
 
@@ -117,7 +117,7 @@ void Logic::step() noexcept
             else if (args == "off")
                 handleBlinkOff();
             else
-                mySerialDriver->print("Usage: blink on | blink off\n");
+                mySerialDriver->print("Usage: blink on | blink off\r\n");
         }
         else if (cmd == "period")
         {
@@ -132,7 +132,7 @@ void Logic::step() noexcept
             if ((std::errc{} == ec) && (args.data() + args.size() == ptr))
                 handlePeriod(ms);
             else
-                mySerialDriver->print("Usage: period <ms>, e.g. period 500\n");
+                mySerialDriver->print("Usage: period <ms>, e.g. period 500\r\n");
         }
         else if (cmd == "store")
             handleStore();
@@ -156,17 +156,17 @@ void Logic::step() noexcept
 // --------------------------------------------------------------------------------
 void Logic::handleHelp() noexcept
 {
-    mySerialDriver->print("\nHandling 'Help' command...\n"
-                          "\nAvailable commands:\n"
-                          "  on\n"
-                          "  off\n"
-                          "  blink on\n"
-                          "  blink off\n"
-                          "  period <ms>\n"
-                          "  status\n"
-                          "  store\n"
-                          "  hang  (tests the watchdog: the board restarts after a few seconds)\n"
-                          "  help\n");
+    mySerialDriver->print("\r\nHandling 'Help' command...\r\n"
+                          "\r\nAvailable commands:\r\n"
+                          "  on\r\n"
+                          "  off\r\n"
+                          "  blink on\r\n"
+                          "  blink off\r\n"
+                          "  period <ms>\r\n"
+                          "  status\r\n"
+                          "  store\r\n"
+                          "  hang  (tests the watchdog: the board restarts after a few seconds)\r\n"
+                          "  help\r\n");
 }
 
 // --------------------------------------------------------------------------------
@@ -174,16 +174,16 @@ void Logic::handleUnknownCommand(const std::string_view& cmd) noexcept
 {
     // A string_view is not null-terminated: %.*s prints exactly cmd.size() characters.
     char line[OutputLineSize]{};
-    std::snprintf(line, sizeof(line), "\nHandling unknown command: %.*s\n",
+    std::snprintf(line, sizeof(line), "\r\nHandling unknown command: %.*s\r\n",
                   static_cast<int>(cmd.size()), cmd.data());
     mySerialDriver->print(line);
-    mySerialDriver->print("Type 'help' to see the list of available commands.\n");
+    mySerialDriver->print("Type 'help' to see the list of available commands.\r\n");
 }
 
 // --------------------------------------------------------------------------------
 void Logic::handleOn() noexcept
 {
-    mySerialDriver->print("\nHandling 'on' command...\n");
+    mySerialDriver->print("\r\nHandling 'on' command...\r\n");
 
     // Implement the logic to turn the LED on.
     myStatusLed->write(true);
@@ -192,7 +192,7 @@ void Logic::handleOn() noexcept
 // --------------------------------------------------------------------------------
 void Logic::handleOff() noexcept
 {
-    mySerialDriver->print("\nHandling 'off' command...\n");
+    mySerialDriver->print("\r\nHandling 'off' command...\r\n");
 
     // Implement the logic to turn the LED off.
     myStatusLed->write(false);
@@ -201,7 +201,7 @@ void Logic::handleOff() noexcept
 // --------------------------------------------------------------------------------
 void Logic::handleBlinkOn() noexcept
 {
-    mySerialDriver->print("\nHandling 'blink on' command...\n");
+    mySerialDriver->print("\r\nHandling 'blink on' command...\r\n");
 
     // Implement the logic to turn blinking on.
     myTimerDriver->start(); // Start the timer for blinking
@@ -211,7 +211,7 @@ void Logic::handleBlinkOn() noexcept
 // --------------------------------------------------------------------------------
 void Logic::handleBlinkOff() noexcept
 {
-    mySerialDriver->print("\nHandling 'blink off' command...\n");
+    mySerialDriver->print("\r\nHandling 'blink off' command...\r\n");
 
     // Implement the logic to turn blinking off.
     myTimerDriver->stop(); // Stop the timer for blinking
@@ -222,13 +222,13 @@ void Logic::handleBlinkOff() noexcept
 void Logic::handlePeriod(uint16_t periodLengthMs) noexcept
 {
     char line[OutputLineSize]{};
-    std::snprintf(line, sizeof(line), "\nHandling 'period' command...%u ms\n",
+    std::snprintf(line, sizeof(line), "\r\nHandling 'period' command...%u ms\r\n",
                   static_cast<unsigned>(periodLengthMs));
     mySerialDriver->print(line);
 
     if ((MinPeriodMs > periodLengthMs) || (MaxPeriodMs < periodLengthMs))
     {
-        std::snprintf(line, sizeof(line), "Invalid period (valid: %u-%u ms), keeping %u ms\n",
+        std::snprintf(line, sizeof(line), "Invalid period (valid: %u-%u ms), keeping %u ms\r\n",
                       static_cast<unsigned>(MinPeriodMs), static_cast<unsigned>(MaxPeriodMs),
                       static_cast<unsigned>(myPeriodLengthMs));
         mySerialDriver->print(line);
@@ -245,37 +245,37 @@ void Logic::handleStatus() noexcept
 {
     // Implement the logic to print the current status.
     // This is a placeholder implementation - replace with actual status printing logic.
-    mySerialDriver->print("Status:\n");
+    mySerialDriver->print("Status:\r\n");
     mySerialDriver->print("Blink State: ");
-    mySerialDriver->print(myBlinkState ? "on\n" : "off\n");
+    mySerialDriver->print(myBlinkState ? "on\r\n" : "off\r\n");
     mySerialDriver->print("Blink Period: ");
     mySerialDriver->print(std::to_string(myPeriodLengthMs).c_str());
-    mySerialDriver->print(" ms\n");
+    mySerialDriver->print(" ms\r\n");
     mySerialDriver->print("Current Temperature: ");
     mySerialDriver->print(std::to_string(myTempSensor->read()).c_str());
-    mySerialDriver->print(" °C\n");
+    mySerialDriver->print(" °C\r\n");
 }
 
 // --------------------------------------------------------------------------------
 void Logic::handleStore() noexcept
 {
-    mySerialDriver->print("\nHandling 'store' command...\n");
+    mySerialDriver->print("\r\nHandling 'store' command...\r\n");
 
     myNvsUserSettingsStorage->setString("blink_state", myBlinkState ? "on" : "off");
     myNvsUserSettingsStorage->setString("blink_period", std::to_string(myPeriodLengthMs));
 
     // Implement the logic to store the current state to non-volatile memory.
     // This is a placeholder implementation - replace with actual storage logic.
-    mySerialDriver->print("Storing current state to non-volatile memory...\n");
+    mySerialDriver->print("Storing current state to non-volatile memory...\r\n");
 }
 
 // --------------------------------------------------------------------------------
 void Logic::handleHang() noexcept
 {
-    mySerialDriver->print("\nHandling 'hang' command...\n");
+    mySerialDriver->print("\r\nHandling 'hang' command...\r\n");
     mySerialDriver->print(
         "Simulating a hung program: the watchdog is no longer kicked and restarts "
-        "the system in a few seconds\n");
+        "the system in a few seconds\r\n");
 
     // Stop kicking the watchdog, as a hung program would. The flag rather than an endless loop
     // here: the rest of the program keeps running until the restart, so 'hang' can also be tested
@@ -286,7 +286,7 @@ void Logic::handleHang() noexcept
 // --------------------------------------------------------------------------------
 void Logic::loadStoredUserSettings() noexcept
 {
-    mySerialDriver->print("\nLoading stored user settings...\n");
+    mySerialDriver->print("\r\nLoading stored user settings...\r\n");
 
     std::string blinkState;
     std::string blinkPeriod;
@@ -313,7 +313,7 @@ void Logic::loadStoredUserSettings() noexcept
     else
     {
         char line[OutputLineSize]{};
-        std::snprintf(line, sizeof(line), "Invalid stored blink period '%s', using %u ms\n",
+        std::snprintf(line, sizeof(line), "Invalid stored blink period '%s', using %u ms\r\n",
                       blinkPeriod.c_str(), static_cast<unsigned>(DefaultPeriodMs));
         mySerialDriver->print(line);
         myPeriodLengthMs = DefaultPeriodMs;
@@ -321,12 +321,12 @@ void Logic::loadStoredUserSettings() noexcept
 
     // Implement the logic to load the stored state from non-volatile memory.
     // This is a placeholder implementation - replace with actual loading logic.
-    mySerialDriver->print("Loaded user settings:\n");
+    mySerialDriver->print("Loaded user settings:\r\n");
     mySerialDriver->print("Blink State: ");
-    mySerialDriver->print(myBlinkState ? "on\n" : "off\n");
+    mySerialDriver->print(myBlinkState ? "on\r\n" : "off\r\n");
     mySerialDriver->print("Blink Period: ");
     mySerialDriver->print(std::to_string(myPeriodLengthMs).c_str());
-    mySerialDriver->print(" ms\n");
+    mySerialDriver->print(" ms\r\n");
 
     myTimerDriver->setPeriod(myPeriodLengthMs);
     if (myBlinkState)

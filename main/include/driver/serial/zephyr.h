@@ -14,7 +14,7 @@ namespace driver::serial
  * @brief Serial driver for Zephyr, using UART polling (uart_poll_in/uart_poll_out).
  *
  * Used with the console device (zephyr,console = USB-C on the Nano ESP32), but works with any
- * UART device. print() turns "\n" into "\r\n" so terminals start each line at the left edge.
+ * UART device.
  */
 class Zephyr final : public Interface
 {

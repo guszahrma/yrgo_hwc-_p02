@@ -62,6 +62,10 @@ tools/clang-format/check.sh
 * Classes are `final` where possible, member functions `noexcept`, overrides marked `override`, copy and
   move deleted for drivers; members are prefixed `my` (`myState`, `myValid`).
 * Hardware is requested from the factory by role (`GpioId`, `AdcId`), never by pin number.
+* Line endings: text for the serial driver's `print()` ends lines with `\r\n` – the drivers send bytes as
+  they are, on both platforms (raw bytes also suit binary protocols such as mcumgr). `printf`/`printk` keep
+  `\n`: ESP-IDF's stdout (`CONFIG_LIBC_STDOUT_LINE_ENDING_CRLF`) and Zephyr's console add the `\r`
+  themselves, so `\r\n` there gives `\r\r\n`.
 * Workflow: one feature per branch and PR, review, merge with a merge commit (see
   [docs/contributing.md](docs/contributing.md)).
 * `docs/`, `readme.md` and board documents are for people: what to do and a short why. Mechanism, evidence

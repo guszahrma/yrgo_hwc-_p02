@@ -89,9 +89,9 @@ private:
 
     /**
      * The text around the command in the longest output line, the unknown-command line:
-     * "\nHandling unknown command: " and "\n".
+     * "\r\nHandling unknown command: " and "\r\n".
      */
-    static constexpr std::size_t UnknownCommandTextSize{28U};
+    static constexpr std::size_t UnknownCommandTextSize{30U};
 
     static_assert(OutputLineSize >= InputLineSize + UnknownCommandTextSize,
                   "An output line must hold a whole input line (an unknown command) plus its text");

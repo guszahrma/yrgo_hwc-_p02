@@ -109,5 +109,26 @@ public:
      */
     virtual std::unique_ptr<driver::watchdog::Interface>
     createWatchdog(std::uint32_t timeoutMs) noexcept = 0;
+
+    /**
+     * @brief The board P02 runs on, e.g. "daisy_seed"
+     *
+     * @return C-string that is valid for the lifetime of the program
+     */
+    virtual const char* board() const noexcept = 0;
+
+    /**
+     * @brief The board target P02 was built for, e.g. "daisy_seed/stm32h750xx/ram_load"
+     *
+     * @return C-string that is valid for the lifetime of the program
+     */
+    virtual const char* boardTarget() const noexcept = 0;
+
+    /**
+     * @brief The platform P02 runs on: "ESP-IDF" or "Zephyr"
+     *
+     * @return C-string that is valid for the lifetime of the program
+     */
+    virtual const char* platform() const noexcept = 0;
 };
 } // namespace driver::factory

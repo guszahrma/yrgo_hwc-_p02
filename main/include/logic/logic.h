@@ -4,6 +4,7 @@
 
 #pragma once
 
+#include <cstddef>
 #include <cstdint>
 #include <type_traits>
 
@@ -76,6 +77,24 @@ private:
     void handleStore() noexcept;
     void handleHang() noexcept;
     void loadStoredUserSettings() noexcept;
+
+    /** One line of input from the serial port, including the terminating '\0'. */
+    static constexpr std::size_t InputLineSize{64U};
+
+    /**
+     * One output line formatted with std::snprintf before print(), including the '\0'.
+     * std::snprintf cuts off anything longer.
+     */
+    static constexpr std::size_t OutputLineSize{96U};
+
+    /**
+     * The text around the command in the longest output line, the unknown-command line:
+     * "\nHandling unknown command: " and "\n".
+     */
+    static constexpr std::size_t UnknownCommandTextSize{28U};
+
+    static_assert(OutputLineSize >= InputLineSize + UnknownCommandTextSize,
+                  "An output line must hold a whole input line (an unknown command) plus its text");
 
     /** Watchdog timeout: the system restarts if Logic stops kicking for this long. */
     static constexpr std::uint32_t WatchdogTimeoutMs{3000U};

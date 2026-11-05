@@ -74,13 +74,11 @@ void Logic::run() noexcept
 // --------------------------------------------------------------------------------
 void Logic::step() noexcept
 {
-    constexpr std::size_t bufferSize{64};
-
     // Must be at least one FreeRTOS tick (10 ms with CONFIG_FREERTOS_HZ=100): shorter sleeps
     // busy-wait in ESP-IDF, so the idle task never runs and the task watchdog fires
     constexpr std::uint8_t sleepDuration_ms{10};
 
-    char buffer[bufferSize]{};
+    char buffer[InputLineSize]{};
 
     // Tell the watchdog that the loop is still running. After 'hang' (see handleHang()) the
     // kicks stop, and the watchdog restarts the system as if the loop had hung.
@@ -174,7 +172,7 @@ void Logic::handleHelp() noexcept
 void Logic::handleUnknownCommand(const std::string_view& cmd) noexcept
 {
     // A string_view is not null-terminated: %.*s prints exactly cmd.size() characters.
-    char line[96]{};
+    char line[OutputLineSize]{};
     std::snprintf(line, sizeof(line), "\nHandling unknown command: %.*s\n",
                   static_cast<int>(cmd.size()), cmd.data());
     mySerialDriver->print(line);
@@ -222,7 +220,7 @@ void Logic::handleBlinkOff() noexcept
 // --------------------------------------------------------------------------------
 void Logic::handlePeriod(uint16_t periodLengthMs) noexcept
 {
-    char line[64]{};
+    char line[OutputLineSize]{};
     std::snprintf(line, sizeof(line), "\nHandling 'period' command...%u ms\n",
                   static_cast<unsigned>(periodLengthMs));
     mySerialDriver->print(line);
@@ -315,7 +313,7 @@ void Logic::loadStoredUserSettings() noexcept
     if (valid) { myPeriodLengthMs = static_cast<std::uint16_t>(parsed); }
     else
     {
-        char line[64]{};
+        char line[OutputLineSize]{};
         std::snprintf(line, sizeof(line), "Invalid stored blink period '%s', using %u ms\n",
                       blinkPeriod.c_str(), static_cast<unsigned>(DefaultPeriodMs));
         mySerialDriver->print(line);

@@ -16,7 +16,7 @@
 
 namespace logic
 {
-// All output goes through the serial driver, not std::cout: <iostream> costs ~170 KB of flash on
+// All output goes through the serial driver, not std::cout: <iostream> costs ~160 KB of flash on
 // Zephyr (streams and locales). Lines with numbers are formatted with std::snprintf first.
 
 // --------------------------------------------------------------------------------

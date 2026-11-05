@@ -21,6 +21,8 @@
  * should immediately apply the new period. If the LED is not currently blinking, it should store
  * the new period and use it when blinking is activated.
  * - status → prints the current status of the system, including:
+ *           board, board target and platform (e.g. daisy_seed, daisy_seed/stm32h750xx/ram_load,
+ *           Zephyr)
  *           blinkstate (on/off)
  *           period_length_ms (ms)
  *           current temperature (°C)
@@ -87,6 +89,9 @@ private:
     std::uint16_t myPeriodLengthMs; // Blinking period in milliseconds
     bool myBlinkState;              // false for off, true for on
     bool myHung;                    // true after 'hang': the watchdog is no longer kicked
+    const char* myBoard;            // Board, from the factory (printed by 'status')
+    const char* myBoardTarget;      // Board target, from the factory (printed by 'status')
+    const char* myPlatform;         // ESP-IDF or Zephyr, from the factory (printed by 'status')
     std::unique_ptr<driver::serial::Interface> mySerialDriver; // Serial driver for communication
     std::unique_ptr<driver::gpio::Interface> myStatusLed; // Status LED (role GpioId::StatusLed)
     std::unique_ptr<driver::adc::Interface>

@@ -2,6 +2,7 @@
  * @brief Unit tests for logic::Logic with factory::Stub
  */
 #include <cstdint>
+#include <string>
 
 #include "driver/factory/stub.h"
 #include "logic/logic.h"
@@ -34,4 +35,20 @@ TEST(Logic, HangStopsKickingTheWatchdog)
 
     // No kicks after 'hang': on the board, the watchdog now restarts the system.
     EXPECT_EQ(kicksAtHang, factory.watchdog().kickCount());
+}
+
+TEST(Logic, StatusPrintsBoardBoardTargetAndPlatform)
+{
+    driver::factory::Stub factory{};
+    logic::Logic logic{factory};
+
+    // The serial stub prints to std::cout.
+    factory.serial().simulateInputData("status");
+    testing::internal::CaptureStdout();
+    logic.step();
+    const std::string output{testing::internal::GetCapturedStdout()};
+
+    EXPECT_NE(std::string::npos, output.find("Board: stub\n"));
+    EXPECT_NE(std::string::npos, output.find("Board target: stub\n"));
+    EXPECT_NE(std::string::npos, output.find("Platform: stub\n"));
 }

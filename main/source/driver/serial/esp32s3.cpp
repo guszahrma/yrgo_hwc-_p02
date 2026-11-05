@@ -3,6 +3,7 @@
  */
 #include "driver/serial/esp32s3.h"
 #include "driver/usb_serial_jtag.h"
+#include "driver/usb_serial_jtag_vfs.h"
 #include "freertos/FreeRTOS.h"
 #include <cstring>
 
@@ -17,10 +18,19 @@ Esp32s3::Esp32s3() noexcept
     usb_serial_jtag_driver_config_t cfg{.tx_buffer_size{InternalBufLen},
                                         .rx_buffer_size{InternalBufLen}};
     (void)usb_serial_jtag_driver_install(&cfg);
+
+    // printf (stdout) writes to the same USB port. Without this it writes straight to the hardware
+    // past the driver's TX buffer, and text printed right after print() is lost in part or whole.
+    usb_serial_jtag_vfs_use_driver();
 }
 
 // --------------------------------------------------------------------------------
-Esp32s3::~Esp32s3() noexcept { (void)usb_serial_jtag_driver_uninstall(); }
+Esp32s3::~Esp32s3() noexcept
+{
+    // Back to writing straight to the hardware first: stdout must not use a removed driver.
+    usb_serial_jtag_vfs_use_nonblocking();
+    (void)usb_serial_jtag_driver_uninstall();
+}
 
 // --------------------------------------------------------------------------------
 void Esp32s3::print(const char* text) noexcept

@@ -75,4 +75,13 @@ Esp32s3::createWatchdog(std::uint32_t timeoutMs) noexcept
     // Running stubs until real drivers are finished
     return std::make_unique<driver::watchdog::Esp32s3>(timeoutMs);
 }
+
+// -----------------------------------------------------------------------------
+const char* Esp32s3::board() const noexcept { return "arduino_nano_esp32"; }
+
+// -----------------------------------------------------------------------------
+const char* Esp32s3::boardTarget() const noexcept { return "arduino_nano_esp32/esp32s3/procpu"; }
+
+// -----------------------------------------------------------------------------
+const char* Esp32s3::platform() const noexcept { return "ESP-IDF"; }
 } // namespace driver::factory

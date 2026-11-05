@@ -159,6 +159,27 @@ public:
     }
 
     /**
+     * @brief The board: "stub" in the tests.
+     *
+     * @return C-string literal.
+     */
+    const char* board() const noexcept override { return "stub"; }
+
+    /**
+     * @brief The board target: "stub" in the tests.
+     *
+     * @return C-string literal.
+     */
+    const char* boardTarget() const noexcept override { return "stub"; }
+
+    /**
+     * @brief The platform: "stub" in the tests.
+     *
+     * @return C-string literal.
+     */
+    const char* platform() const noexcept override { return "stub"; }
+
+    /**
      * @brief The status LED stub created by createGpio(GpioId::StatusLed, ...).
      *
      * @return reference to the GPIO stub.

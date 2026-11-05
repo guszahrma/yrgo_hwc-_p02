@@ -47,6 +47,8 @@ installed. The board does not leave USB when it is reset, so `tio` stays connect
 output (`*** Booting MCUboot ***`, `Jumping to the first image slot`) before P02's. Then use the
 [serial commands](usage.md#serial-commands).
 
+MCUboot trying a new version and rolling it back: [Zephyr environment → Update demo](platform_zephyr.md#update-demo).
+
 ## Wiring for P02
 
 All pins are on the Arduino header.

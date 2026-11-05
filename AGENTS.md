@@ -119,7 +119,7 @@ tools/clang-format/check.sh
 | Flashing works but the monitor shows nothing | Boot output was printed before the monitor connected (usbipd re-attached the board slowly). Increase `CONFIG_BOOT_DELAY` in the app's `prj.conf`, e.g. to `3000`. |
 | Strange compiler errors when building for the ESP32-S3 | The course's `env.sh` is active in the terminal. Open a new terminal and run `source tools/zephyr_env.sh`. |
 | Nano: the monitor never shows `*** Booting MCUboot ***` | Expected: MCUboot prints before usbipd has attached the board again. If P02 starts, MCUboot started it. |
-| `region 'FLASH' overflowed` when building P02 with `--sysbuild` | P02 no longer fits in `slot0_partition` (200 KB on the Nucleo). Check the size (`-t app_rom_report`) before changing partitions. |
+| `region 'FLASH' overflowed` when building P02 with `--sysbuild` | P02 no longer fits in `slot0_partition` (200 KB on the Nucleo). Check what takes the space before changing partitions: `ninja -C zephyr/app/build/<board>/app rom_report` (with sysbuild, `rom_report` is in the app's own build directory). |
 | `west flash`: `libusb_open() failed with LIBUSB_ERROR_ACCESS` (OpenOCD, Nucleo) | The ST-Link's USB device belongs to root: install `tools/udev/99-p02.rules` again (it gives `dialout` access to `0483:374b`). |
 | `CMake Error: Not a file: .../cmake/pristine.cmake` | The build directory was made with another Zephyr installation. Delete it once: `rm -rf zephyr/app/build`. |
 

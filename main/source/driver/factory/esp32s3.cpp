@@ -72,7 +72,6 @@ std::unique_ptr<driver::timer::Interface> Esp32s3::createTimer() noexcept
 std::unique_ptr<driver::watchdog::Interface>
 Esp32s3::createWatchdog(std::uint32_t timeoutMs) noexcept
 {
-    // Running stubs until real drivers are finished
     return std::make_unique<driver::watchdog::Esp32s3>(timeoutMs);
 }
 

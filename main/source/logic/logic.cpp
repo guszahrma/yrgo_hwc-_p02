@@ -21,9 +21,9 @@ namespace logic
 
 // --------------------------------------------------------------------------------
 Logic::Logic(driver::factory::Interface& factory) noexcept
-    : myPeriodLengthMs{1000} // Set default blinking period to 1000 ms
-    , myBlinkState{false}    // Initialize blink state to off
-    , myHung{false}          // Kick the watchdog until 'hang'
+    : myPeriodLengthMs{DefaultPeriodMs} // Until loadStoredUserSettings() reads the stored one
+    , myBlinkState{false}               // Initialize blink state to off
+    , myHung{false}                     // Kick the watchdog until 'hang'
 {
     // Create the necessary drivers using the factory and initialize the system state.
     // For example, you might create a serial driver for communication and a GPIO driver for
@@ -32,9 +32,10 @@ Logic::Logic(driver::factory::Interface& factory) noexcept
     mySerialDriver = factory.createSerial();
     myStatusLed =
         factory.createGpio(driver::factory::GpioId::StatusLed, driver::gpio::Direction::OUTPUT);
-    myTempSensorAdc = factory.createAdc(driver::factory::AdcId::TempSensor, 3.3f);
-    myTempSensor    = factory.createTempSensor(*myTempSensorAdc);
-    myTimerDriver   = factory.createTimer();
+    myTempSensorAdc =
+        factory.createAdc(driver::factory::AdcId::TempSensor, TempSensorReferenceVoltage);
+    myTempSensor  = factory.createTempSensor(*myTempSensorAdc);
+    myTimerDriver = factory.createTimer();
     myTimerDriver->stop(); // Start the timer for blinking
     myNvsUserSettingsStorage = factory.createNvs("user_settings");
     myWatchdog               = factory.createWatchdog(WatchdogTimeoutMs);
@@ -293,14 +294,12 @@ void Logic::loadStoredUserSettings() noexcept
     if (!(myNvsUserSettingsStorage->getString("blink_state", blinkState)))
         blinkState = "off"; // Default to "off" if not found
     if (!(myNvsUserSettingsStorage->getString("blink_period", blinkPeriod)))
-        blinkPeriod = "1000"; // Default to 1000 ms if not found
+        blinkPeriod = std::to_string(DefaultPeriodMs); // Default if not found
 
     myBlinkState = (blinkState == "on");
 
     // Parse the stored period without exceptions (std::stoi throws on bad data, and this function
     // is noexcept) and without silent wrap-around (a cast to uint16_t turns 70000 into 4464).
-    constexpr std::uint16_t DefaultPeriodMs{1000U};
-
     std::uint32_t parsed{};
     const auto [ptr, ec] =
         std::from_chars(blinkPeriod.data(), blinkPeriod.data() + blinkPeriod.size(), parsed);

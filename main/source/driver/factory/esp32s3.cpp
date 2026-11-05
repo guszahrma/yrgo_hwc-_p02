@@ -71,9 +71,7 @@ std::unique_ptr<driver::timer::Interface> Esp32s3::createTimer() noexcept
 // -----------------------------------------------------------------------------
 std::unique_ptr<driver::watchdog::Interface>
 Esp32s3::createWatchdog(std::uint32_t timeoutMs) noexcept
-{
-    return std::make_unique<driver::watchdog::Esp32s3>(timeoutMs);
-}
+{ return std::make_unique<driver::watchdog::Esp32s3>(timeoutMs); }
 
 // -----------------------------------------------------------------------------
 const char* Esp32s3::board() const noexcept { return "arduino_nano_esp32"; }

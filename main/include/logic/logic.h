@@ -4,6 +4,7 @@
 
 #pragma once
 
+#include <cstddef>
 #include <cstdint>
 #include <type_traits>
 
@@ -79,8 +80,35 @@ private:
     void handleHang() noexcept;
     void loadStoredUserSettings() noexcept;
 
+    /** One line of input from the serial port, including the terminating '\0'. */
+    static constexpr std::size_t InputLineSize{64U};
+
+    /**
+     * One output line formatted with std::snprintf before print(), including the '\0'.
+     * std::snprintf cuts off anything longer.
+     */
+    static constexpr std::size_t OutputLineSize{96U};
+
+    /**
+     * The text around the command in the longest output line, the unknown-command line:
+     * "\r\nHandling unknown command: " and "\r\n".
+     */
+    static constexpr std::size_t UnknownCommandTextSize{30U};
+
+    static_assert(OutputLineSize >= InputLineSize + UnknownCommandTextSize,
+                  "An output line must hold a whole input line (an unknown command) plus its text");
+
+    /**
+     * Reference voltage of the temperature sensor's ADC in volts: the TMP36 is supplied from 3V3.
+     * Only ESP-IDF uses it; on Zephyr the ADC's range comes from devicetree.
+     */
+    static constexpr float TempSensorReferenceVoltage{3.3F};
+
     /** Watchdog timeout: the system restarts if Logic stops kicking for this long. */
     static constexpr std::uint32_t WatchdogTimeoutMs{3000U};
+
+    /** Blink period at start, and when no valid period is stored. */
+    static constexpr std::uint16_t DefaultPeriodMs{1000U};
 
     /** Valid range for the blink period; other values are rejected. */
     static constexpr std::uint16_t MinPeriodMs{50U};

@@ -48,7 +48,7 @@ TEST(Logic, StatusPrintsBoardBoardTargetAndPlatform)
     logic.step();
     const std::string output{testing::internal::GetCapturedStdout()};
 
-    EXPECT_NE(std::string::npos, output.find("Board: stub\n"));
-    EXPECT_NE(std::string::npos, output.find("Board target: stub\n"));
-    EXPECT_NE(std::string::npos, output.find("Platform: stub\n"));
+    EXPECT_NE(std::string::npos, output.find("Board: stub\r\n"));
+    EXPECT_NE(std::string::npos, output.find("Board target: stub\r\n"));
+    EXPECT_NE(std::string::npos, output.find("Platform: stub\r\n"));
 }

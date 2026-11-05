@@ -13,8 +13,8 @@ every board needs: [Boards](boards.md).
 | What | On the Nucleo-G0B1RE |
 |---|---|
 | Board target | `nucleo_g0b1re` (Zephyr's own board definition) |
-| Flash | P02's image is ~206 KB of the 512 KB internal flash. No MCUboot: P02 starts directly |
-| RAM | ~17 KB of the 144 KB |
+| Flash | P02's image is ~48 KB of the 512 KB internal flash. No MCUboot: P02 starts directly |
+| RAM | ~11 KB of the 144 KB |
 | Settings (`store`) | The `storage` partition, the last 64 KB of the internal flash |
 | Console | The ST-Link's serial port (USART2) on the ST-Link USB port, `/dev/tty_nucleo_g0b1re` |
 | Flashing | The on-board ST-Link, with OpenOCD (comes with the Zephyr SDK) |

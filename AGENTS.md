@@ -63,6 +63,10 @@ tools/clang-format/check.sh
 * Classes are `final` where possible, member functions `noexcept`, overrides marked `override`, copy and
   move deleted for drivers; members are prefixed `my` (`myState`, `myValid`).
 * Hardware is requested from the factory by role (`GpioId`, `AdcId`), never by pin number.
+* Line endings: text for the serial driver's `print()` ends lines with `\r\n` – the drivers send bytes as
+  they are, on both platforms (raw bytes also suit binary protocols such as mcumgr). `printf`/`printk` keep
+  `\n`: ESP-IDF's stdout (`CONFIG_LIBC_STDOUT_LINE_ENDING_CRLF`) and Zephyr's console add the `\r`
+  themselves, so `\r\n` there gives `\r\r\n`.
 * Workflow: one feature per branch and PR, review, merge with a merge commit (see
   [docs/contributing.md](docs/contributing.md)).
 * `docs/`, `readme.md` and board documents are for people: what to do and a short why. Mechanism, evidence
@@ -168,7 +172,7 @@ tools/clang-format/check.sh
 | Watchdog | The board's alias `watchdog0` – `wdt0` (Timer Group 0) on the Nano, the IWDG on the Daisy Seed – with `WDT_FLAG_RESET_SOC`, `window.min = 0`; reset cause from `hwinfo_get_reset_cause()` (`CONFIG_HWINFO`) | Zephyr's ESP32 driver uses two stages with the same time (interrupt, then reset), so the Nano restarts after about **twice** the timeout (~6 s instead of 3 s). `window.max = timeoutMs / 2` would make it match ESP-IDF. The Daisy's IWDG is not tested yet (see the Daisy's open items) |
 | Board in `status` | `factory::Zephyr` returns `CONFIG_BOARD` and `CONFIG_BOARD_TARGET`; `Logic` prints them with the platform (three methods on `factory::Interface`, not a struct) | Each new board gets the right name without code changes. The board target shows the build variant (Daisy: `ram_load` or not); the platform tells ESP-IDF and Zephyr apart on the Nano |
 | NVS | Settings subsystem (NVS backend), not the raw NVS API | String keys like ESP-IDF (raw NVS has numeric IDs). The namespace is the key prefix (`user_settings/blink_state`). Every write goes to flash at once, so `autoCommit`/`commit()` have no effect |
-| `std::cout` in `Logic` | Kept, via `CONFIG_POSIX_API` | `Logic` stays unchanged. Costs ~225 KB flash; Zephyr logging would be an improvement |
+| Output from `Logic` | `mySerialDriver->print()`, with `std::snprintf` for lines with numbers; no `std::cout` | `<iostream>` (streams and locales) cost most of P02's flash. Removing it: Nucleo ~206 → ~48 KB, Nano (Zephyr) ~432 → ~141 KB, Nano (ESP-IDF) ~402 → ~231 KB, Daisy ~258 → ~133 KB. Zephyr logging would be a further improvement |
 | ESP-IDF and Zephyr in one repository | Yes | The shared logic is built for both in CI; reorganise (`common/`, `esp-idf/`, `zephyr/`) if the ESP-IDF build is dropped |
 
 ### Pitfalls and lessons learned
@@ -224,7 +228,9 @@ tools/clang-format/check.sh
 #### C++ on Zephyr
 
 * `CONFIG_CPP`, `CONFIG_STD_CPP17`, `CONFIG_REQUIRES_FULL_LIBCPP`, and `CONFIG_POSIX_API` for
-  `std::cout` (otherwise `undefined reference to 'open'`, `read`, ...).
+  `std::this_thread::sleep_for` (otherwise `undefined reference to 'usleep'`, `sleep`, `gettimeofday`).
+* No `std::cout` (`<iostream>`): it costs ~160 KB of flash. Print through the serial driver, with
+  `std::snprintf` for numbers; a `std::string_view` needs `%.*s`, since it is not null-terminated.
 * `sleep()` takes **seconds**. Use `std::this_thread::sleep_for(std::chrono::milliseconds(...))`
   (`<thread>`, `<chrono>`); `usleep` gives header conflicts between Zephyr's POSIX headers and picolibc.
 * `printk` formats must match the type (`%lld` + cast for `int64_t`); no `%f` by default.
@@ -283,8 +289,8 @@ Read that file before changing anything in the board directory. P02 on the Daisy
 
 | Decision | Choice | Why |
 |---|---|---|
-| Where P02 runs | MCUboot in the 128 KB internal flash; P02 stored in the 8 MB QSPI flash | P02 is ~258 KB; the STM32H750 has 128 KB internal flash |
-| RAM load, not XIP | P02 is built for `daisy_seed/stm32h750xx/ram_load` and uses 283 KB of the 512 KB AXI SRAM (code, data and stack) | `store` writes NVS in QSPI, which a program running from QSPI cannot do (details in the board definition's `AGENTS.md`) |
+| Where P02 runs | MCUboot in the 128 KB internal flash; P02 stored in the 8 MB QSPI flash | P02 is ~133 KB (signed image); the STM32H750 has 128 KB internal flash |
+| RAM load, not XIP | P02 is built for `daisy_seed/stm32h750xx/ram_load` and uses ~153 KB of the 512 KB AXI SRAM (code, data and stack) | `store` writes NVS in QSPI, which a program running from QSPI cannot do (details in the board definition's `AGENTS.md`) |
 | Main stack | `CONFIG_MAIN_STACK_SIZE=4096` in `zephyr/app/prj.conf` | Zephyr's default 1 KB overflowed on `store` (Settings → NVS → flash driver in the main thread); with the MPU stack guard the app halted. The Nano's board already used 4 KB, so it never showed there |
 | App wiring | One overlay per board in `zephyr/app/boards/` providing `p02-led` and `zephyr,user`: `arduino_nano_esp32_procpu.overlay`, `daisy_seed_ram_load.overlay` | `factory::Zephyr` uses only those names; `boards/<board>.overlay` replaces `app.overlay`. See *App overlays* under Board and devicetree for the file name. |
 | Wiring comments | Give all three names: Daisy name, physical pin, STM32 name (`/* D15 = pin 22 = PC0 */`) | Only the physical pin number matches the board's print; the STM32 name is what the datasheet and errors use |
@@ -320,7 +326,7 @@ here. P02 on the Nucleo for people: [docs/p02_nucleo_g0b1re.md](docs/p02_nucleo_
 | Decision | Choice | Why |
 |---|---|---|
 | Board definition | Zephyr's own `nucleo_g0b1re` | It already has a console (USART2 via the ST-Link), `watchdog0` = IWDG, `adc1` with PA0/PA1 and a 64 KB `storage_partition` |
-| No MCUboot | P02 links from the start of flash (~206 KB) | The board's `zephyr,code-partition` is the 200 KB `slot0_partition`, but without a bootloader Zephyr ignores it (`CONFIG_USE_DT_CODE_PARTITION` off) and the FLASH region is all 512 KB. The image ends well before `storage_partition` at 0x70000; nothing stops it from growing into it, so watch the size |
+| No MCUboot | P02 links from the start of flash (~48 KB) | The board's `zephyr,code-partition` is the 200 KB `slot0_partition`, but without a bootloader Zephyr ignores it (`CONFIG_USE_DT_CODE_PARTITION` off) and the FLASH region is all 512 KB. The image ends well before `storage_partition` at 0x70000; nothing stops it from growing into it, so watch the size |
 | Flash runner | `--runner openocd` | The board's first runner is STM32CubeProgrammer (not installed); OpenOCD comes with the Zephyr SDK |
 | Role mapping | `StatusLed` = external LED on D6 = PB14 (330 Ω to GND, active high); `TempSensor` = TMP36 on A0 = PA0 (ADC1 ch 0), Vs from 3V3 | D6 as on the Nano, so the wiring is the same. The on-board LD4 (PA5 = D13) was tried first and dropped in favour of the external LED. A0 because the board already has PA0 in `adc1`'s pinctrl |
 | udev | `0483:374b` → `/dev/tty_nucleo_g0b1re` (`-echo`), and `MODE=0660 GROUP=dialout` on the USB device | OpenOCD failed with `LIBUSB_ERROR_ACCESS` without it. The rule matches any ST-Link/V2-1 (most Nucleo-64 boards) |

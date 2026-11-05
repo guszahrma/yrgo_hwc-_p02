@@ -11,7 +11,7 @@ Zephyr board definition – is described in its board document,
 | What | On the Nano ESP32 |
 |---|---|
 | Zephyr board target | `arduino_nano_esp32/esp32s3/procpu` |
-| Flash (Zephyr) | P02's image is ~421 KB of the 16 MB |
+| Flash (Zephyr) | P02's image is ~141 KB of the 16 MB |
 | RAM (Zephyr) | ~53 KB for variables and stacks, plus ~41 KB of code in internal RAM |
 | Settings (`store`) | NVS in the flash: ESP-IDF's `nvs` partition, Zephyr's `storage_partition` |
 | Console | USB-C port (USB-Serial/JTAG), `/dev/tty_arduino_nano_esp32` |

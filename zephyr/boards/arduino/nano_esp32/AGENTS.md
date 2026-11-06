@@ -9,7 +9,7 @@ was tested are kept here, not in the project that uses it, so they are copied wi
 | Decision | Choice | Why |
 |---|---|---|
 | Board definition | Own out-of-tree board, based on the ABX00083 schematic, found through `BOARD_ROOT` | The Nano ESP32 is not in Zephyr (checked in v4.4.2 and on `main`) |
-| Chip variant | `SOC_ESP32S3_WROOM_N16R8` (`esp32s3_wroom_n16r8.dtsi`) | The same memory as the NORA-W106: 16 MB flash, 8 MB PSRAM. `esp32s3_devkitc` uses the N8 variant (8 MB flash, no PSRAM) |
+| Chip variant | `SOC_ESP32S3_WROOM_N16R8` (`esp32s3_wroom_n16r8.dtsi`) | The same memory as the NORA-W106: 16 MB flash, 8 MB PSRAM. Rejected: the N8 variant that `esp32s3_devkitc` uses (8 MB flash, no PSRAM). |
 | Pin names | `arduino_nano_header` in `arduino_nano_connector.dtsi`: D0–D13, A0–A7 (= 14–21) → GPIO | App overlays use the names printed on the board |
 | I2C and SPI | `i2c0` and `spi2` configured but disabled | An app enables the bus it uses; until then its pins stay free for GPIO or ADC |
 

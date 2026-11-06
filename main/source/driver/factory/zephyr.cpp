@@ -94,4 +94,13 @@ std::unique_ptr<driver::boot::Interface> Zephyr::createBoot() noexcept
     // Stub until boot::Zephyr is written
     return std::make_unique<driver::boot::Stub>();
 }
+
+// -----------------------------------------------------------------------------
+const char* Zephyr::board() const noexcept { return CONFIG_BOARD; }
+
+// -----------------------------------------------------------------------------
+const char* Zephyr::boardTarget() const noexcept { return CONFIG_BOARD_TARGET; }
+
+// -----------------------------------------------------------------------------
+const char* Zephyr::platform() const noexcept { return "Zephyr"; }
 } // namespace driver::factory

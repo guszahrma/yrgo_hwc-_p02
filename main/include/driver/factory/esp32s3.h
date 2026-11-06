@@ -98,6 +98,27 @@ public:
      */
     std::unique_ptr<driver::boot::Interface> createBoot() noexcept override;
 
+    /**
+     * @brief The board. ESP-IDF knows only the chip, and this factory maps the Nano's pins.
+     *
+     * @return "arduino_nano_esp32"
+     */
+    const char* board() const noexcept override;
+
+    /**
+     * @brief The board target, named like Zephyr's for the same board
+     *
+     * @return "arduino_nano_esp32/esp32s3/procpu"
+     */
+    const char* boardTarget() const noexcept override;
+
+    /**
+     * @brief The platform
+     *
+     * @return "ESP-IDF"
+     */
+    const char* platform() const noexcept override;
+
     Esp32s3(const Esp32s3&)            = delete;
     Esp32s3(Esp32s3&&)                 = delete;
     Esp32s3& operator=(const Esp32s3&) = delete;

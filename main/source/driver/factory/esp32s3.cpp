@@ -74,10 +74,7 @@ std::unique_ptr<driver::timer::Interface> Esp32s3::createTimer() noexcept
 // -----------------------------------------------------------------------------
 std::unique_ptr<driver::watchdog::Interface>
 Esp32s3::createWatchdog(std::uint32_t timeoutMs) noexcept
-{
-    // Running stubs until real drivers are finished
-    return std::make_unique<driver::watchdog::Esp32s3>(timeoutMs);
-}
+{ return std::make_unique<driver::watchdog::Esp32s3>(timeoutMs); }
 
 // -----------------------------------------------------------------------------
 std::unique_ptr<driver::boot::Interface> Esp32s3::createBoot() noexcept
@@ -85,4 +82,13 @@ std::unique_ptr<driver::boot::Interface> Esp32s3::createBoot() noexcept
     // Stub until boot::Esp32s3 is written
     return std::make_unique<driver::boot::Stub>();
 }
+
+// -----------------------------------------------------------------------------
+const char* Esp32s3::board() const noexcept { return "arduino_nano_esp32"; }
+
+// -----------------------------------------------------------------------------
+const char* Esp32s3::boardTarget() const noexcept { return "arduino_nano_esp32/esp32s3/procpu"; }
+
+// -----------------------------------------------------------------------------
+const char* Esp32s3::platform() const noexcept { return "ESP-IDF"; }
 } // namespace driver::factory

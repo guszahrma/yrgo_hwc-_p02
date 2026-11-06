@@ -43,8 +43,6 @@ void Zephyr::print(const char* text) noexcept
 
     for (const char* p{text}; '\0' != *p; ++p)
     {
-        // Terminals need "\r\n" to start the next line at the left edge.
-        if ('\n' == *p) { uart_poll_out(myUart, '\r'); }
         uart_poll_out(myUart, static_cast<unsigned char>(*p));
     }
 }

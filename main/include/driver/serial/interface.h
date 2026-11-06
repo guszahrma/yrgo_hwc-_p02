@@ -21,6 +21,9 @@ public:
     /**
      * @brief Print function
      *
+     * The text is sent as it is: '\n' is not turned into "\r\n". End lines with "\r\n", which
+     * terminals need to start the next line at the left edge.
+     *
      * @param[in] text Text to print
      */
     virtual void print(const char* text) noexcept = 0;

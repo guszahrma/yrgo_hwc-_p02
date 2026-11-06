@@ -69,9 +69,17 @@ tools/clang-format/check.sh
   themselves, so `\r\n` there gives `\r\r\n`.
 * Workflow: one feature per branch and PR, review, merge with a merge commit (see
   [docs/contributing.md](docs/contributing.md)).
-* `docs/`, `readme.md` and board documents are for people: what to do and a short why. Mechanism, evidence
-  ("verified on the board"), exact error bytes and history go in an `AGENTS.md` (the root one, or the board
-  definition's own).
+* `docs/`, `readme.md` and board documents are for people: what to do and a short why. Mechanism,
+  decisions, lessons and exact error bytes go in an `AGENTS.md` (the root one, or the board definition's
+  own). Records for the report – verification, measurements, iterations, background and requirements – go
+  in [`report/material.md`](report/material.md), which is only read when needed.
+* Decision tables (*Decision | Choice | Why*): the Why ends with `Rejected: <option> (<reason>).` and
+  `Verified: <what>, <board>.` where they apply, so alternatives and evidence can be found (also with
+  `grep`). Numbers in a decision are rounded and point to the measurement (`~48 KB, see Measurements`);
+  the full record of a test or a measurement is a row in `report/material.md`.
+* Code comments say what the code does, plus a one-line why where a reader might otherwise "fix" it.
+  Rejected options, evidence ("tested on the board") and history go only in an `AGENTS.md` or
+  `report/material.md`; the comment points to the row by name, e.g. `(see AGENTS.md: Flashing)`.
 * `.gitignore` ignores files without an extension; `Kconfig` and `*_defconfig` are excepted, `sdkconfig`
   is not committed.
 

@@ -24,6 +24,13 @@ implementations next to the interfaces in `main/`. See [docs/architecture.md](do
 | Platform | What P02 runs on: ESP-IDF or Zephyr, each with its own factory. Not the *environment*, which is the shell setup for one platform (`export.sh`, `tools/zephyr_env.sh`) |
 | App overlay | `zephyr/app/boards/<board target, / → _>.overlay`: P02's wiring on one board target (`p02-led`, `zephyr,user`). Not part of the board definition |
 | `docs/boards.md` | What is true for P02 on every board: what a board needs, the supported boards |
+| Firmware update | Installing a new P02 version through MCUboot's two slots (`slot0_partition`, `slot1_partition`), in the swap or the RAM-load variant. Zephyr only: no firmware updates on ESP-IDF. Not *flashing* or a *recovery upload*, which only put bytes into a slot |
+| Swap variant | Firmware update where P02 fits in the internal flash: it runs from slot 0 in place, and MCUboot (swap using move) swaps the new image in from slot 1 and starts it as a test; P02 confirms it, or the next reset reverts it. Nano, Nucleo |
+| RAM-load variant | Firmware update where P02 does not fit in the internal flash: the slots are in external flash (QSPI), and MCUboot (RAM load) copies the image into RAM and runs it there. Daisy |
+| Flashing | Writing MCUboot and P02 with the board's runner (`west flash`: OpenOCD, esptool, `dfu-util`). No test, no revert |
+| Recovery upload | `smpmgr` writing slot 0 while MCUboot is in serial recovery (the Daisy after RESET). No test, no revert |
+| Signed image | An image with a signature from our private key, checked by MCUboot before it starts the image. Not *secure boot* on its own |
+| Secure boot | Signed images **and** a bootloader that cannot be replaced (the chip's write and read-out protection), so only our images can run. Encrypted images (keeping the firmware secret) are a separate goal |
 
 ## Commands
 
@@ -72,7 +79,8 @@ tools/clang-format/check.sh
 * `docs/`, `readme.md` and board documents are for people: what to do and a short why. Mechanism,
   decisions, lessons and exact error bytes go in an `AGENTS.md` (the root one, or the board definition's
   own). Records for the report – verification, measurements, iterations, background and requirements – go
-  in [`report/material.md`](report/material.md).
+  in [`report/material.md`](report/material.md): records only grow, and `AGENTS.md` is loaded in every
+  session.
 * Decision tables (*Decision | Choice | Why*): the Why ends with `Rejected: <option> (<reason>).` and
   `Verified: <what>, <board>.` where they apply, so alternatives and evidence can be found (also with
   `grep`). Numbers in a decision are rounded and point to the measurement (`~48 KB, see Measurements`);
@@ -324,6 +332,16 @@ happens without it is not yet known. Other open items: a `zephyr/module.yml` wit
 (`watchdog0` = IWDG, added with #77, not tested with P02 yet): check that `hang` restarts the board, and
 whether `Last reset was caused by the watchdog` is printed – `mcuboot_hooks.c` clears the reset flags
 (`RCC->RSR`) before P02 reads them, so `causedLastReset()` is expected to be false there.
+
+Open items for firmware updates in the RAM-load variant: **what test, confirm and revert mean there** –
+MCUboot copies an image into RAM instead of swapping slots, and the update demo on
+`feature/mcuboot-update-demo` says the Daisy "has no rollback here"; this decides whether both variants can
+offer the same update flow. The **USB-off fault** above comes after a software reset, which ends every
+update (`smpmgr os reset`): a Daisy that was just updated may run P02 without its USB, so the update looks
+failed although it worked. **Locking MCUboot** (secure boot): the ROM bootloader (`dfu-util`, BOOT + RESET)
+can rewrite the internal flash and so replace MCUboot; the option bytes (write protection, RDP level) can
+stop that, but also block our own `dfu-util` flashing, and the highest RDP level cannot be undone. Check
+ST's documentation for the STM32H750 before deciding.
 
 ---
 

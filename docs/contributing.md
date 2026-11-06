@@ -10,6 +10,9 @@ How we work: branches and pull requests, tests, code style and CI.
 * Keep a branch up to date with `git merge origin/main`, not rebase, once it has been pushed.
 * Commit first, then merge `main` – your work is safe in a commit, and `git merge --abort` can always undo
   the merge.
+* A new test on a board or a new measurement (an image size, a time) gets a row in
+  [`report/material.md`](../report/material.md): board target, how, result, and the commit of the code that
+  was tested.
 
 ## Tests
 

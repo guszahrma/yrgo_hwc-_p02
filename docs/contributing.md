@@ -74,5 +74,37 @@ CI (`.github/workflows/ci.yml`) runs on every push and pull request:
 | Build Zephyr apps for the Arduino Nano ESP32 | `tools/zephyr_setup.sh`, then `zephyr/app` and `zephyr/samples/blinky` with the Zephyr version from `west.yml` |
 | Build Zephyr apps for the Daisy Seed | `tools/zephyr_setup.sh`, then Zephyr's `samples/basic/blinky` for `daisy_seed`, and `zephyr/app` with MCUboot (`--sysbuild`) for `daisy_seed/stm32h750xx/ram_load` |
 | Run unit tests on the host | Builds and runs the GoogleTest suite in `tests/` |
+| Flash and test on the Nano ESP32 | On push only, on a self-hosted runner: flashes the Ubuntu ESP-IDF build on a Nano ESP32 and runs `tools/hil/nano_esp32_test.py` (see below) |
 
 The firmware jobs upload the built images as artifacts (kept for 3 days).
+
+### Hardware test on a self-hosted runner
+
+The job *Flash and test on the Nano ESP32* runs on a PC with a Nano attached, not on GitHub's machines.
+It runs only on push: a pull request from a fork would otherwise run its code on that PC. Until a runner
+is online, the job waits in the queue (GitHub gives up after 24 hours); the other jobs are not affected.
+
+Setting up a PC as the runner (WSL, once):
+
+1. The Nano works with ESP-IDF on this PC: [ESP-IDF 6.0 in `~/esp/esp-idf`](platform_esp_idf.md) and
+   [the udev rules](setup.md#fixed-port-names) (`/dev/tty_arduino_nano_esp32`).
+2. On GitHub: **Settings → Actions → Runners → New self-hosted runner**, Linux x64. Run the commands it
+   shows in a folder outside the repository (e.g. `~/runners/p02/actions-runner`). `config.sh` asks:
+   * runner group: press Enter (`Default`; personal repositories have no other groups),
+   * runner name: e.g. `p02_nano_<pc name>`,
+   * labels: `nano-esp32` – the job asks for a runner with this label,
+   * work folder: press Enter.
+3. Start the runner with `./run.sh` (stop it with `Ctrl+C`), or as a service with
+   `sudo ./svc.sh install && sudo ./svc.sh start` (needs systemd in WSL).
+
+While the job runs:
+
+* The Nano must be attached to WSL (`usbipd attach`) and the port free: quit `tio` first, or the job fails.
+* The job flashes the board, so whatever was on it (Zephyr, a test build) is replaced.
+
+The test can also be run by hand after flashing:
+
+```bash
+. ~/esp/esp-idf/export.sh
+python tools/hil/nano_esp32_test.py --port /dev/tty_arduino_nano_esp32
+```

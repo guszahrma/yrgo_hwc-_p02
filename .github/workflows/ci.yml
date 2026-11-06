@@ -50,10 +50,15 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: firmware
+          # bootloader, partition table and flash_args too, so the hardware test can flash a whole
+          # image (the Nano may have Zephyr or the Arduino bootloader on it)
           path: |
             build/*.bin
             build/*.elf
             build/*.map
+            build/flash_args
+            build/bootloader/bootloader.bin
+            build/partition_table/partition-table.bin
           if-no-files-found: error
           retention-days: 3
 
@@ -164,3 +169,40 @@ jobs:
         run: |
           cmake -S tests -B tests/build
           cmake --build tests/build
+
+  # Flashes the ESP-IDF firmware from firmware-build on a Nano ESP32 and tests P02 over USB serial.
+  # Runs on a self-hosted runner with the label nano-esp32 (the board attached through usbipd, port
+  # /dev/tty_arduino_nano_esp32, ESP-IDF 6.0 in ~/esp/esp-idf). Only on push: a pull request from a
+  # fork would otherwise run its code on that machine. If the runner is offline, the job waits.
+  hardware-test-nano:
+    name: Flash and test on the Nano ESP32
+    if: github.event_name == 'push'
+    runs-on: [self-hosted, nano-esp32]
+    needs: firmware-build
+    # One board: a second run waits until the first is done
+    concurrency:
+      group: nano-esp32
+      cancel-in-progress: false
+    env:
+      PORT: /dev/tty_arduino_nano_esp32
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+      - name: Download firmware
+        uses: actions/download-artifact@v7
+        with:
+          name: firmware
+          path: firmware
+      - name: Check that the board is attached
+        run: |
+          test -e "$PORT" || { echo "::error::$PORT not found: is the Nano attached (usbipd attach)?"; exit 1; }
+          if fuser "$PORT" 2>/dev/null; then echo "::error::$PORT is in use (tio or a monitor open?)"; exit 1; fi
+      - name: Flash
+        working-directory: firmware
+        run: |
+          . ~/esp/esp-idf/export.sh > /dev/null
+          python -m esptool --chip esp32s3 -p "$PORT" -b 460800 --before default-reset --after hard-reset write-flash @flash_args
+      - name: Test P02 over serial
+        run: |
+          . ~/esp/esp-idf/export.sh > /dev/null
+          python tools/hil/nano_esp32_test.py --port "$PORT"

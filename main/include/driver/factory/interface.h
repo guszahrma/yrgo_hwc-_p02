@@ -7,6 +7,7 @@
 #include <memory>
 
 #include "driver/adc/interface.h"
+#include "driver/boot/interface.h"
 #include "driver/gpio/interface.h"
 #include "driver/nvs/interface.h"
 #include "driver/pin/interface.h"
@@ -109,5 +110,12 @@ public:
      */
     virtual std::unique_ptr<driver::watchdog::Interface>
     createWatchdog(std::uint32_t timeoutMs) noexcept = 0;
+
+    /**
+     * @brief Create a boot driver: the version of the images, and confirming the running one
+     *
+     * @return unique pointer
+     */
+    virtual std::unique_ptr<driver::boot::Interface> createBoot() noexcept = 0;
 };
 } // namespace driver::factory

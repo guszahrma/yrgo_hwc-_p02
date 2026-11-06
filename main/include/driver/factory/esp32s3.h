@@ -91,6 +91,13 @@ public:
     std::unique_ptr<driver::watchdog::Interface>
     createWatchdog(std::uint32_t timeoutMs) noexcept override;
 
+    /**
+     * @brief Create a boot driver: the version of the images, and confirming the running one
+     *
+     * @return unique pointer
+     */
+    std::unique_ptr<driver::boot::Interface> createBoot() noexcept override;
+
     Esp32s3(const Esp32s3&)            = delete;
     Esp32s3(Esp32s3&&)                 = delete;
     Esp32s3& operator=(const Esp32s3&) = delete;

@@ -95,6 +95,13 @@ public:
     std::unique_ptr<driver::watchdog::Interface>
     createWatchdog(std::uint32_t timeoutMs) noexcept override;
 
+    /**
+     * @brief Create a boot driver: the version of the images, and confirming the running one
+     *
+     * @return unique pointer
+     */
+    std::unique_ptr<driver::boot::Interface> createBoot() noexcept override;
+
     Zephyr(const Zephyr&)            = delete;
     Zephyr(Zephyr&&)                 = delete;
     Zephyr& operator=(const Zephyr&) = delete;

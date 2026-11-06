@@ -12,6 +12,9 @@
 #include "driver/timer/esp32s3.h"
 #include "driver/watchdog/esp32s3.h"
 
+// Running stub until real drivers are implemented
+#include "driver/boot/stub.h"
+
 namespace driver::factory
 {
 
@@ -74,5 +77,12 @@ Esp32s3::createWatchdog(std::uint32_t timeoutMs) noexcept
 {
     // Running stubs until real drivers are finished
     return std::make_unique<driver::watchdog::Esp32s3>(timeoutMs);
+}
+
+// -----------------------------------------------------------------------------
+std::unique_ptr<driver::boot::Interface> Esp32s3::createBoot() noexcept
+{
+    // Stub until boot::Esp32s3 is written
+    return std::make_unique<driver::boot::Stub>();
 }
 } // namespace driver::factory

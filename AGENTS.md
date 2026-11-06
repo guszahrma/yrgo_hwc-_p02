@@ -72,7 +72,7 @@ tools/clang-format/check.sh
 * `docs/`, `readme.md` and board documents are for people: what to do and a short why. Mechanism,
   decisions, lessons and exact error bytes go in an `AGENTS.md` (the root one, or the board definition's
   own). Records for the report – verification, measurements, iterations, background and requirements – go
-  in [`report/material.md`](report/material.md), which is only read when needed.
+  in [`report/material.md`](report/material.md).
 * Decision tables (*Decision | Choice | Why*): the Why ends with `Rejected: <option> (<reason>).` and
   `Verified: <what>, <board>.` where they apply, so alternatives and evidence can be found (also with
   `grep`). Numbers in a decision are rounded and point to the measurement (`~48 KB, see Measurements`);

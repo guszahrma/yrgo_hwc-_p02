@@ -76,7 +76,9 @@ tools/clang-format/check.sh
 * Decision tables (*Decision | Choice | Why*): the Why ends with `Rejected: <option> (<reason>).` and
   `Verified: <what>, <board>.` where they apply, so alternatives and evidence can be found (also with
   `grep`). Numbers in a decision are rounded and point to the measurement (`~48 KB, see Measurements`);
-  the full record of a test or a measurement is a row in `report/material.md`.
+  the full record of a test or a measurement is a row in `report/material.md`. A board definition's own
+  `AGENTS.md` keeps its records itself, since it is copied with the board: its numbers and tests stay in
+  the row.
 * Code comments say what the code does, plus a one-line why where a reader might otherwise "fix" it.
   Rejected options, evidence ("tested on the board") and history go only in an `AGENTS.md` or
   `report/material.md`; the comment points to the row by name, e.g. `(see AGENTS.md: Flashing)`.

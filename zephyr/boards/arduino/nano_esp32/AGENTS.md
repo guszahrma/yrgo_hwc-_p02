@@ -1,7 +1,8 @@
 # AGENTS.md – Arduino Nano ESP32 board definition
 
 Context for AI coding assistants changing this board definition: design decisions and lessons from the
-bring-up. People should start with [`doc/index.md`](doc/index.md).
+bring-up. People should start with [`doc/index.md`](doc/index.md). Records of how this board definition
+was tested are kept here, not in the project that uses it, so they are copied with the board.
 
 ## Design decisions
 

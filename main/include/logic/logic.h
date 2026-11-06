@@ -22,6 +22,8 @@
  * should immediately apply the new period. If the LED is not currently blinking, it should store
  * the new period and use it when blinking is activated.
  * - status → prints the current status of the system, including:
+ *           board, board target and platform (e.g. daisy_seed, daisy_seed/stm32h750xx/ram_load,
+ *           Zephyr)
  *           blinkstate (on/off)
  *           period_length_ms (ms)
  *           current temperature (°C)
@@ -89,9 +91,9 @@ private:
 
     /**
      * The text around the command in the longest output line, the unknown-command line:
-     * "\nHandling unknown command: " and "\n".
+     * "\r\nHandling unknown command: " and "\r\n".
      */
-    static constexpr std::size_t UnknownCommandTextSize{28U};
+    static constexpr std::size_t UnknownCommandTextSize{30U};
 
     static_assert(OutputLineSize >= InputLineSize + UnknownCommandTextSize,
                   "An output line must hold a whole input line (an unknown command) plus its text");
@@ -115,6 +117,9 @@ private:
     std::uint16_t myPeriodLengthMs; // Blinking period in milliseconds
     bool myBlinkState;              // false for off, true for on
     bool myHung;                    // true after 'hang': the watchdog is no longer kicked
+    const char* myBoard;            // Board, from the factory (printed by 'status')
+    const char* myBoardTarget;      // Board target, from the factory (printed by 'status')
+    const char* myPlatform;         // ESP-IDF or Zephyr, from the factory (printed by 'status')
     std::unique_ptr<driver::serial::Interface> mySerialDriver; // Serial driver for communication
     std::unique_ptr<driver::gpio::Interface> myStatusLed; // Status LED (role GpioId::StatusLed)
     std::unique_ptr<driver::adc::Interface>

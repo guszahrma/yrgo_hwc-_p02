@@ -24,6 +24,13 @@ implementations next to the interfaces in `main/`. See [docs/architecture.md](do
 | Platform | What P02 runs on: ESP-IDF or Zephyr, each with its own factory. Not the *environment*, which is the shell setup for one platform (`export.sh`, `tools/zephyr_env.sh`) |
 | App overlay | `zephyr/app/boards/<board target, / → _>.overlay`: P02's wiring on one board target (`p02-led`, `zephyr,user`). Not part of the board definition |
 | `docs/boards.md` | What is true for P02 on every board: what a board needs, the supported boards |
+| Firmware update | Installing a new P02 version through MCUboot's two slots (`slot0_partition`, `slot1_partition`), in the swap or the RAM-load variant. Zephyr only: no firmware updates on ESP-IDF. Not *flashing* or a *recovery upload*, which only put bytes into a slot |
+| Swap variant | Firmware update where P02 fits in the internal flash: it runs from slot 0 in place, and MCUboot (swap using move) swaps the new image in from slot 1 and starts it as a test; P02 confirms it, or the next reset reverts it. Nano, Nucleo |
+| RAM-load variant | Firmware update where P02 does not fit in the internal flash: the slots are in external flash (QSPI), and MCUboot (RAM load) copies the image into RAM and runs it there. Daisy |
+| Flashing | Writing MCUboot and P02 with the board's runner (`west flash`: OpenOCD, esptool, `dfu-util`). No test, no revert |
+| Recovery upload | `smpmgr` writing slot 0 while MCUboot is in serial recovery (the Daisy after RESET). No test, no revert |
+| Signed image | An image with a signature from our private key, checked by MCUboot before it starts the image. Not *secure boot* on its own |
+| Secure boot | Signed images **and** a bootloader that cannot be replaced (the chip's write and read-out protection), so only our images can run. Encrypted images (keeping the firmware secret) are a separate goal |
 
 ## Commands
 
@@ -69,9 +76,20 @@ tools/clang-format/check.sh
   themselves, so `\r\n` there gives `\r\r\n`.
 * Workflow: one feature per branch and PR, review, merge with a merge commit (see
   [docs/contributing.md](docs/contributing.md)).
-* `docs/`, `readme.md` and board documents are for people: what to do and a short why. Mechanism, evidence
-  ("verified on the board"), exact error bytes and history go in an `AGENTS.md` (the root one, or the board
-  definition's own).
+* `docs/`, `readme.md` and board documents are for people: what to do and a short why. Mechanism,
+  decisions, lessons and exact error bytes go in an `AGENTS.md` (the root one, or the board definition's
+  own). Records for the report – verification, measurements, iterations, background and requirements – go
+  in [`report/material.md`](report/material.md): records only grow, and `AGENTS.md` is loaded in every
+  session.
+* Decision tables (*Decision | Choice | Why*): the Why ends with `Rejected: <option> (<reason>).` and
+  `Verified: <what>, <board>.` where they apply, so alternatives and evidence can be found (also with
+  `grep`). Numbers in a decision are rounded and point to the measurement (`~48 KB, see Measurements`);
+  the full record of a test or a measurement is a row in `report/material.md`. A board definition's own
+  `AGENTS.md` keeps its records itself, since it is copied with the board: its numbers and tests stay in
+  the row.
+* Code comments say what the code does, plus a one-line why where a reader might otherwise "fix" it.
+  Rejected options, evidence ("tested on the board") and history go only in an `AGENTS.md` or
+  `report/material.md`; the comment points to the row by name, e.g. `(see AGENTS.md: Flashing)`.
 * `.gitignore` ignores files without an extension; `Kconfig` and `*_defconfig` are excepted, `sdkconfig`
   is not committed.
 
@@ -138,9 +156,9 @@ tools/clang-format/check.sh
 | ADC noise | Average of `AdcSamples` (5) reads in `readValue()`; `readVoltage()` uses it | Single reads are noisy. `adc::Zephyr` does the same |
 | NVS initialisation | `nvs_flash_init()` in the NVS driver's constructor (erase and retry if the partition is full or from a newer version) | The driver works without the Wi-Fi driver having initialised flash first |
 | Pins | Arduino names (`D6`, `A6`) mapped to GPIO numbers in `driver/pin/esp32s3.h`; `PhysicalPinManager` stops two drivers from claiming the same pin | Code and wiring use the names printed on the board |
-| Watchdog | The task watchdog (TWDT): `esp_task_wdt_reconfigure()` (ESP-IDF has usually started it; `esp_task_wdt_init()` if not) with `trigger_panic = true` and both idle tasks still watched; the task that creates the driver is added with `esp_task_wdt_add(nullptr)` | `trigger_panic` restarts instead of only logging. The TWDT watches tasks, which fits `Logic`'s loop; the interrupt and RTC watchdogs are for lower-level hangs |
+| Watchdog | The task watchdog (TWDT): `esp_task_wdt_reconfigure()` (ESP-IDF has usually started it; `esp_task_wdt_init()` if not) with `trigger_panic = true` and both idle tasks still watched; the task that creates the driver is added with `esp_task_wdt_add(nullptr)` | `trigger_panic` restarts instead of only logging. The TWDT watches tasks, which fits `Logic`'s loop. Rejected: the interrupt and RTC watchdogs (for lower-level hangs). |
 | Board in `status` | Hard-coded in `factory::Esp32s3`: board `arduino_nano_esp32`, board target `arduino_nano_esp32/esp32s3/procpu` (Zephyr's name for the same board) | ESP-IDF knows only the chip (`CONFIG_IDF_TARGET`), not the board; the factory already maps the Nano's pins, so it is the Nano |
-| Testing the watchdog | The `hang` command, which sets a flag (`myHung`) that stops the kicks; an invalid `period` is only rejected | A user error is not a reason to restart. A flag rather than an endless loop in `handleHang()`: the rest of the program keeps running until the restart, so `hang` can be tested on the host |
+| Testing the watchdog | The `hang` command, which sets a flag (`myHung`) that stops the kicks; an invalid `period` is only rejected | A user error is not a reason to restart. With a flag, the rest of the program keeps running until the restart, so `hang` can be tested on the host. Rejected: an endless loop in `handleHang()` (cannot be tested on the host). |
 
 ### Pitfalls and lessons learned
 
@@ -161,18 +179,18 @@ tools/clang-format/check.sh
 
 | Decision | Choice | Why |
 |---|---|---|
-| How Zephyr gets into the project | `west.yml` in this repository, which is the west workspace (T2); Zephyr and `hal_espressif` in `deps/` | Zephyr is ~80 repositories that west fetches; git submodules cannot follow Zephyr's own manifest. The version is pinned in git, setup is one script, and CI builds the port |
+| How Zephyr gets into the project | `west.yml` in this repository, which is the west workspace (T2); Zephyr and `hal_espressif` in `deps/` | Zephyr is ~80 repositories that west fetches. The version is pinned in git, setup is one script, and CI builds the port. Rejected: git submodules (cannot follow Zephyr's own manifest). |
 | Where the Zephyr drivers live | Next to the ESP32 ones in `main/` (`driver/<name>/zephyr.h/.cpp`) | Each driver's interface, ESP32, stub and Zephyr versions stay together; each build system lists its own files |
 | Board | Own out-of-tree board definition, found through `BOARD_ROOT` | The Nano ESP32 is not in Zephyr; app overlays can use Arduino pin names (`arduino_nano_header`) |
 | Where pins come from | Devicetree: drivers take a `gpio_dt_spec` / `adc_dt_spec` | Pin **and** polarity/gain come from the board's overlay in `zephyr/app/boards/`; no GPIO numbers in Zephyr code |
 | How the factory maps hardware | Roles (`GpioId::StatusLed`, `AdcId::TempSensor`) instead of pin numbers | Each factory decides what a role means: `factory::Esp32s3` a pin, `factory::Zephyr` a devicetree node |
 | ADC attenuation | `zephyr,gain` in devicetree; `referenceVoltage` is ignored | Zephyr configures channels from devicetree, not at runtime |
-| Timer | Polled `timeout()`, restarts from "now" | `Logic` stays unchanged. A `k_timer` callback would be more idiomatic but changes the interface |
-| Serial | Our own command parser kept, not Zephyr's shell | `Logic` stays unchanged on both platforms |
+| Timer | Polled `timeout()`, restarts from "now" | `Logic` stays unchanged. Rejected: a `k_timer` callback (more idiomatic, but changes the interface). |
+| Serial | Our own command parser kept | `Logic` stays unchanged on both platforms. Rejected: Zephyr's shell (`Logic` would change). |
 | Watchdog | The board's alias `watchdog0` – `wdt0` (Timer Group 0) on the Nano, the IWDG on the Daisy Seed – with `WDT_FLAG_RESET_SOC`, `window.min = 0`; reset cause from `hwinfo_get_reset_cause()` (`CONFIG_HWINFO`) | Zephyr's ESP32 driver uses two stages with the same time (interrupt, then reset), so the Nano restarts after about **twice** the timeout (~6 s instead of 3 s). `window.max = timeoutMs / 2` would make it match ESP-IDF. The Daisy's IWDG is not tested yet (see the Daisy's open items) |
 | Board in `status` | `factory::Zephyr` returns `CONFIG_BOARD` and `CONFIG_BOARD_TARGET`; `Logic` prints them with the platform (three methods on `factory::Interface`, not a struct) | Each new board gets the right name without code changes. The board target shows the build variant (Daisy: `ram_load` or not); the platform tells ESP-IDF and Zephyr apart on the Nano |
-| NVS | Settings subsystem (NVS backend), not the raw NVS API | String keys like ESP-IDF (raw NVS has numeric IDs). The namespace is the key prefix (`user_settings/blink_state`). Every write goes to flash at once, so `autoCommit`/`commit()` have no effect |
-| Output from `Logic` | `mySerialDriver->print()`, with `std::snprintf` for lines with numbers; no `std::cout` | `<iostream>` (streams and locales) cost most of P02's flash. Removing it: Nucleo ~206 → ~48 KB, Nano (Zephyr) ~432 → ~141 KB, Nano (ESP-IDF) ~402 → ~231 KB, Daisy ~258 → ~133 KB. Zephyr logging would be a further improvement |
+| NVS | Settings subsystem (NVS backend) | String keys like ESP-IDF. The namespace is the key prefix (`user_settings/blink_state`). Every write goes to flash at once, so `autoCommit`/`commit()` have no effect. Rejected: the raw NVS API (numeric IDs). |
+| Output from `Logic` | `mySerialDriver->print()`, with `std::snprintf` for lines with numbers | `<iostream>` (streams and locales) cost most of P02's flash: removing it took the Nucleo from ~206 to ~48 KB (see [Measurements](report/material.md#measurements)). Zephyr logging would be a further improvement. Rejected: `std::cout`. |
 | ESP-IDF and Zephyr in one repository | Yes | The shared logic is built for both in CI; reorganise (`common/`, `esp-idf/`, `zephyr/`) if the ESP-IDF build is dropped |
 
 ### Pitfalls and lessons learned
@@ -229,7 +247,7 @@ tools/clang-format/check.sh
 
 * `CONFIG_CPP`, `CONFIG_STD_CPP17`, `CONFIG_REQUIRES_FULL_LIBCPP`, and `CONFIG_POSIX_API` for
   `std::this_thread::sleep_for` (otherwise `undefined reference to 'usleep'`, `sleep`, `gettimeofday`).
-* No `std::cout` (`<iostream>`): it costs ~160 KB of flash. Print through the serial driver, with
+* No `std::cout` (`<iostream>`): it costs ~160 KB of flash on the Nucleo (see [Measurements](report/material.md#measurements)). Print through the serial driver, with
   `std::snprintf` for numbers; a `std::string_view` needs `%.*s`, since it is not null-terminated.
 * `sleep()` takes **seconds**. Use `std::this_thread::sleep_for(std::chrono::milliseconds(...))`
   (`<thread>`, `<chrono>`); `usleep` gives header conflicts between Zephyr's POSIX headers and picolibc.
@@ -270,8 +288,8 @@ tools/clang-format/check.sh
   ports when the board appears (Linux keeps it until the board disconnects); this leaves one echo when the
   rule's own `stty` opens the port, seen as junk in the first command after a power cycle. So
   `serial::Zephyr::readLine()` also drops its input when DTR goes high, i.e. a monitor opens the port
-  (`CONFIG_UART_LINE_CTRL`; CDC ACM only, the Nano's USB-Serial/JTAG reports no DTR). Verified on the Daisy
-  with `tio`: clean first commands after a restart, and with `ECHO` on and no rule. The Nano still shows
+  (`CONFIG_UART_LINE_CTRL`; CDC ACM only, the Nano's USB-Serial/JTAG reports no DTR). Verified: clean
+  first commands with `tio`, Daisy (see [Verification](report/material.md#verification)). The Nano still shows
   `!help` when `tio` is already waiting while the board attaches: udev creates the symlink before the rule's
   `stty` runs, so `tio` can open the port with `ECHO` still on, and a `!` the Nano sends at that point (source
   unknown; P02 does not print it) comes back. Opening `tio` after the attach is complete avoids it; the Nano
@@ -289,13 +307,13 @@ Read that file before changing anything in the board directory. P02 on the Daisy
 
 | Decision | Choice | Why |
 |---|---|---|
-| Where P02 runs | MCUboot in the 128 KB internal flash; P02 stored in the 8 MB QSPI flash | P02 is ~133 KB (signed image); the STM32H750 has 128 KB internal flash |
-| RAM load, not XIP | P02 is built for `daisy_seed/stm32h750xx/ram_load` and uses ~153 KB of the 512 KB AXI SRAM (code, data and stack) | `store` writes NVS in QSPI, which a program running from QSPI cannot do (details in the board definition's `AGENTS.md`) |
+| Where P02 runs | MCUboot in the 128 KB internal flash; P02 stored in the 8 MB QSPI flash | P02 is ~133 KB (signed image, see [Measurements](report/material.md#measurements)); the STM32H750 has 128 KB internal flash |
+| RAM load, not XIP | P02 is built for `daisy_seed/stm32h750xx/ram_load` and uses ~153 KB of the 512 KB AXI SRAM (code, data and stack; see [Measurements](report/material.md#measurements)) | `store` writes NVS in QSPI, which a program running from QSPI cannot do. Rejected: XIP from QSPI (details in the board definition's `AGENTS.md`). |
 | Main stack | `CONFIG_MAIN_STACK_SIZE=4096` in `zephyr/app/prj.conf` | Zephyr's default 1 KB overflowed on `store` (Settings → NVS → flash driver in the main thread); with the MPU stack guard the app halted. The Nano's board already used 4 KB, so it never showed there |
 | App wiring | One overlay per board in `zephyr/app/boards/` providing `p02-led` and `zephyr,user`: `arduino_nano_esp32_procpu.overlay`, `daisy_seed_ram_load.overlay` | `factory::Zephyr` uses only those names; `boards/<board>.overlay` replaces `app.overlay`. See *App overlays* under Board and devicetree for the file name. |
 | Wiring comments | Give all three names: Daisy name, physical pin, STM32 name (`/* D15 = pin 22 = PC0 */`) | Only the physical pin number matches the board's print; the STM32 name is what the datasheet and errors use |
 | CI | A separate job per board: the Nano's `zephyr-build` stays, a new Daisy job builds Zephyr's blinky on `daisy_seed` and P02 with MCUboot (`--sysbuild`) on `daisy_seed/stm32h750xx/ram_load` | Each job is its own check in the PR, so it shows directly whether Zephyr works for the Nano and/or the Daisy. Cost: the workspace setup runs in both jobs (in parallel) – runner time and energy, judged worth it. Later: per-board setup, so each job downloads only its own toolchain |
-| Role mapping | External parts, like the Nano: `StatusLed` = LED on D26 = pin 33 = PD11 (330 Ω to GND, active high); `TempSensor` = potentiometer simulating a TMP36 on A3/D18 = pin 25 = PA7 (ADC1 ch 7), fed from 3V3 pin 38 / GND pin 40 | Pins 16, 20–24 are used by another project on the same breadboard. D1–D14 and D29–D30 are kept free for the Daisy's usual buses (SD card, SPI, I2C, UART, USB HS). Verified on the board: pin 33 = D26 (blinky on the external LED through `daisy_seed_header`) and pin 25 = A3 (Zephyr's `adc_dt` sample with this overlay follows the pot, ~0–3300 mV). Breadboard tip: on the side with pins 21–40, the row number counts the other way, so one row off is an easy mistake |
+| Role mapping | External parts, like the Nano: `StatusLed` = LED on D26 = pin 33 = PD11 (330 Ω to GND, active high); `TempSensor` = potentiometer simulating a TMP36 on A3/D18 = pin 25 = PA7 (ADC1 ch 7), fed from 3V3 pin 38 / GND pin 40 | Pins 16, 20–24 are used by another project on the same breadboard. D1–D14 and D29–D30 are kept free for the Daisy's usual buses (SD card, SPI, I2C, UART, USB HS). Breadboard tip: on the side with pins 21–40, the row number counts the other way, so one row off is an easy mistake. Verified: pin 33 = D26 and pin 25 = A3, Daisy (see [Verification](report/material.md#verification)). |
 | Modules | `hal_stm32`, `cmsis_6` (Cortex-M; `cmsis` is for Cortex-A/R), `mcuboot` and `zcbor` (MCUboot's serial recovery) in `west.yml`; `arm-zephyr-eabi` in `tools/zephyr_setup.sh` | Needed to build for the STM32H750 |
 
 Build directories: today's pattern names the **application**, not the board – our apps build in
@@ -315,6 +333,16 @@ happens without it is not yet known. Other open items: a `zephyr/module.yml` wit
 whether `Last reset was caused by the watchdog` is printed – `mcuboot_hooks.c` clears the reset flags
 (`RCC->RSR`) before P02 reads them, so `causedLastReset()` is expected to be false there.
 
+Open items for firmware updates in the RAM-load variant: **what test, confirm and revert mean there** –
+MCUboot copies an image into RAM instead of swapping slots, and the update demo on
+`feature/mcuboot-update-demo` says the Daisy "has no rollback here"; this decides whether both variants can
+offer the same update flow. The **USB-off fault** above comes after a software reset, which ends every
+update (`smpmgr os reset`): a Daisy that was just updated may run P02 without its USB, so the update looks
+failed although it worked. **Locking MCUboot** (secure boot): the ROM bootloader (`dfu-util`, BOOT + RESET)
+can rewrite the internal flash and so replace MCUboot; the option bytes (write protection, RDP level) can
+stop that, but also block our own `dfu-util` flashing, and the highest RDP level cannot be undone. Check
+ST's documentation for the STM32H750 before deciding.
+
 ---
 
 ## Nucleo-G0B1RE (work in progress): P02 on the Nucleo
@@ -326,9 +354,9 @@ here. P02 on the Nucleo for people: [docs/p02_nucleo_g0b1re.md](docs/p02_nucleo_
 | Decision | Choice | Why |
 |---|---|---|
 | Board definition | Zephyr's own `nucleo_g0b1re` | It already has a console (USART2 via the ST-Link), `watchdog0` = IWDG, `adc1` with PA0/PA1 and a 64 KB `storage_partition` |
-| No MCUboot | P02 links from the start of flash (~48 KB) | The board's `zephyr,code-partition` is the 200 KB `slot0_partition`, but without a bootloader Zephyr ignores it (`CONFIG_USE_DT_CODE_PARTITION` off) and the FLASH region is all 512 KB. The image ends well before `storage_partition` at 0x70000; nothing stops it from growing into it, so watch the size |
-| Flash runner | `--runner openocd` | The board's first runner is STM32CubeProgrammer (not installed); OpenOCD comes with the Zephyr SDK |
-| Role mapping | `StatusLed` = external LED on D6 = PB14 (330 Ω to GND, active high); `TempSensor` = TMP36 on A0 = PA0 (ADC1 ch 0), Vs from 3V3 | D6 as on the Nano, so the wiring is the same. The on-board LD4 (PA5 = D13) was tried first and dropped in favour of the external LED. A0 because the board already has PA0 in `adc1`'s pinctrl |
+| No MCUboot | P02 links from the start of flash (~48 KB, see [Measurements](report/material.md#measurements)) | The board's `zephyr,code-partition` is the 200 KB `slot0_partition`, but without a bootloader Zephyr ignores it (`CONFIG_USE_DT_CODE_PARTITION` off) and the FLASH region is all 512 KB. The image ends well before `storage_partition` at 0x70000; nothing stops it from growing into it, so watch the size |
+| Flash runner | `--runner openocd` | OpenOCD comes with the Zephyr SDK. Rejected: STM32CubeProgrammer, the board's first runner (not installed). |
+| Role mapping | `StatusLed` = external LED on D6 = PB14 (330 Ω to GND, active high); `TempSensor` = TMP36 on A0 = PA0 (ADC1 ch 0), Vs from 3V3 | D6 as on the Nano, so the wiring is the same. A0 because the board already has PA0 in `adc1`'s pinctrl. Rejected: the on-board LD4 (PA5 = D13), tried first. |
 | udev | `0483:374b` → `/dev/tty_nucleo_g0b1re` (`-echo`), and `MODE=0660 GROUP=dialout` on the USB device | OpenOCD failed with `LIBUSB_ERROR_ACCESS` without it. The rule matches any ST-Link/V2-1 (most Nucleo-64 boards) |
 | Build directory | `zephyr/app/build/nucleo_g0b1re` | The board subdirectory proposed under the Daisy Seed, so a Nucleo build does not overwrite the other boards' |
 

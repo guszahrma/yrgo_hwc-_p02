@@ -13,6 +13,9 @@
 #include "driver/timer/zephyr.h"
 #include "driver/watchdog/zephyr.h"
 
+// Running stub until real drivers are implemented
+#include "driver/boot/stub.h"
+
 namespace driver::factory
 {
 // -----------------------------------------------------------------------------
@@ -83,6 +86,13 @@ Zephyr::createWatchdog(std::uint32_t timeoutMs) noexcept
 {
     return std::make_unique<driver::watchdog::Zephyr>(DEVICE_DT_GET(DT_ALIAS(watchdog0)),
                                                       timeoutMs);
+}
+
+// -----------------------------------------------------------------------------
+std::unique_ptr<driver::boot::Interface> Zephyr::createBoot() noexcept
+{
+    // Stub until boot::Zephyr is written
+    return std::make_unique<driver::boot::Stub>();
 }
 
 // -----------------------------------------------------------------------------

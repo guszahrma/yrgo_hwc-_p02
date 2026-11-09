@@ -152,6 +152,7 @@ jobs:
             build-zephyr/daisy-blinky/zephyr/zephyr.bin
             build-zephyr/daisy-app/mcuboot/zephyr/zephyr.bin
             build-zephyr/daisy-app/app/zephyr/zephyr.signed.bin
+            build-zephyr/daisy-app/app/zephyr/zephyr.elf
           if-no-files-found: error
           retention-days: 3
 
@@ -184,6 +185,7 @@ jobs:
             build-zephyr/nucleo-blinky/zephyr/zephyr.bin
             build-zephyr/nucleo-app/mcuboot/zephyr/zephyr.bin
             build-zephyr/nucleo-app/app/zephyr/zephyr.signed.bin
+            build-zephyr/nucleo-app/app/zephyr/zephyr.elf
           if-no-files-found: error
           retention-days: 3
 

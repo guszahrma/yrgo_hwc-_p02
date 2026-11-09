@@ -64,8 +64,8 @@ idf.py -p /dev/tty_arduino_nano_esp32 flash monitor
 ```bash
 tools/zephyr_setup.sh            # first time only (~800 MB)
 source tools/zephyr_env.sh       # or the get_zephyr alias
-west build -p always -b arduino_nano_esp32/esp32s3/procpu -s zephyr/app -d zephyr/app/build
-west flash -d zephyr/app/build --esp-device /dev/tty_arduino_nano_esp32 && tio /dev/tty_arduino_nano_esp32
+west build -p always --sysbuild -b arduino_nano_esp32/esp32s3/procpu -s zephyr/app -d zephyr/app/build/arduino_nano_esp32 -- -DBOARD_ROOT=$P02_ROOT/zephyr
+west flash -d zephyr/app/build/arduino_nano_esp32 --esp-device /dev/tty_arduino_nano_esp32 && tio /dev/tty_arduino_nano_esp32
 ```
 
 Then type `help` in the monitor ([serial commands](docs/usage.md#serial-commands)). Exit the monitor with

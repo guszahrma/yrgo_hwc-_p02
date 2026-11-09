@@ -40,14 +40,14 @@ board document's [Building and flashing](../zephyr/boards/electrosmith/daisy_see
 Build P02 and MCUboot together:
 
 ```bash
-west build -p always --sysbuild -b daisy_seed/stm32h750xx/ram_load -d zephyr/app/daisy_seed_build zephyr/app -- \
+west build -p always --sysbuild -b daisy_seed/stm32h750xx/ram_load -d zephyr/app/build/daisy_seed zephyr/app -- \
   -DBOARD_ROOT=$P02_ROOT/zephyr
 ```
 
 **MCUboot** – the first time, and when MCUboot or the board definition changes. BOOT + RESET, then:
 
 ```bash
-west flash -d zephyr/app/daisy_seed_build --domain mcuboot
+west flash -d zephyr/app/build/daisy_seed --domain mcuboot
 ```
 
 **P02** – every time P02 changes. Press **RESET** (recovery mode), then:
@@ -56,7 +56,7 @@ west flash -d zephyr/app/daisy_seed_build --domain mcuboot
 until [ -e /dev/tty_daisy_seed ]; do sleep 0.5; done
 smpmgr --port /dev/tty_daisy_seed image state-read     # recovery mode answers "No images on device!"
 smpmgr --port /dev/tty_daisy_seed --timeout 30 image upload \
-  zephyr/app/daisy_seed_build/app/zephyr/zephyr.signed.bin
+  zephyr/app/build/daisy_seed/app/zephyr/zephyr.signed.bin
 smpmgr --port /dev/tty_daisy_seed os reset
 ```
 

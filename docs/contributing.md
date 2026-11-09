@@ -91,7 +91,7 @@ Each board has its own runner, with the board's label, so the boards are tested 
 
 | Board | Label | Port | Needs on the PC |
 |---|---|---|---|
-| Arduino Nano ESP32 | `nano-esp32` | `/dev/tty_arduino_nano_esp32` | [ESP-IDF 6.0 in `~/esp/esp-idf`](platform_esp_idf.md) of the runner's user |
+| Arduino Nano ESP32 | `arduino_nano_esp32` | `/dev/tty_arduino_nano_esp32` | [ESP-IDF 6.0 in `~/esp/esp-idf`](platform_esp_idf.md) of the runner's user |
 | Nucleo-G0B1RE | `nucleo_g0b1re` | `/dev/tty_nucleo_g0b1re` | `sudo apt install openocd python3-serial` |
 
 Setting up a PC as the runner (WSL, once). The runner runs whatever a workflow asks for, so it gets its own

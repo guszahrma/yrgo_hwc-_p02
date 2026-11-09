@@ -29,7 +29,7 @@ jobs:
         shell: pwsh
         run: tools/clang-format/check.ps1
 
-  firmware-build:
+  esp-idf-build-nano:
     name: Build ESP32-S3 firmware on Ubuntu
     runs-on: ubuntu-latest
     container: espressif/idf:release-v6.0
@@ -49,7 +49,7 @@ jobs:
       - name: Upload firmware artifacts
         uses: actions/upload-artifact@v7
         with:
-          name: firmware
+          name: firmware-esp-idf-nano
           # bootloader, partition table and flash_args too, so the hardware test can flash a whole
           # image (the Nano may have Zephyr or the Arduino bootloader on it)
           path: |
@@ -62,7 +62,7 @@ jobs:
           if-no-files-found: error
           retention-days: 3
 
-  windows-build:
+  esp-idf-build-nano-windows:
     name: Build ESP32-S3 firmware on Windows
     runs-on: windows-latest
 #    needs: format-check
@@ -85,7 +85,7 @@ jobs:
       - name: Upload Windows firmware artifacts
         uses: actions/upload-artifact@v7
         with:
-          name: firmware-windows
+          name: firmware-esp-idf-nano-windows
           path: |
             build/*.bin
             build/*.elf
@@ -93,7 +93,7 @@ jobs:
           if-no-files-found: error
           retention-days: 3
 
-  zephyr-build:
+  zephyr-build-nano:
     name: Build Zephyr apps for the Arduino Nano ESP32
     runs-on: ubuntu-24.04
     steps:
@@ -116,7 +116,7 @@ jobs:
       - name: Upload Zephyr firmware artifacts
         uses: actions/upload-artifact@v7
         with:
-          name: firmware-zephyr
+          name: firmware-zephyr-nano
           path: |
             build-zephyr/app/zephyr/zephyr.bin
             build-zephyr/app/zephyr/zephyr.elf
@@ -203,18 +203,18 @@ jobs:
           cmake -S tests -B tests/build
           cmake --build tests/build
 
-  # Flashes the ESP-IDF firmware from firmware-build on a Nano ESP32 and tests P02 over USB serial.
-  # Runs on a self-hosted runner with the label nano-esp32 (the board attached through usbipd, port
+  # Flashes the ESP-IDF firmware from esp-idf-build-nano on a Nano ESP32 and tests P02 over USB serial.
+  # Runs on a self-hosted runner with the label arduino_nano_esp32 (the board attached through usbipd, port
   # /dev/tty_arduino_nano_esp32, ESP-IDF 6.0 in ~/esp/esp-idf). Only on push: a pull request from a
   # fork would otherwise run its code on that machine. If the runner is offline, the job waits.
   hardware-test-nano:
     name: Flash and test on the Nano ESP32
     if: github.event_name == 'push'
-    runs-on: [self-hosted, nano-esp32]
-    needs: firmware-build
+    runs-on: [self-hosted, arduino_nano_esp32]
+    needs: esp-idf-build-nano
     # One board: a second run waits until the first is done
     concurrency:
-      group: nano-esp32
+      group: arduino_nano_esp32
       cancel-in-progress: false
     env:
       PORT: /dev/tty_arduino_nano_esp32
@@ -224,7 +224,7 @@ jobs:
       - name: Download firmware
         uses: actions/download-artifact@v7
         with:
-          name: firmware
+          name: firmware-esp-idf-nano
           path: firmware
       - name: Check that the board is attached
         run: |

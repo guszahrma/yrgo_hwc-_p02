@@ -296,6 +296,15 @@ tools/clang-format/check.sh
 
 ---
 
+## CI: design decisions
+
+| Decision | Choice | Why |
+|---|---|---|
+| When CI runs | On every push, for the whole workflow; not on pull requests | A pull request comes from a pushed branch, so CI has already run for its last commit, and the pull request shows those checks. Running on both would build and test every change twice – runner time and energy, and the hardware tests would flash the board twice. Side effect: a pull request from a fork never runs its code on our self-hosted runners. Cost: CI tests the branch, not its merge with `main`, so `main` is merged into the branch before a pull request is approved (see [docs/contributing.md](docs/contributing.md#workflow)). Rejected: push and pull requests (every change built and tested twice). |
+| Hardware tests | Job `hardware-test-nano` on a self-hosted runner with the label `nano-esp32` (a PC with the Nano attached through usbipd), one run at a time: flashes the whole ESP-IDF image from `firmware-build` (bootloader, partition table and P02, through `flash_args`) and runs `tools/hil/nano_esp32_test.py`, which sends `help`, `status`, `period`, `blink` and an unknown command over serial and checks the replies | GitHub's machines have no board. The whole image, because the Nano may have Zephyr or the Arduino bootloader on it. One run at a time, as there is one board. While the runner is offline the job waits in the queue (GitHub gives up after 24 hours); the other jobs are not affected |
+
+---
+
 ## Daisy Seed (work in progress): P02 on the Daisy
 
 The board definition is in `zephyr/boards/electrosmith/daisy_seed/`, with its own board document

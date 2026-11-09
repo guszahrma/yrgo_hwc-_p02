@@ -10,6 +10,8 @@ How we work: branches and pull requests, tests, code style and CI.
 * Keep a branch up to date with `git merge origin/main`, not rebase, once it has been pushed.
 * Commit first, then merge `main` – your work is safe in a commit, and `git merge --abort` can always undo
   the merge.
+* Before approving a pull request, check that `main` has been merged into the branch and pushed, and that
+  CI passed. CI runs on push only, so it tests the branch, not its merge with `main`.
 
 ## Tests
 
@@ -64,7 +66,8 @@ git config blame.ignoreRevsFile .git-blame-ignore-revs
 
 ## CI
 
-CI (`.github/workflows/ci.yml`) runs on every push and pull request:
+CI (`.github/workflows/ci.yml`) runs on every push, not on pull requests: a pull request comes from a pushed
+branch and shows that push's checks.
 
 | Job | What it does |
 |---|---|
@@ -75,14 +78,14 @@ CI (`.github/workflows/ci.yml`) runs on every push and pull request:
 | Build Zephyr apps for the Daisy Seed | `tools/zephyr_setup.sh`, then Zephyr's `samples/basic/blinky` for `daisy_seed`, and `zephyr/app` with MCUboot (`--sysbuild`) for `daisy_seed/stm32h750xx/ram_load` |
 | Build Zephyr apps for the Nucleo-G0B1RE | `tools/zephyr_setup.sh`, then Zephyr's `samples/basic/blinky` and `zephyr/app` with MCUboot (`--sysbuild`) for `nucleo_g0b1re` |
 | Run unit tests on the host | Builds and runs the GoogleTest suite in `tests/` |
-| Flash and test on the Nano ESP32 | On push only, on a self-hosted runner: flashes the Ubuntu ESP-IDF build on a Nano ESP32 and runs `tools/hil/nano_esp32_test.py` (see below) |
+| Flash and test on the Nano ESP32 | On a self-hosted runner: flashes the Ubuntu ESP-IDF build on a Nano ESP32 and runs `tools/hil/nano_esp32_test.py` (see below) |
 
 The firmware jobs upload the built images as artifacts (kept for 3 days).
 
 ### Hardware test on a self-hosted runner
 
 The job *Flash and test on the Nano ESP32* runs on a PC with a Nano attached, not on GitHub's machines.
-It runs only on push: a pull request from a fork would otherwise run its code on that PC. Until a runner
+Like all of CI it runs only on push, so a pull request from a fork never runs its code on that PC. Until a runner
 is online, the job waits in the queue (GitHub gives up after 24 hours); the other jobs are not affected.
 
 Setting up a PC as the runner (WSL, once):

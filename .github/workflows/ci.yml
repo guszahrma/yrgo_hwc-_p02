@@ -105,10 +105,12 @@ jobs:
           sudo apt-get install -y --no-install-recommends ninja-build gperf device-tree-compiler
       - name: Set up the Zephyr workspace (Zephyr version from west.yml)
         run: tools/zephyr_setup.sh
-      - name: Build the P02 app
+      # P02 with MCUboot (zephyr/app/sysbuild.conf). BOARD_ROOT is needed on the command line: sysbuild
+      # looks up the board before the app's CMakeLists.txt runs.
+      - name: Build the P02 app with MCUboot
         run: |
           source tools/zephyr_env.sh
-          west build -p always -d build-zephyr/app -b arduino_nano_esp32/esp32s3/procpu zephyr/app
+          west build -p always --sysbuild -d build-zephyr/app -b arduino_nano_esp32/esp32s3/procpu zephyr/app -- -DBOARD_ROOT=$P02_ROOT/zephyr
       - name: Build blinky
         run: |
           source tools/zephyr_env.sh
@@ -118,8 +120,9 @@ jobs:
         with:
           name: firmware-zephyr
           path: |
-            build-zephyr/app/zephyr/zephyr.bin
-            build-zephyr/app/zephyr/zephyr.elf
+            build-zephyr/app/mcuboot/zephyr/zephyr.bin
+            build-zephyr/app/app/zephyr/zephyr.signed.bin
+            build-zephyr/app/app/zephyr/zephyr.elf
             build-zephyr/blinky/zephyr/zephyr.bin
           if-no-files-found: error
           retention-days: 3
@@ -154,6 +157,40 @@ jobs:
             build-zephyr/daisy-blinky/zephyr/zephyr.bin
             build-zephyr/daisy-app/mcuboot/zephyr/zephyr.bin
             build-zephyr/daisy-app/app/zephyr/zephyr.signed.bin
+            build-zephyr/daisy-app/app/zephyr/zephyr.elf
+          if-no-files-found: error
+          retention-days: 3
+
+  zephyr-build-nucleo:
+    name: Build Zephyr apps for the Nucleo-G0B1RE
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+      - name: Install host tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends ninja-build gperf device-tree-compiler
+      - name: Set up the Zephyr workspace (Zephyr version from west.yml)
+        run: tools/zephyr_setup.sh
+      # The board is in Zephyr, so no BOARD_ROOT.
+      - name: Build Zephyr's blinky
+        run: |
+          source tools/zephyr_env.sh
+          west build -p always -d build-zephyr/nucleo-blinky -b nucleo_g0b1re $ZEPHYR_BASE/samples/basic/blinky
+      - name: Build the P02 app with MCUboot
+        run: |
+          source tools/zephyr_env.sh
+          west build -p always --sysbuild -d build-zephyr/nucleo-app -b nucleo_g0b1re zephyr/app
+      - name: Upload Zephyr firmware artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: firmware-zephyr-nucleo
+          path: |
+            build-zephyr/nucleo-blinky/zephyr/zephyr.bin
+            build-zephyr/nucleo-app/mcuboot/zephyr/zephyr.bin
+            build-zephyr/nucleo-app/app/zephyr/zephyr.signed.bin
+            build-zephyr/nucleo-app/app/zephyr/zephyr.elf
           if-no-files-found: error
           retention-days: 3
 

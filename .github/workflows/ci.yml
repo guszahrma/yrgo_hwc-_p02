@@ -157,6 +157,39 @@ jobs:
           if-no-files-found: error
           retention-days: 3
 
+  zephyr-build-nucleo:
+    name: Build Zephyr apps for the Nucleo-G0B1RE
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+      - name: Install host tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends ninja-build gperf device-tree-compiler
+      - name: Set up the Zephyr workspace (Zephyr version from west.yml)
+        run: tools/zephyr_setup.sh
+      # The board is in Zephyr, so no BOARD_ROOT.
+      - name: Build Zephyr's blinky
+        run: |
+          source tools/zephyr_env.sh
+          west build -p always -d build-zephyr/nucleo-blinky -b nucleo_g0b1re $ZEPHYR_BASE/samples/basic/blinky
+      - name: Build the P02 app
+        run: |
+          source tools/zephyr_env.sh
+          west build -p always -d build-zephyr/nucleo-app -b nucleo_g0b1re zephyr/app
+      # zephyr.hex for hardware-test-nucleo (OpenOCD writes it at the addresses it contains)
+      - name: Upload Zephyr firmware artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: firmware-zephyr-nucleo
+          path: |
+            build-zephyr/nucleo-blinky/zephyr/zephyr.bin
+            build-zephyr/nucleo-app/zephyr/zephyr.hex
+            build-zephyr/nucleo-app/zephyr/zephyr.elf
+          if-no-files-found: error
+          retention-days: 3
+
   unit-tests:
     name: Run unit tests on the host
     runs-on: ubuntu-latest
@@ -205,4 +238,35 @@ jobs:
       - name: Test P02 over serial
         run: |
           . ~/esp/esp-idf/export.sh > /dev/null
-          python tools/hil/nano_esp32_test.py --port "$PORT"
+          python tools/hil/p02_test.py --port "$PORT"
+
+  # Flashes P02 from zephyr-build-nucleo on a Nucleo-G0B1RE and tests it over the ST-Link's serial port.
+  # Runs on a self-hosted runner with the label nucleo_g0b1re (the board attached through usbipd, port
+  # /dev/tty_nucleo_g0b1re, the apt packages openocd and python3-serial). Only on push, as the Nano's.
+  hardware-test-nucleo:
+    name: Flash and test on the Nucleo-G0B1RE
+    if: github.event_name == 'push'
+    runs-on: [self-hosted, nucleo_g0b1re]
+    needs: zephyr-build-nucleo
+    concurrency:
+      group: nucleo_g0b1re
+      cancel-in-progress: false
+    env:
+      PORT: /dev/tty_nucleo_g0b1re
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+      - name: Download firmware
+        uses: actions/download-artifact@v7
+        with:
+          name: firmware-zephyr-nucleo
+          path: firmware
+      - name: Check that the board is attached
+        run: |
+          test -e "$PORT" || { echo "::error::$PORT not found: is the Nucleo attached (usbipd attach)?"; exit 1; }
+          if fuser "$PORT" 2>/dev/null; then echo "::error::$PORT is in use (tio or a monitor open?)"; exit 1; fi
+      # Zephyr's board uses the same OpenOCD board file (boards/st/nucleo_g0b1re/support/openocd.cfg)
+      - name: Flash
+        run: openocd -f board/st_nucleo_g0.cfg -c "program firmware/nucleo-app/zephyr/zephyr.hex verify reset exit"
+      - name: Test P02 over serial
+        run: python3 tools/hil/p02_test.py --port "$PORT" --board nucleo_g0b1re --platform Zephyr

@@ -74,37 +74,102 @@ CI (`.github/workflows/ci.yml`) runs on every push and pull request:
 | Build Zephyr apps for the Arduino Nano ESP32 | `tools/zephyr_setup.sh`, then `zephyr/app` and `zephyr/samples/blinky` with the Zephyr version from `west.yml` |
 | Build Zephyr apps for the Daisy Seed | `tools/zephyr_setup.sh`, then Zephyr's `samples/basic/blinky` for `daisy_seed`, and `zephyr/app` with MCUboot (`--sysbuild`) for `daisy_seed/stm32h750xx/ram_load` |
 | Run unit tests on the host | Builds and runs the GoogleTest suite in `tests/` |
-| Flash and test on the Nano ESP32 | On push only, on a self-hosted runner: flashes the Ubuntu ESP-IDF build on a Nano ESP32 and runs `tools/hil/nano_esp32_test.py` (see below) |
+| Build Zephyr apps for the Nucleo-G0B1RE | `tools/zephyr_setup.sh`, then Zephyr's `samples/basic/blinky` and `zephyr/app` for `nucleo_g0b1re` |
+| Flash and test on the Nano ESP32 | On push only, on a self-hosted runner: flashes the Ubuntu ESP-IDF build on a Nano ESP32 and runs `tools/hil/p02_test.py` (see below) |
+| Flash and test on the Nucleo-G0B1RE | On push only, on a self-hosted runner: flashes the Zephyr build with OpenOCD and runs `tools/hil/p02_test.py` |
 
 The firmware jobs upload the built images as artifacts (kept for 3 days).
 
 ### Hardware test on a self-hosted runner
 
-The job *Flash and test on the Nano ESP32* runs on a PC with a Nano attached, not on GitHub's machines.
-It runs only on push: a pull request from a fork would otherwise run its code on that PC. Until a runner
-is online, the job waits in the queue (GitHub gives up after 24 hours); the other jobs are not affected.
+The *Flash and test* jobs run on a PC with the board attached, not on GitHub's machines. GitHub builds the
+firmware; the PC only downloads it, flashes the board and talks to P02 over the serial port. The jobs run
+only on push: a pull request from a fork would otherwise run its code on that PC. Until a runner is
+online, a job waits in the queue (GitHub gives up after 24 hours); the other jobs are not affected.
 
-Setting up a PC as the runner (WSL, once):
+Each board has its own runner, with the board's label, so the boards are tested at the same time:
 
-1. The Nano works with ESP-IDF on this PC: [ESP-IDF 6.0 in `~/esp/esp-idf`](platform_esp_idf.md) and
-   [the udev rules](setup.md#fixed-port-names) (`/dev/tty_arduino_nano_esp32`).
-2. On GitHub: **Settings → Actions → Runners → New self-hosted runner**, Linux x64. Run the commands it
-   shows in a folder outside the repository (e.g. `~/runners/p02/actions-runner`). `config.sh` asks:
+| Board | Label | Port | Needs on the PC |
+|---|---|---|---|
+| Arduino Nano ESP32 | `nano-esp32` | `/dev/tty_arduino_nano_esp32` | [ESP-IDF 6.0 in `~/esp/esp-idf`](platform_esp_idf.md) of the runner's user |
+| Nucleo-G0B1RE | `nucleo_g0b1re` | `/dev/tty_nucleo_g0b1re` | `sudo apt install openocd python3-serial` |
+
+Setting up a PC as the runner (WSL, once). The runner runs whatever a workflow asks for, so it gets its own
+Linux user, which cannot read your files:
+
+1. [The udev rules](setup.md#fixed-port-names) (fixed port names, and access to the ST-Link) and the
+   packages in the table.
+2. A user for the runners, in `dialout` for the boards' ports and without `sudo`:
+
+   ```bash
+   sudo adduser --disabled-password --gecos "" ghrunner
+   sudo usermod -aG dialout ghrunner
+   ```
+
+   Check that it cannot read your home folder (`sudo -u ghrunner ls ~` gives `Permission denied`; if not,
+   `chmod 750 ~`) or the Windows drive (`sudo -u ghrunner ls /mnt/c/Users`). For the Windows drive, add
+   this to `/etc/wsl.conf`, then run `wsl --shutdown` in PowerShell:
+
+   ```ini
+   [automount]
+   options = "uid=1000,gid=1000,umask=077"
+   ```
+
+3. On GitHub: **Settings → Actions → Runners → New self-hosted runner**, Linux x64. As `ghrunner`
+   (`sudo -iu ghrunner`), download the runner as GitHub shows, unpack it into one folder per board
+   (`~/runners/nucleo_g0b1re`) and run `config.sh` there:
    * runner group: press Enter (`Default`; personal repositories have no other groups),
-   * runner name: e.g. `p02_nano_<pc name>`,
-   * labels: `nano-esp32` – the job asks for a runner with this label,
+   * runner name: `p02_<board>_<pc name>`, e.g. `p02_nucleo_g0b1re_QR-PF2KTLE6`,
+   * labels: the board's label from the table – the job asks for a runner with this label,
    * work folder: press Enter.
-3. Start the runner with `./run.sh` (stop it with `Ctrl+C`), or as a service with
-   `sudo ./svc.sh install && sudo ./svc.sh start` (needs systemd in WSL).
+4. Back as yourself, start it as a service (needs systemd in WSL), which also starts it with WSL:
 
-While the job runs:
+   ```bash
+   sudo bash -c 'cd /home/ghrunner/runners/nucleo_g0b1re && ./svc.sh install ghrunner && ./svc.sh start'
+   ```
 
-* The Nano must be attached to WSL (`usbipd attach`) and the port free: quit `tio` first, or the job fails.
-* The job flashes the board, so whatever was on it (Zephyr, a test build) is replaced.
+5. Start WSL and attach the boards at logon. Windows stops WSL, and the runners with it, soon after the
+   last WSL window closes, and the boards are only in WSL while `usbipd attach` runs. Share each board
+   once (`usbipd bind --busid <id>`, as administrator), then save this as e.g.
+   `C:\Users\<you>\Scripts\autostart\p02-runners.ps1`, with the bus IDs from `usbipd list`:
+
+   ```powershell
+   $distro = "Ubuntu"
+   $boards = @{
+       "1-3" = "Nucleo-G0B1RE (ST-Link)"
+       "5-4" = "Daisy Seed"
+   }
+   # WSL stops soon after its last process ends; this one never ends
+   Start-Process -WindowStyle Hidden wsl.exe -ArgumentList "-d $distro --exec /bin/sleep infinity"
+   # Re-attaches after every reset/re-plug; --unplugged also waits for a board that is not plugged in
+   foreach ($busid in $boards.Keys) {
+       Start-Process -WindowStyle Hidden usbipd -ArgumentList "attach --wsl $distro --busid $busid --auto-attach --unplugged"
+   }
+   ```
+
+   and run it at logon with a task (PowerShell, not as administrator):
+
+   ```powershell
+   $action   = New-ScheduledTaskAction -Execute "conhost.exe" -Argument "--headless powershell.exe -NoProfile -ExecutionPolicy Bypass -File $env:USERPROFILE\Scripts\autostart\p02-runners.ps1"
+   $trigger  = New-ScheduledTaskTrigger -AtLogOn -User $env:USERNAME
+   $settings = New-ScheduledTaskSettingsSet -ExecutionTimeLimit (New-TimeSpan -Seconds 0) -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries
+   Register-ScheduledTask -TaskName "P02 runners" -Action $action -Trigger $trigger -Settings $settings
+   ```
+
+   Bus IDs belong to the USB port, not the board: keep each board in its port (or update the script).
+   Attaching by port also follows a board that changes its USB ID, like the Daisy in MCUboot or DFU
+   mode. The runners only work while the PC is awake and you are logged in; jobs queued in the meantime
+   run afterwards.
+
+While a job runs:
+
+* The board must be attached to WSL (`usbipd attach`) and its port free: quit `tio` first, or the job fails.
+* The job flashes the board, so whatever was on it (another platform, a test build) is replaced.
 
 The test can also be run by hand after flashing:
 
 ```bash
 . ~/esp/esp-idf/export.sh
-python tools/hil/nano_esp32_test.py --port /dev/tty_arduino_nano_esp32
+python tools/hil/p02_test.py --port /dev/tty_arduino_nano_esp32
+python3 tools/hil/p02_test.py --port /dev/tty_nucleo_g0b1re --board nucleo_g0b1re --platform Zephyr
 ```

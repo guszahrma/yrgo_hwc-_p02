@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
-"""Hardware test: sends commands to P02 on a Nano ESP32 over USB serial and checks the replies.
+"""Hardware test: sends commands to P02 on a board over USB serial and checks the replies.
 
 Run after flashing, e.g. by the CI's self-hosted runner:
-    python tools/hil/nano_esp32_test.py --port /dev/tty_arduino_nano_esp32
+    python tools/hil/p02_test.py --port /dev/tty_arduino_nano_esp32
+    python3 tools/hil/p02_test.py --port /dev/tty_nucleo_g0b1re --board nucleo_g0b1re --platform Zephyr
 
-Needs pyserial (included in ESP-IDF's Python environment). Exits with 1 if any test fails.
+Needs pyserial (included in ESP-IDF's Python environment; python3-serial on Ubuntu). Exits with 1 if
+any test fails.
 """
 
 import argparse
@@ -61,6 +63,9 @@ def command(ser: serial.Serial, cmd: str, expected: str, timeout_s: float = 2.0)
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--port", default="/dev/tty_arduino_nano_esp32")
+    # What 'status' must show: CONFIG_BOARD on Zephyr, arduino_nano_esp32 on ESP-IDF
+    parser.add_argument("--board", default="arduino_nano_esp32")
+    parser.add_argument("--platform", default="ESP-IDF", choices=["ESP-IDF", "Zephyr"])
     parser.add_argument("--boot-timeout", type=float, default=30.0)
     args = parser.parse_args()
 
@@ -79,8 +84,8 @@ def main() -> int:
     # (name, command, text the reply must contain)
     tests = [
         ("help lists the commands", "help", "period <ms>"),
-        ("status shows the board", "status", "Board: arduino_nano_esp32"),
-        ("status shows the platform", "status", "Platform: ESP-IDF"),
+        ("status shows the board", "status", f"Board: {args.board}"),
+        ("status shows the platform", "status", f"Platform: {args.platform}"),
         ("period accepts 500 ms", "period 500", "Handling 'period' command...500 ms"),
         ("status shows the new period", "status", "Blink Period: 500 ms"),
         ("period rejects 5 ms", "period 5", "Invalid period"),

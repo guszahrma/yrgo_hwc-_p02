@@ -23,6 +23,8 @@ down, not necessarily the code that was tested.
 | `TempSensor` pin: physical pin 25 = A3 | Daisy Seed (target not recorded) | Zephyr's `adc_dt` sample with P02's overlay, turning the potentiometer | The reading follows the potentiometer, ~0–3300 mV | f670cd8 |
 | `serial::Zephyr::readLine()` drops input received before a monitor opens the port | Daisy Seed (target not recorded) | `tio`: a command right after P02 started, after 20 s of blinking with `tio` closed, and with `ECHO` on and no udev rule | Clean first command in all three. Nano: builds, not tested | c0170e9 |
 | The watchdog restarts P02 through MCUboot, and P02 reports it as the reset cause | `nucleo_g0b1re` (with MCUboot) | The `hang` command | P02 restarts through MCUboot and prints `Last reset was caused by the watchdog` | 1abe641 |
+| MCUboot starts P02, and the watchdog restarts P02 through MCUboot | `arduino_nano_esp32/esp32s3/procpu` (with MCUboot) | `west flash`, then `status` and `hang` over the serial port | MCUboot loads slot 0 and starts P02; `status` prints the board, board target and platform. After `hang`: `rst:0x7 (TG0WDT_SYS_RST)`, MCUboot starts P02 again, and P02 prints `Last reset was caused by the watchdog`. Saved settings kept | b59f002 |
+| Which boot output `tio` shows after each kind of restart | `arduino_nano_esp32/esp32s3/procpu` (with MCUboot) | `west flash … && tio …`; `hang` with `tio` open; RESET with `tio` open | After `west flash`: P02's output from `*** Booting Zephyr OS` on, not MCUboot's. After `hang`: everything from `ESP-ROM` on, MCUboot's included, without a disconnect. After RESET: `tio` disconnected, reconnected ~6 s later, and showed no boot output | b59f002 |
 
 ## Measurements
 

@@ -134,6 +134,7 @@ tools/clang-format/check.sh
 | Flashing works but the monitor shows nothing | Boot output was printed before the monitor connected (usbipd re-attached the board slowly). Increase `CONFIG_BOOT_DELAY` in the app's `prj.conf`, e.g. to `3000`. |
 | Strange compiler errors when building for the ESP32-S3 | The course's `env.sh` is active in the terminal. Open a new terminal and run `source tools/zephyr_env.sh`. |
 | `west flash`: `libusb_open() failed with LIBUSB_ERROR_ACCESS` (OpenOCD, Nucleo) | The ST-Link's USB device belongs to root: install `tools/udev/99-p02.rules` again (it gives `dialout` access to `0483:374b`). |
+| `/dev/tty_nucleo_g0b1re` cannot be opened by a user in `dialout` (e.g. `ghrunner`), but by you | The port's group is `plugdev`: Ubuntu's `openocd` package (`60-openocd.rules`) sets it on everything on an ST-Link, the serial port included. Install `tools/udev/99-p02.rules` again, which sets `dialout` on the port. |
 | `CMake Error: Not a file: .../cmake/pristine.cmake` | The build directory was made with another Zephyr installation. Delete it once: `rm -rf zephyr/app/build`. |
 
 ---

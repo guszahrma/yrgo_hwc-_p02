@@ -36,8 +36,7 @@ Zephyr::Zephyr(const device* uart) noexcept
         return;
     }
 
-    // Receive by interrupt: a UART such as the Nucleo's holds one byte, and readLine() is only
-    // called once per loop (10 ms), so polling lost the bytes of a command sent at once.
+    // Receive by interrupt, so bytes arriving between two readLine() calls are kept.
     ring_buf_init(&myRxRing, RxBufLen, myRxStorage);
     if (0 == uart_irq_callback_user_data_set(myUart, onInterrupt, this))
     {

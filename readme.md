@@ -16,7 +16,7 @@ Course project in:
 - Serial commands: LED on/off, blinking, temperature, settings saved across resets, a watchdog test
 
 Development: unit tests on the development PC (the *host*, as opposed to the board) with mocked hardware,
-and CI (formatting, ESP-IDF and Zephyr builds, unit tests) on every pull request.
+and CI (formatting, ESP-IDF and Zephyr builds, unit tests) on every push.
 
 ## Architecture
 

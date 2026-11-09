@@ -1,8 +1,9 @@
 name: CI
 
+# Push only: a pull request comes from a pushed branch, which CI has already tested
+# (see AGENTS.md: When CI runs).
 on:
   push:
-  pull_request:
 
 jobs:
   format-check:
@@ -209,11 +210,9 @@ jobs:
 
   # Flashes the ESP-IDF firmware from firmware-build on a Nano ESP32 and tests P02 over USB serial.
   # Runs on a self-hosted runner with the label nano-esp32 (the board attached through usbipd, port
-  # /dev/tty_arduino_nano_esp32, ESP-IDF 6.0 in ~/esp/esp-idf). Only on push: a pull request from a
-  # fork would otherwise run its code on that machine. If the runner is offline, the job waits.
+  # /dev/tty_arduino_nano_esp32, ESP-IDF 6.0 in ~/esp/esp-idf). If the runner is offline, the job waits.
   hardware-test-nano:
     name: Flash and test on the Nano ESP32
-    if: github.event_name == 'push'
     runs-on: [self-hosted, nano-esp32]
     needs: firmware-build
     # One board: a second run waits until the first is done

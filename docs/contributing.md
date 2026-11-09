@@ -75,7 +75,8 @@ CI (`.github/workflows/ci.yml`) runs on every push and pull request:
 | Build Zephyr apps for the Daisy Seed | `tools/zephyr_setup.sh`, then Zephyr's `samples/basic/blinky` for `daisy_seed`, and `zephyr/app` with MCUboot (`--sysbuild`) for `daisy_seed/stm32h750xx/ram_load` |
 | Run unit tests on the host | Builds and runs the GoogleTest suite in `tests/` |
 | Build Zephyr apps for the Nucleo-G0B1RE | `tools/zephyr_setup.sh`, then Zephyr's `samples/basic/blinky` and `zephyr/app` for `nucleo_g0b1re` |
-| Flash and test on the Nano ESP32 | On push only, on a self-hosted runner: flashes the Ubuntu ESP-IDF build on a Nano ESP32 and runs `tools/hil/p02_test.py` (see below) |
+| Flash and test ESP-IDF on the Nano ESP32 | On push only, on a self-hosted runner: flashes the Ubuntu ESP-IDF build on a Nano ESP32 and runs `tools/hil/p02_test.py` (see below) |
+| Flash and test Zephyr on the Nano ESP32 | The same for the Zephyr build, on the same Nano and runner |
 | Flash and test on the Nucleo-G0B1RE | On push only, on a self-hosted runner: flashes the Zephyr build with OpenOCD and runs `tools/hil/p02_test.py` |
 
 The firmware jobs upload the built images as artifacts (kept for 3 days).
@@ -87,7 +88,9 @@ firmware; the PC only downloads it, flashes the board and talks to P02 over the 
 only on push: a pull request from a fork would otherwise run its code on that PC. Until a runner is
 online, a job waits in the queue (GitHub gives up after 24 hours); the other jobs are not affected.
 
-Each board has its own runner, with the board's label, so the boards are tested at the same time:
+Each board has its own runner, with the board's label, so the boards are tested at the same time. A board
+tested on both platforms (the Nano) has one job per platform; its runner runs them one after the other,
+each flashing its own platform first:
 
 | Board | Label | Port | Needs on the PC |
 |---|---|---|---|

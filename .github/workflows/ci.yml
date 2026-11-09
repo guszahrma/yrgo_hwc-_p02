@@ -207,14 +207,16 @@ jobs:
   # Runs on a self-hosted runner with the label arduino_nano_esp32 (the board attached through usbipd, port
   # /dev/tty_arduino_nano_esp32, ESP-IDF 6.0 in ~/esp/esp-idf). Only on push: a pull request from a
   # fork would otherwise run its code on that machine. If the runner is offline, the job waits.
+  # The board's one runner runs one job at a time, so this job and hardware-test-nano-zephyr take
+  # turns. Each has its own concurrency group: a group keeps only one waiting job and cancels the other.
   hardware-test-nano:
-    name: Flash and test on the Nano ESP32
+    name: Flash and test ESP-IDF on the Nano ESP32
     if: github.event_name == 'push'
     runs-on: [self-hosted, arduino_nano_esp32]
     needs: esp-idf-build-nano
-    # One board: a second run waits until the first is done
+    # A newer push replaces this job's waiting run
     concurrency:
-      group: arduino_nano_esp32
+      group: hardware-test-nano
       cancel-in-progress: false
     env:
       PORT: /dev/tty_arduino_nano_esp32
@@ -230,15 +232,51 @@ jobs:
         run: |
           test -e "$PORT" || { echo "::error::$PORT not found: is the Nano attached (usbipd attach)?"; exit 1; }
           if fuser "$PORT" 2>/dev/null; then echo "::error::$PORT is in use (tio or a monitor open?)"; exit 1; fi
+      # The nvs partition (0x9000, 0x6000) first: P02 under Zephyr is written over it
       - name: Flash
         working-directory: firmware
         run: |
           . ~/esp/esp-idf/export.sh > /dev/null
+          python -m esptool --chip esp32s3 -p "$PORT" -b 460800 --before default-reset --after no-reset erase-region 0x9000 0x6000
           python -m esptool --chip esp32s3 -p "$PORT" -b 460800 --before default-reset --after hard-reset write-flash @flash_args
       - name: Test P02 over serial
         run: |
           . ~/esp/esp-idf/export.sh > /dev/null
           python tools/hil/p02_test.py --port "$PORT"
+
+  # Flashes P02 from zephyr-build-nano on the same Nano ESP32 and tests it, as hardware-test-nano does
+  # for ESP-IDF (esptool from ESP-IDF on the runner).
+  hardware-test-nano-zephyr:
+    name: Flash and test Zephyr on the Nano ESP32
+    if: github.event_name == 'push'
+    runs-on: [self-hosted, arduino_nano_esp32]
+    needs: zephyr-build-nano
+    concurrency:
+      group: hardware-test-nano-zephyr
+      cancel-in-progress: false
+    env:
+      PORT: /dev/tty_arduino_nano_esp32
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+      - name: Download firmware
+        uses: actions/download-artifact@v7
+        with:
+          name: firmware-zephyr-nano
+          path: firmware
+      - name: Check that the board is attached
+        run: |
+          test -e "$PORT" || { echo "::error::$PORT not found: is the Nano attached (usbipd attach)?"; exit 1; }
+          if fuser "$PORT" 2>/dev/null; then echo "::error::$PORT is in use (tio or a monitor open?)"; exit 1; fi
+      # Without MCUboot, the Zephyr image starts at 0x0 (CONFIG_ESP_SIMPLE_BOOT)
+      - name: Flash
+        run: |
+          . ~/esp/esp-idf/export.sh > /dev/null
+          python -m esptool --chip esp32s3 -p "$PORT" -b 460800 --before default-reset --after hard-reset write-flash 0x0 firmware/app/zephyr/zephyr.bin
+      - name: Test P02 over serial
+        run: |
+          . ~/esp/esp-idf/export.sh > /dev/null
+          python tools/hil/p02_test.py --port "$PORT" --platform Zephyr
 
   # Flashes P02 from zephyr-build-nucleo on a Nucleo-G0B1RE and tests it over the ST-Link's serial port.
   # Runs on a self-hosted runner with the label nucleo_g0b1re (the board attached through usbipd, port
@@ -249,7 +287,7 @@ jobs:
     runs-on: [self-hosted, nucleo_g0b1re]
     needs: zephyr-build-nucleo
     concurrency:
-      group: nucleo_g0b1re
+      group: hardware-test-nucleo
       cancel-in-progress: false
     env:
       PORT: /dev/tty_nucleo_g0b1re

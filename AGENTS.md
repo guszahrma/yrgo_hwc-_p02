@@ -329,6 +329,7 @@ here. P02 on the Nucleo for people: [docs/p02_nucleo_g0b1re.md](docs/p02_nucleo_
 | Flash runner | `--runner openocd` | The board's first runner is STM32CubeProgrammer (not installed); OpenOCD comes with the Zephyr SDK |
 | Role mapping | `StatusLed` = external LED on D6 = PB14 (330 Ω to GND, active high); `TempSensor` = TMP36 on A0 = PA0 (ADC1 ch 0), Vs from 3V3 | D6 as on the Nano, so the wiring is the same. The on-board LD4 (PA5 = D13) was tried first and dropped in favour of the external LED. A0 because the board already has PA0 in `adc1`'s pinctrl |
 | udev | `0483:374b` → `/dev/tty_nucleo_g0b1re` (`-echo`), and `MODE=0660 GROUP=dialout` on the USB device | OpenOCD failed with `LIBUSB_ERROR_ACCESS` without it. The rule matches any ST-Link/V2-1 (most Nucleo-64 boards) |
+| Watchdog | The board's `watchdog0` (IWDG), as on the other boards | Verified on the board with MCUboot: `hang` restarts P02 through MCUboot, and P02 prints `Last reset was caused by the watchdog` – MCUboot leaves the reset flags alone here (unlike the Daisy's `mcuboot_hooks.c`) |
 
 Open items: `hang` → IWDG restart and the reset cause with MCUboot; the wiring picture the user drew shows an MB1814C (USB-C, STLINK-V3), while
 the board here reports an ST-Link/V2-1 – check which board revision it is.

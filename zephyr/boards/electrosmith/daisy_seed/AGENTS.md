@@ -3,6 +3,8 @@
 Context for AI coding assistants changing this board definition: design decisions, how they were tested,
 and lessons from the bring-up. People should start with [`doc/index.md`](doc/index.md). The board
 definition was brought up for P02, a course project; "P02" below is the app the tests were run with.
+Records of how this board definition was tested and measured are kept here, not in the project that
+uses it, so they are copied with the board.
 
 ## Design decisions
 

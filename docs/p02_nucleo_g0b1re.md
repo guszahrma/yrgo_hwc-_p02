@@ -6,14 +6,14 @@ repository has no board definition or board document for it; the board is descri
 [Nucleo-G0B1RE](https://docs.zephyrproject.org/latest/boards/st/nucleo_g0b1re/doc/index.html) page. What
 every board needs: [Boards](boards.md).
 
-> **Work in progress.** P02 builds for the board; it has not been run on the board yet.
+> **Work in progress.** P02 runs on the board, started by MCUboot.
 
 ## How P02 uses the board
 
 | What | On the Nucleo-G0B1RE |
 |---|---|
 | Board target | `nucleo_g0b1re` (Zephyr's own board definition) |
-| Flash | P02's image is ~48 KB of the 512 KB internal flash. No MCUboot: P02 starts directly |
+| Flash | MCUboot (~26 KB) at the start of the internal flash starts P02 (~48 KB) in the 200 KB `slot0_partition` |
 | RAM | ~11 KB of the 144 KB |
 | Settings (`store`) | The `storage` partition, the last 64 KB of the internal flash |
 | Console | The ST-Link's serial port (USART2) on the ST-Link USB port, `/dev/tty_nucleo_g0b1re` |
@@ -36,12 +36,15 @@ STM32 modules):
 From the repository root, after `source tools/zephyr_env.sh`:
 
 ```bash
-west build -p always -b nucleo_g0b1re -s zephyr/app -d zephyr/app/build/nucleo_g0b1re
+west build -p always --sysbuild -b nucleo_g0b1re -s zephyr/app -d zephyr/app/build/nucleo_g0b1re
 west flash -d zephyr/app/build/nucleo_g0b1re --runner openocd && tio /dev/tty_nucleo_g0b1re
 ```
 
+`--sysbuild` builds MCUboot and P02 together, and `west flash` writes both (see
+[Zephyr environment](platform_zephyr.md#building-and-flashing)). No `-DBOARD_ROOT`: the board is in Zephyr.
 `--runner openocd` is needed because the board's default runner is STM32CubeProgrammer, which is not
-installed. The board does not leave USB when it is reset, so `tio` stays connected. Then use the
+installed. The board does not leave USB when it is reset, so `tio` stays connected and shows MCUboot's
+output (`*** Booting MCUboot ***`, `Jumping to the first image slot`) before P02's. Then use the
 [serial commands](usage.md#serial-commands).
 
 ## Wiring for P02

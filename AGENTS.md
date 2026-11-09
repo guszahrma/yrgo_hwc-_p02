@@ -176,6 +176,7 @@ tools/clang-format/check.sh
 | NVS | Settings subsystem (NVS backend), not the raw NVS API | String keys like ESP-IDF (raw NVS has numeric IDs). The namespace is the key prefix (`user_settings/blink_state`). Every write goes to flash at once, so `autoCommit`/`commit()` have no effect |
 | Output from `Logic` | `mySerialDriver->print()`, with `std::snprintf` for lines with numbers; no `std::cout` | `<iostream>` (streams and locales) cost most of P02's flash. Removing it: Nucleo ~206 → ~48 KB, Nano (Zephyr) ~432 → ~141 KB, Nano (ESP-IDF) ~402 → ~231 KB, Daisy ~258 → ~133 KB. Zephyr logging would be a further improvement |
 | Bootloader | MCUboot on every board (`zephyr/app/sysbuild.conf`, build with `--sysbuild`), no signature yet (`BOOT_SIGNATURE_TYPE_NONE`), each board's default mode: Nucleo swap using offset, Nano overwrite only (Zephyr's default for Espressif chips), Daisy RAM load (its board's `Kconfig.sysbuild`) | The same ground on all boards before the update demo (Fas 1). The mode is not set in `sysbuild.conf`, as that would override the Daisy's RAM load; rollback needs a swap mode (or RAM load with revert), chosen per board later. `NONE` because sysbuild's default, RSA, needs the mbedTLS module (not in `west.yml`); ECDSA P-256 with MCUboot's bundled TinyCrypt works without it. Not on ESP-IDF, which has its own bootloader |
+| Build directories | P02 in `zephyr/app/build/<board>` (`arduino_nano_esp32`, `daisy_seed`, `nucleo_g0b1re`); Zephyr's samples in `<sample>_build` at the root (`hello_world_build`); CI one directory per build in `build-zephyr/` | A build for one board does not overwrite another's. Before MCUboot, P02 built in `zephyr/app/build` and the Daisy in `zephyr/app/daisy_seed_build`; delete both once (`rm -rf zephyr/app/build zephyr/app/daisy_seed_build`) |
 | ESP-IDF and Zephyr in one repository | Yes | The shared logic is built for both in CI; reorganise (`common/`, `esp-idf/`, `zephyr/`) if the ESP-IDF build is dropped |
 
 ### Pitfalls and lessons learned
@@ -301,12 +302,6 @@ Read that file before changing anything in the board directory. P02 on the Daisy
 | Role mapping | External parts, like the Nano: `StatusLed` = LED on D26 = pin 33 = PD11 (330 Ω to GND, active high); `TempSensor` = potentiometer simulating a TMP36 on A3/D18 = pin 25 = PA7 (ADC1 ch 7), fed from 3V3 pin 38 / GND pin 40 | Pins 16, 20–24 are used by another project on the same breadboard. D1–D14 and D29–D30 are kept free for the Daisy's usual buses (SD card, SPI, I2C, UART, USB HS). Verified on the board: pin 33 = D26 (blinky on the external LED through `daisy_seed_header`) and pin 25 = A3 (Zephyr's `adc_dt` sample with this overlay follows the pot, ~0–3300 mV). Breadboard tip: on the side with pins 21–40, the row number counts the other way, so one row off is an easy mistake |
 | Modules | `hal_stm32`, `cmsis_6` (Cortex-M; `cmsis` is for Cortex-A/R), `mcuboot` and `zcbor` (MCUboot's serial recovery) in `west.yml`; `arm-zephyr-eabi` in `tools/zephyr_setup.sh` | Needed to build for the STM32H750 |
 
-Build directories: today's pattern names the **application**, not the board – our apps build in
-`<app>/build` (`zephyr/app/build`), Zephyr's samples in `<sample>_build` at the root (`hello_world_build`),
-CI in `build-zephyr/<app>`. With two boards, a build for one board overwrites the other's. Proposal, not
-yet applied: add the board as a subdirectory, `<build dir>/<board>` (`zephyr/app/build/daisy_seed`,
-`blinky_build/arduino_nano_esp32`), for all boards and applications.
-
 Open items: **P02 sometimes starts with its USB off** after a software reset (`smpmgr os reset`, the end of
 `west flash`), never seen after power-on or RESET. P02 runs, but the PC sees no device on the port (UsbTreeView:
 port empty). A probe on the board showed `usbd_init()` failing with `-EIO` (likely `HAL_PCD_Init`, the USB
@@ -333,7 +328,6 @@ here. P02 on the Nucleo for people: [docs/p02_nucleo_g0b1re.md](docs/p02_nucleo_
 | Flash runner | `--runner openocd` | The board's first runner is STM32CubeProgrammer (not installed); OpenOCD comes with the Zephyr SDK |
 | Role mapping | `StatusLed` = external LED on D6 = PB14 (330 Ω to GND, active high); `TempSensor` = TMP36 on A0 = PA0 (ADC1 ch 0), Vs from 3V3 | D6 as on the Nano, so the wiring is the same. The on-board LD4 (PA5 = D13) was tried first and dropped in favour of the external LED. A0 because the board already has PA0 in `adc1`'s pinctrl |
 | udev | `0483:374b` → `/dev/tty_nucleo_g0b1re` (`-echo`), and `MODE=0660 GROUP=dialout` on the USB device | OpenOCD failed with `LIBUSB_ERROR_ACCESS` without it. The rule matches any ST-Link/V2-1 (most Nucleo-64 boards) |
-| Build directory | `zephyr/app/build/nucleo_g0b1re` | The board subdirectory proposed under the Daisy Seed, so a Nucleo build does not overwrite the other boards' |
 
 Open items: `hang` → IWDG restart and the reset cause with MCUboot; the wiring picture the user drew shows an MB1814C (USB-C, STLINK-V3), while
 the board here reports an ST-Link/V2-1 – check which board revision it is.

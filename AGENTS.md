@@ -331,5 +331,5 @@ here. P02 on the Nucleo for people: [docs/p02_nucleo_g0b1re.md](docs/p02_nucleo_
 | udev | `0483:374b` → `/dev/tty_nucleo_g0b1re` (`-echo`), and `MODE=0660 GROUP=dialout` on the USB device | OpenOCD failed with `LIBUSB_ERROR_ACCESS` without it. The rule matches any ST-Link/V2-1 (most Nucleo-64 boards) |
 | Watchdog | The board's `watchdog0` (IWDG), as on the other boards | Verified on the board with MCUboot: `hang` restarts P02 through MCUboot, and P02 prints `Last reset was caused by the watchdog` – MCUboot leaves the reset flags alone here (unlike the Daisy's `mcuboot_hooks.c`) |
 
-Open items: `hang` → IWDG restart and the reset cause with MCUboot; the wiring picture the user drew shows an MB1814C (USB-C, STLINK-V3), while
+Open items: the wiring picture the user drew shows an MB1814C (USB-C, STLINK-V3), while
 the board here reports an ST-Link/V2-1 – check which board revision it is.

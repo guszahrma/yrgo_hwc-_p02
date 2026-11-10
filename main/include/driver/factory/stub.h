@@ -4,6 +4,8 @@
 #pragma once
 
 #include <cassert>
+#include <map>
+#include <string>
 
 #include "driver/adc/stub.h"
 #include "driver/factory/interface.h"
@@ -99,9 +101,25 @@ public:
     std::unique_ptr<driver::nvs::Interface> createNvs(const char* namespaceName) noexcept override
     {
         auto nvs{std::make_unique<driver::nvs::Stub>(namespaceName)};
+        for (const auto& [key, value] : myNvsPreset)
+        {
+            nvs->setString(key.c_str(), value);
+        }
         myNvs = nvs.get(); // Logic owns the stub; keep a pointer for the tests
         return nvs;
     }
+
+    /**
+     * @brief Store a string in the NVS stub that createNvs() creates next, as if it had been saved
+     *        before a restart.
+     *
+     *        Call it before creating Logic, which creates the NVS stub in its constructor.
+     *
+     * @param[in] key The key, e.g. "blink_period".
+     * @param[in] value The stored value.
+     */
+    void presetNvsString(const std::string& key, const std::string& value) noexcept
+    { myNvsPreset[key] = value; }
 
     /**
      * @brief Create a stub serial driver.
@@ -270,5 +288,8 @@ private:
     driver::tempsensor::Stub* myTempSensor{nullptr};
     driver::timer::Stub* myTimer{nullptr};
     driver::watchdog::Stub* myWatchdog{nullptr};
+
+    /** Strings put into every NVS stub that createNvs() creates (see presetNvsString()). */
+    std::map<std::string, std::string> myNvsPreset{};
 };
 } // namespace driver::factory

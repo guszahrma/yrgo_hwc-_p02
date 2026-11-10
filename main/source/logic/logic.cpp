@@ -48,7 +48,7 @@ Logic::Logic(driver::factory::Interface& factory) noexcept
         mySerialDriver->print("Last reset was caused by the watchdog\r\n");
     }
 
-    // Initialize other necessary components and state variables here.
+    loadStoredUserSettings();
 }
 
 // --------------------------------------------------------------------------------
@@ -62,8 +62,6 @@ Logic::~Logic() noexcept
 // --------------------------------------------------------------------------------
 void Logic::run() noexcept
 {
-    loadStoredUserSettings();
-
     mySerialDriver->print(
         "write relevant command, write help to get a list of available commands\r\n");
 

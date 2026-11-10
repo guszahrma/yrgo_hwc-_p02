@@ -213,6 +213,8 @@ jobs:
     name: Flash and test ESP-IDF on the Nano ESP32
     if: github.event_name == 'push'
     runs-on: [self-hosted, arduino_nano_esp32]
+    # A hung flash or test would otherwise hold the board's runner for GitHub's 6 hours
+    timeout-minutes: 10
     needs: esp-idf-build-nano
     # A newer push replaces this job's waiting run
     concurrency:
@@ -250,6 +252,8 @@ jobs:
     name: Flash and test Zephyr on the Nano ESP32
     if: github.event_name == 'push'
     runs-on: [self-hosted, arduino_nano_esp32]
+    # A hung flash or test would otherwise hold the board's runner for GitHub's 6 hours
+    timeout-minutes: 10
     needs: zephyr-build-nano
     concurrency:
       group: hardware-test-nano-zephyr
@@ -285,6 +289,8 @@ jobs:
     name: Flash and test on the Nucleo-G0B1RE
     if: github.event_name == 'push'
     runs-on: [self-hosted, nucleo_g0b1re]
+    # A hung flash or test would otherwise hold the board's runner for GitHub's 6 hours
+    timeout-minutes: 10
     needs: zephyr-build-nucleo
     concurrency:
       group: hardware-test-nucleo

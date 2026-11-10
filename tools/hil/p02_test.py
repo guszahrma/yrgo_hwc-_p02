@@ -32,6 +32,8 @@ def open_port(port: str) -> serial.Serial:
     ser.port = port
     ser.baudrate = 115200
     ser.timeout = 0.1
+    # Without a timeout, write() blocks for ever when the board takes no input
+    ser.write_timeout = 2.0
     ser.dtr = False
     ser.rts = False
     for _ in range(20):
@@ -71,7 +73,19 @@ def main() -> int:
 
     wait_for_port(args.port, args.boot_timeout)
     ser = open_port(args.port)
+    try:
+        return run_tests(ser, args)
+    except serial.SerialTimeoutException:
+        print("FAIL: P02 takes no input (writing to the port timed out)")
+        return 1
+    finally:
+        # Drop unsent bytes first: closing waits until they are sent, which a board that takes
+        # no input never does.
+        ser.reset_output_buffer()
+        ser.close()
 
+
+def run_tests(ser: serial.Serial, args: argparse.Namespace) -> int:
     # The boot output may be gone before the port was open, so wait for P02 to answer instead:
     # 'help' until it replies. A line break first ends any junk left in P02's input buffer.
     ser.write(b"\r\n")
@@ -105,7 +119,6 @@ def main() -> int:
             failures += 1
             print(f"FAIL: {name}\n  sent:     {cmd!r}\n  expected: {expected!r}\n  got:      {reply!r}")
 
-    ser.close()
     print(f"\n{len(tests) - failures}/{len(tests)} passed")
     return 1 if failures else 0
 

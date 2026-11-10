@@ -30,6 +30,10 @@ down, not necessarily the code that was tested.
 | Serial input by interrupt on the Nano's USB-Serial/JTAG | `arduino_nano_esp32/esp32s3/procpu` | Built without sysbuild (as CI), flashed with `west flash`; `tools/hil/p02_test.py --platform Zephyr` under `timeout 120`, then `help` in `tio` | No input taken: the script hung until `timeout` stopped it, `tio` stopped responding; in CI the job ran until GitHub cancelled it after 6 h | 08c904b |
 | Serial input polled on the Nano's USB-Serial/JTAG | `arduino_nano_esp32/esp32s3/procpu` | As above, built with `-DCONFIG_UART_INTERRUPT_DRIVEN=n` | 11/11 passed | 08c904b |
 | Polling from `zephyr/app/boards/arduino_nano_esp32_procpu.conf`; `p02_test.py` with a write timeout | `arduino_nano_esp32/esp32s3/procpu` | The interrupt build, then a build with the conf file, each tested with the changed `p02_test.py` | `FAIL: P02 takes no input` after 2 s; 11/11 passed | `ci/hardware-test-nucleo` |
+| `StatusLed` on D6 = PB14 | `nucleo_g0b1re` (with MCUboot) | `on`, `off`, then `period 500` and `blink on` over the serial port, watching the external LED | The LED lights, goes out, then blinks once a second; P02 prints `Wrote active to pin 14` | c313f55 |
+| `TempSensor` on A0 = PA0 | `nucleo_g0b1re` (with MCUboot) | `status` once a second for 20 s while turning the input from one end to the other and back | The temperature follows the input from 280 °C to −50 °C and back, i.e. ~3300 mV to 0 mV | c313f55 |
+| `store` keeps the settings after RESET | `nucleo_g0b1re` (with MCUboot) | `blink on`, `period 500`, `store`; then `blink off`, `period 1000` without `store`; RESET (B2) | MCUboot starts P02, which loads `Blink State: on` and `Blink Period: 500 ms`; no watchdog reset cause printed | c313f55 |
+| `hang` restarts P02 through MCUboot | `nucleo_g0b1re` (with MCUboot) | `hang` over the serial port, reading the output with timestamps | MCUboot starts ~3 s after `hang` (see Measurements); P02 prints `Last reset was caused by the watchdog` and loads the saved settings | c313f55 |
 
 ## Measurements
 
@@ -42,3 +46,5 @@ down, not necessarily the code that was tested.
 | P02 in AXI SRAM (code, data and stack) | `daisy_seed/stm32h750xx/ram_load` | ~153 KB of 512 KB | Not recorded | d580a43 |
 | MCUboot image (in the 48 KB `boot_partition`) | `nucleo_g0b1re` | ~26 KB | Not recorded | b3680ee |
 | Shortest gap between received bytes, serial input polled once per loop | `nucleo_g0b1re` | 5 ms: 0/5 commands read correctly; 12 ms and 20 ms: 5/5 | pyserial sends `status\r\n` one byte at a time with a pause, checks the reply for `Blink Period` | 5624358 |
+| Time from `hang` to the watchdog restart (timeout 3000 ms) | `nucleo_g0b1re` (with MCUboot) | 2.9 s | pyserial sends `hang` and timestamps each line it reads; time to MCUboot's first line (`*** Booting MCUboot`) | c313f55 |
+| MCUboot image (written from 0x0) | `arduino_nano_esp32/esp32s3/procpu` | ~37 KB (37,344 bytes, up to 0x91E0) | Size of `mcuboot/zephyr/zephyr.bin` from `west build --sysbuild` | c313f55 |

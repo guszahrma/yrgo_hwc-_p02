@@ -16,6 +16,9 @@ namespace driver::serial
 Zephyr::Zephyr(const device* uart) noexcept
     : myUart{uart}
     , myReady{false}
+    , myInterruptDriven{false}
+    , myRxRing{}
+    , myRxStorage{}
     , myInternalBuf{}
     , myInternalLen{0U}
     , myPortOpen{false}
@@ -33,7 +36,50 @@ Zephyr::Zephyr(const device* uart) noexcept
         return;
     }
 
+    // Receive by interrupt, so bytes arriving between two readLine() calls are kept.
+    ring_buf_init(&myRxRing, RxBufLen, myRxStorage);
+    if (0 == uart_irq_callback_user_data_set(myUart, onInterrupt, this))
+    {
+        uart_irq_rx_enable(myUart);
+        myInterruptDriven = true;
+    }
+
     myReady = true;
+}
+
+// --------------------------------------------------------------------------------
+Zephyr::~Zephyr() noexcept
+{
+    if (myInterruptDriven)
+    {
+        uart_irq_rx_disable(myUart);
+        uart_irq_callback_user_data_set(myUart, nullptr, nullptr);
+    }
+}
+
+// --------------------------------------------------------------------------------
+void Zephyr::onInterrupt(const device* uart, void* param) noexcept
+{
+    auto* self{static_cast<Zephyr*>(param)};
+
+    while ((0 < uart_irq_update(uart)) && (0 < uart_irq_rx_ready(uart)))
+    {
+        std::uint8_t data[16U];
+        const int count{uart_fifo_read(uart, data, sizeof(data))};
+        if (0 >= count) { break; }
+
+        // Bytes that do not fit are dropped, as a full line would be anyway.
+        ring_buf_put(&self->myRxRing, data, static_cast<std::uint32_t>(count));
+    }
+}
+
+// --------------------------------------------------------------------------------
+bool Zephyr::readByte(unsigned char& byte) noexcept
+{
+    if (myInterruptDriven) { return 1U == ring_buf_get(&myRxRing, &byte, 1U); }
+
+    // uart_poll_in() returns 0 when a character was read and -1 when there is none (non-blocking).
+    return 0 == uart_poll_in(myUart, &byte);
 }
 
 // --------------------------------------------------------------------------------
@@ -64,14 +110,13 @@ bool Zephyr::readLine(char* buffer, std::size_t maxSize) noexcept
         const bool portOpen{0U != dtr};
         if (portOpen && !myPortOpen)
         {
-            while (0 == uart_poll_in(myUart, &byte)) {}
+            while (readByte(byte)) {}
             myInternalLen = 0U;
         }
         myPortOpen = portOpen;
     }
 
-    // uart_poll_in() returns 0 when a character was read and -1 when there is none (non-blocking).
-    while (0 == uart_poll_in(myUart, &byte))
+    while (readByte(byte))
     {
         if (('\n' == byte) || ('\r' == byte))
         {

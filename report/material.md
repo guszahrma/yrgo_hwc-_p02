@@ -12,10 +12,10 @@ down, not necessarily the code that was tested.
 
 ## Iterations
 
-| Iteration | Goal | Boards | State | Merge commit |
+| Iteration | Goal | Boards | State | Commit |
 |---|---|---|---|---|
 | Hardware test in CI | On every push, flash the P02 that CI built onto a board on a self-hosted runner and check its replies to serial commands | Nano ESP32 (ESP-IDF) | Merged 2026-11-09 | b26b038 |
-| Hardware tests on more boards and platforms | The same for P02 under Zephyr on the Nano and on the Nucleo-G0B1RE, one runner per board, MCUboot and P02 flashed together | Nano ESP32 (ESP-IDF and Zephyr), Nucleo-G0B1RE | Passed in CI with MCUboot (run #337) | Not merged |
+| Hardware tests on more boards and platforms | The same for P02 under Zephyr on the Nano and on the Nucleo-G0B1RE, one runner per board, MCUboot and P02 flashed together | Nano ESP32 (ESP-IDF and Zephyr), Nucleo-G0B1RE | Passed in CI with MCUboot (run #337) | 89e0599 |
 
 ## Verification
 

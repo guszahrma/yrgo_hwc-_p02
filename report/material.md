@@ -34,6 +34,7 @@ down, not necessarily the code that was tested.
 | `TempSensor` on A0 = PA0 | `nucleo_g0b1re` (with MCUboot) | `status` once a second for 20 s while turning the input from one end to the other and back | The temperature follows the input from 280 °C to −50 °C and back, i.e. ~3300 mV to 0 mV | c313f55 |
 | `store` keeps the settings after RESET | `nucleo_g0b1re` (with MCUboot) | `blink on`, `period 500`, `store`; then `blink off`, `period 1000` without `store`; RESET (B2) | MCUboot starts P02, which loads `Blink State: on` and `Blink Period: 500 ms`; no watchdog reset cause printed | c313f55 |
 | `hang` restarts P02 through MCUboot | `nucleo_g0b1re` (with MCUboot) | `hang` over the serial port, reading the output with timestamps | MCUboot starts ~3 s after `hang` (see Measurements); P02 prints `Last reset was caused by the watchdog` and loads the saved settings | c313f55 |
+| `hardware-test-nucleo` in CI: flashes P02 with OpenOCD on the self-hosted runner and runs `tools/hil/p02_test.py` | `nucleo_g0b1re` (without MCUboot) | Push of `ci/hardware-test-nucleo`, CI run #331 (re-run 2026-11-10) | The run passed; the job took 17 s | d38b7d5 |
 
 ## Measurements
 

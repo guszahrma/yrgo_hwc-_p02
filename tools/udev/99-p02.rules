@@ -17,7 +17,8 @@ SUBSYSTEM=="usb", ATTRS{idVendor}=="0483", ATTRS{idProduct}=="df11", MODE="0660"
 
 # Nucleo-G0B1RE -> /dev/tty_nucleo_g0b1re: the serial port of the on-board ST-Link/V2-1 (USART2 on the
 # board). Matches any board with an ST-Link/V2-1 (most Nucleo-64 boards): attach one at a time.
-SUBSYSTEM=="tty", ATTRS{idVendor}=="0483", ATTRS{idProduct}=="374b", SYMLINK+="tty_nucleo_g0b1re", RUN+="/bin/stty -F /dev/%k -echo"
+# GROUP: Ubuntu's openocd package (60-openocd.rules) gives everything on an ST-Link to plugdev.
+SUBSYSTEM=="tty", ATTRS{idVendor}=="0483", ATTRS{idProduct}=="374b", GROUP="dialout", SYMLINK+="tty_nucleo_g0b1re", RUN+="/bin/stty -F /dev/%k -echo"
 
 # The ST-Link/V2-1 itself, for OpenOCD (west flash): the dialout group covers serial ports only.
 SUBSYSTEM=="usb", ATTRS{idVendor}=="0483", ATTRS{idProduct}=="374b", MODE="0660", GROUP="dialout"

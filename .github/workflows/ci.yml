@@ -30,7 +30,7 @@ jobs:
         shell: pwsh
         run: tools/clang-format/check.ps1
 
-  firmware-build:
+  esp-idf-build-nano:
     name: Build ESP32-S3 firmware on Ubuntu
     runs-on: ubuntu-latest
     container: espressif/idf:release-v6.0
@@ -50,7 +50,7 @@ jobs:
       - name: Upload firmware artifacts
         uses: actions/upload-artifact@v7
         with:
-          name: firmware
+          name: firmware-esp-idf-nano
           # bootloader, partition table and flash_args too, so the hardware test can flash a whole
           # image (the Nano may have Zephyr or the Arduino bootloader on it)
           path: |
@@ -63,7 +63,7 @@ jobs:
           if-no-files-found: error
           retention-days: 3
 
-  windows-build:
+  esp-idf-build-nano-windows:
     name: Build ESP32-S3 firmware on Windows
     runs-on: windows-latest
 #    needs: format-check
@@ -86,7 +86,7 @@ jobs:
       - name: Upload Windows firmware artifacts
         uses: actions/upload-artifact@v7
         with:
-          name: firmware-windows
+          name: firmware-esp-idf-nano-windows
           path: |
             build/*.bin
             build/*.elf
@@ -94,7 +94,7 @@ jobs:
           if-no-files-found: error
           retention-days: 3
 
-  zephyr-build:
+  zephyr-build-nano:
     name: Build Zephyr apps for the Arduino Nano ESP32
     runs-on: ubuntu-24.04
     steps:
@@ -119,7 +119,7 @@ jobs:
       - name: Upload Zephyr firmware artifacts
         uses: actions/upload-artifact@v7
         with:
-          name: firmware-zephyr
+          name: firmware-zephyr-nano
           path: |
             build-zephyr/app/mcuboot/zephyr/zephyr.bin
             build-zephyr/app/app/zephyr/zephyr.signed.bin
@@ -183,6 +183,7 @@ jobs:
         run: |
           source tools/zephyr_env.sh
           west build -p always --sysbuild -d build-zephyr/nucleo-app -b nucleo_g0b1re zephyr/app
+      # The .hex files for hardware-test-nucleo (OpenOCD writes each at the addresses it contains)
       - name: Upload Zephyr firmware artifacts
         uses: actions/upload-artifact@v7
         with:
@@ -190,7 +191,9 @@ jobs:
           path: |
             build-zephyr/nucleo-blinky/zephyr/zephyr.bin
             build-zephyr/nucleo-app/mcuboot/zephyr/zephyr.bin
+            build-zephyr/nucleo-app/mcuboot/zephyr/zephyr.hex
             build-zephyr/nucleo-app/app/zephyr/zephyr.signed.bin
+            build-zephyr/nucleo-app/app/zephyr/zephyr.signed.hex
             build-zephyr/nucleo-app/app/zephyr/zephyr.elf
           if-no-files-found: error
           retention-days: 3
@@ -208,16 +211,20 @@ jobs:
           cmake -S tests -B tests/build
           cmake --build tests/build
 
-  # Flashes the ESP-IDF firmware from firmware-build on a Nano ESP32 and tests P02 over USB serial.
-  # Runs on a self-hosted runner with the label nano-esp32 (the board attached through usbipd, port
+  # Flashes the ESP-IDF firmware from esp-idf-build-nano on a Nano ESP32 and tests P02 over USB serial.
+  # Runs on a self-hosted runner with the label arduino_nano_esp32 (the board attached through usbipd, port
   # /dev/tty_arduino_nano_esp32, ESP-IDF 6.0 in ~/esp/esp-idf). If the runner is offline, the job waits.
+  # The board's one runner runs one job at a time, so this job and hardware-test-nano-zephyr take
+  # turns. Each has its own concurrency group: a group keeps only one waiting job and cancels the other.
   hardware-test-nano:
-    name: Flash and test on the Nano ESP32
-    runs-on: [self-hosted, nano-esp32]
-    needs: firmware-build
-    # One board: a second run waits until the first is done
+    name: Flash and test ESP-IDF on the Nano ESP32
+    runs-on: [self-hosted, arduino_nano_esp32]
+    # A hung flash or test would otherwise hold the board's runner for GitHub's 6 hours
+    timeout-minutes: 10
+    needs: esp-idf-build-nano
+    # A newer push replaces this job's waiting run
     concurrency:
-      group: nano-esp32
+      group: hardware-test-nano
       cancel-in-progress: false
     env:
       PORT: /dev/tty_arduino_nano_esp32
@@ -227,18 +234,93 @@ jobs:
       - name: Download firmware
         uses: actions/download-artifact@v7
         with:
-          name: firmware
+          name: firmware-esp-idf-nano
           path: firmware
       - name: Check that the board is attached
         run: |
           test -e "$PORT" || { echo "::error::$PORT not found: is the Nano attached (usbipd attach)?"; exit 1; }
           if fuser "$PORT" 2>/dev/null; then echo "::error::$PORT is in use (tio or a monitor open?)"; exit 1; fi
+      # The nvs partition (0x9000, 0x6000) first: Zephyr's MCUboot (~37 KB from 0x0) is written over its start
       - name: Flash
         working-directory: firmware
         run: |
           . ~/esp/esp-idf/export.sh > /dev/null
+          python -m esptool --chip esp32s3 -p "$PORT" -b 460800 --before default-reset --after no-reset erase-region 0x9000 0x6000
           python -m esptool --chip esp32s3 -p "$PORT" -b 460800 --before default-reset --after hard-reset write-flash @flash_args
       - name: Test P02 over serial
         run: |
           . ~/esp/esp-idf/export.sh > /dev/null
-          python tools/hil/nano_esp32_test.py --port "$PORT"
+          python tools/hil/p02_test.py --port "$PORT"
+
+  # Flashes P02 from zephyr-build-nano on the same Nano ESP32 and tests it, as hardware-test-nano does
+  # for ESP-IDF (esptool from ESP-IDF on the runner).
+  hardware-test-nano-zephyr:
+    name: Flash and test Zephyr on the Nano ESP32
+    runs-on: [self-hosted, arduino_nano_esp32]
+    # A hung flash or test would otherwise hold the board's runner for GitHub's 6 hours
+    timeout-minutes: 10
+    needs: zephyr-build-nano
+    concurrency:
+      group: hardware-test-nano-zephyr
+      cancel-in-progress: false
+    env:
+      PORT: /dev/tty_arduino_nano_esp32
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+      - name: Download firmware
+        uses: actions/download-artifact@v7
+        with:
+          name: firmware-zephyr-nano
+          path: firmware
+      - name: Check that the board is attached
+        run: |
+          test -e "$PORT" || { echo "::error::$PORT not found: is the Nano attached (usbipd attach)?"; exit 1; }
+          if fuser "$PORT" 2>/dev/null; then echo "::error::$PORT is in use (tio or a monitor open?)"; exit 1; fi
+      # MCUboot at 0x0 (boot_partition), P02 at 0x20000 (slot0_partition)
+      - name: Flash
+        working-directory: firmware/app
+        run: |
+          . ~/esp/esp-idf/export.sh > /dev/null
+          python -m esptool --chip esp32s3 -p "$PORT" -b 460800 --before default-reset --after hard-reset write-flash 0x0 mcuboot/zephyr/zephyr.bin 0x20000 app/zephyr/zephyr.signed.bin
+      - name: Test P02 over serial
+        run: |
+          . ~/esp/esp-idf/export.sh > /dev/null
+          python tools/hil/p02_test.py --port "$PORT" --platform Zephyr
+
+  # Flashes P02 from zephyr-build-nucleo on a Nucleo-G0B1RE and tests it over the ST-Link's serial port.
+  # Runs on a self-hosted runner with the label nucleo_g0b1re (the board attached through usbipd, port
+  # /dev/tty_nucleo_g0b1re, the apt packages openocd and python3-serial).
+  hardware-test-nucleo:
+    name: Flash and test on the Nucleo-G0B1RE
+    runs-on: [self-hosted, nucleo_g0b1re]
+    # A hung flash or test would otherwise hold the board's runner for GitHub's 6 hours
+    timeout-minutes: 10
+    needs: zephyr-build-nucleo
+    concurrency:
+      group: hardware-test-nucleo
+      cancel-in-progress: false
+    env:
+      PORT: /dev/tty_nucleo_g0b1re
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+      - name: Download firmware
+        uses: actions/download-artifact@v7
+        with:
+          name: firmware-zephyr-nucleo
+          path: firmware
+      - name: Check that the board is attached
+        run: |
+          test -e "$PORT" || { echo "::error::$PORT not found: is the Nucleo attached (usbipd attach)?"; exit 1; }
+          if fuser "$PORT" 2>/dev/null; then echo "::error::$PORT is in use (tio or a monitor open?)"; exit 1; fi
+      # MCUboot and P02, each at the addresses in its .hex file. Zephyr's board uses the same OpenOCD
+      # board file (boards/st/nucleo_g0b1re/support/openocd.cfg)
+      - name: Flash
+        working-directory: firmware/nucleo-app
+        run: >-
+          openocd -f board/st_nucleo_g0.cfg
+          -c "program mcuboot/zephyr/zephyr.hex verify"
+          -c "program app/zephyr/zephyr.signed.hex verify reset exit"
+      - name: Test P02 over serial
+        run: python3 tools/hil/p02_test.py --port "$PORT" --board nucleo_g0b1re --platform Zephyr

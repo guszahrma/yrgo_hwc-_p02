@@ -16,7 +16,8 @@ Course project in:
 - Serial commands: LED on/off, blinking, temperature, settings saved across resets, a watchdog test
 
 Development: unit tests on the development PC (the *host*, as opposed to the board) with mocked hardware,
-and CI (formatting, ESP-IDF and Zephyr builds, unit tests) on every push.
+and CI on every push: formatting, ESP-IDF and Zephyr builds, unit tests, and hardware tests that flash P02
+on a Nano ESP32 and a Nucleo-G0B1RE and check its replies to serial commands.
 
 ## Architecture
 

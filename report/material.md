@@ -35,6 +35,7 @@ down, not necessarily the code that was tested.
 | `store` keeps the settings after RESET | `nucleo_g0b1re` (with MCUboot) | `blink on`, `period 500`, `store`; then `blink off`, `period 1000` without `store`; RESET (B2) | MCUboot starts P02, which loads `Blink State: on` and `Blink Period: 500 ms`; no watchdog reset cause printed | c313f55 |
 | `hang` restarts P02 through MCUboot | `nucleo_g0b1re` (with MCUboot) | `hang` over the serial port, reading the output with timestamps | MCUboot starts ~3 s after `hang` (see Measurements); P02 prints `Last reset was caused by the watchdog` and loads the saved settings | c313f55 |
 | `hardware-test-nucleo` in CI: flashes P02 with OpenOCD on the self-hosted runner and runs `tools/hil/p02_test.py` | `nucleo_g0b1re` (without MCUboot) | Push of `ci/hardware-test-nucleo`, CI run #331 (re-run 2026-11-10) | The run passed; the job took 17 s | d38b7d5 |
+| `hardware-test-nano` and `hardware-test-nano-zephyr` in CI: both platforms flashed and tested in turn on the Nano's one runner | Nano ESP32 (ESP-IDF) and `arduino_nano_esp32/esp32s3/procpu` (Zephyr, without MCUboot) | Push of `ci/hardware-test-nucleo`, CI run #331 (re-run 2026-11-10) | The run passed; each job took 28 s | d38b7d5 |
 
 ## Measurements
 

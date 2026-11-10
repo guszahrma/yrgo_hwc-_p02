@@ -8,6 +8,37 @@
 #include "logic/logic.h"
 #include "gtest/gtest.h"
 
+namespace
+{
+/**
+ * @brief Send one command to Logic and return what was printed while it was handled.
+ *
+ * @param[in] factory The factory that Logic was created with.
+ * @param[in] logic The Logic under test.
+ * @param[in] command The command line, without line ending.
+ *
+ * @return Everything printed to stdout during one step() (the serial stub prints there).
+ */
+std::string sendCommand(driver::factory::Stub& factory, logic::Logic& logic, const char* command)
+{
+    factory.serial().simulateInputData(command);
+    testing::internal::CaptureStdout();
+    logic.step();
+    return testing::internal::GetCapturedStdout();
+}
+
+/**
+ * @brief Check whether a text contains a substring.
+ *
+ * @param[in] text The text to search.
+ * @param[in] part The substring to look for.
+ *
+ * @return True if part is found in text, false otherwise.
+ */
+bool contains(const std::string& text, const char* part)
+{ return std::string::npos != text.find(part); }
+} // namespace
+
 TEST(Logic, StepKicksWatchdogOncePerPass)
 {
     driver::factory::Stub factory{};
@@ -51,4 +82,138 @@ TEST(Logic, StatusPrintsBoardBoardTargetAndPlatform)
     EXPECT_NE(std::string::npos, output.find("Board: stub\r\n"));
     EXPECT_NE(std::string::npos, output.find("Board target: stub\r\n"));
     EXPECT_NE(std::string::npos, output.find("Platform: stub\r\n"));
+}
+
+TEST(Logic, PeriodAcceptsAValidValue)
+{
+    driver::factory::Stub factory{};
+    logic::Logic logic{factory};
+
+    const std::string output{sendCommand(factory, logic, "period 500")};
+    EXPECT_FALSE(contains(output, "Invalid period"));
+    EXPECT_FALSE(contains(output, "Usage: period"));
+
+    EXPECT_TRUE(contains(sendCommand(factory, logic, "status"), "Blink Period: 500 ms\r\n"));
+}
+
+TEST(Logic, PeriodAcceptsTheLimits)
+{
+    driver::factory::Stub factory{};
+    logic::Logic logic{factory};
+
+    // MinPeriodMs = 50 and MaxPeriodMs = 10000 in logic.h.
+    sendCommand(factory, logic, "period 50");
+    EXPECT_TRUE(contains(sendCommand(factory, logic, "status"), "Blink Period: 50 ms\r\n"));
+
+    sendCommand(factory, logic, "period 10000");
+    EXPECT_TRUE(contains(sendCommand(factory, logic, "status"), "Blink Period: 10000 ms\r\n"));
+}
+
+TEST(Logic, PeriodOutsideTheLimitsKeepsTheOldPeriod)
+{
+    driver::factory::Stub factory{};
+    logic::Logic logic{factory};
+
+    for (const char* command : {"period 49", "period 10001", "period 0"})
+    {
+        const std::string output{sendCommand(factory, logic, command)};
+        EXPECT_TRUE(contains(output, "Invalid period (valid: 50-10000 ms), keeping 1000 ms"))
+            << command;
+    }
+
+    EXPECT_TRUE(contains(sendCommand(factory, logic, "status"), "Blink Period: 1000 ms\r\n"));
+}
+
+TEST(Logic, PeriodRejectsAnArgumentThatIsNotANumber)
+{
+    driver::factory::Stub factory{};
+    logic::Logic logic{factory};
+
+    // 70000 does not fit in std::uint16_t (max 65535), so std::from_chars reports out of range.
+    for (const char* command :
+         {"period", "period abc", "period 500abc", "period -5", "period 70000"})
+    {
+        const std::string output{sendCommand(factory, logic, command)};
+        EXPECT_TRUE(contains(output, "Usage: period <ms>")) << command;
+    }
+
+    EXPECT_TRUE(contains(sendCommand(factory, logic, "status"), "Blink Period: 1000 ms\r\n"));
+}
+
+TEST(Logic, OnAndOffSetTheStatusLed)
+{
+    driver::factory::Stub factory{};
+    logic::Logic logic{factory};
+
+    sendCommand(factory, logic, "on");
+    EXPECT_TRUE(factory.statusLed().read());
+
+    sendCommand(factory, logic, "off");
+    EXPECT_FALSE(factory.statusLed().read());
+}
+
+TEST(Logic, BlinkOnAndOffChangeTheBlinkState)
+{
+    driver::factory::Stub factory{};
+    logic::Logic logic{factory};
+
+    EXPECT_TRUE(contains(sendCommand(factory, logic, "status"), "Blink State: off\r\n"));
+
+    sendCommand(factory, logic, "blink on");
+    EXPECT_TRUE(contains(sendCommand(factory, logic, "status"), "Blink State: on\r\n"));
+
+    sendCommand(factory, logic, "blink off");
+    EXPECT_TRUE(contains(sendCommand(factory, logic, "status"), "Blink State: off\r\n"));
+}
+
+TEST(Logic, BlinkWithoutOnOrOffPrintsUsage)
+{
+    driver::factory::Stub factory{};
+    logic::Logic logic{factory};
+
+    for (const char* command : {"blink", "blink maybe"})
+    {
+        EXPECT_TRUE(contains(sendCommand(factory, logic, command), "Usage: blink on | blink off"))
+            << command;
+    }
+}
+
+TEST(Logic, StoreSavesBlinkStateAndPeriod)
+{
+    driver::factory::Stub factory{};
+    logic::Logic logic{factory};
+
+    sendCommand(factory, logic, "blink on");
+    sendCommand(factory, logic, "period 300");
+    sendCommand(factory, logic, "store");
+
+    std::string blinkState{};
+    std::string blinkPeriod{};
+    ASSERT_TRUE(factory.nvs().getString("blink_state", blinkState));
+    ASSERT_TRUE(factory.nvs().getString("blink_period", blinkPeriod));
+    EXPECT_EQ("on", blinkState);
+    EXPECT_EQ("300", blinkPeriod);
+}
+
+TEST(Logic, UnknownCommandIsNamedInTheReply)
+{
+    driver::factory::Stub factory{};
+    logic::Logic logic{factory};
+
+    const std::string output{sendCommand(factory, logic, "dance")};
+    EXPECT_TRUE(contains(output, "Handling unknown command: dance\r\n"));
+    EXPECT_TRUE(contains(output, "Type 'help'"));
+}
+
+TEST(Logic, HelpListsEveryCommand)
+{
+    driver::factory::Stub factory{};
+    logic::Logic logic{factory};
+
+    const std::string output{sendCommand(factory, logic, "help")};
+    for (const char* command :
+         {"on", "off", "blink on", "blink off", "period <ms>", "status", "store", "hang", "help"})
+    {
+        EXPECT_TRUE(contains(output, command)) << command;
+    }
 }

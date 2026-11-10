@@ -66,8 +66,10 @@ roll an update back: see the [update demo](#update-demo).
 (`esptool --chip esp32s3 -p /dev/tty_arduino_nano_esp32 erase-flash`, see below): the old program at the
 start of the flash has another format.
 
-On the Nano, MCUboot's own output (`*** Booting MCUboot ***`) is printed before usbipd has attached the board
-again, so the monitor does not show it. P02 starting at all shows that MCUboot started it.
+On the Nano, the monitor does not show MCUboot's own output (`MCUboot 2nd stage bootloader`) right after
+`west flash`: it is printed before the monitor has opened the port. P02 starting at all shows that MCUboot
+started it. After a restart with the monitor already open, such as the watchdog after `hang`, MCUboot's
+output is shown.
 
 The monitor is `tio`: it waits until the port is there and reconnects after every reset, so it can stay
 open. Exit with `Ctrl+T`, `q` – and quit it before the next `west flash`, which needs the port.
@@ -205,10 +207,12 @@ Expected output:
 Hello World! arduino_nano_esp32/esp32s3/procpu
 ```
 
-**Why `BOOT_DELAY`?** The console runs over the ESP32-S3's built-in USB. Every reset disconnects USB, and
-usbipd has to re-attach the board to WSL before the monitor can open `/dev/tty_arduino_nano_esp32`. The 1 s boot delay
-keeps the boot output until the monitor is open. If the boot output is missing on your computer,
-increase `CONFIG_BOOT_DELAY` in the app's `prj.conf` (e.g. to `3000`).
+**Why `BOOT_DELAY`?** The console runs over the ESP32-S3's built-in USB, and the monitor can only show
+what is printed after it has opened `/dev/tty_arduino_nano_esp32`. The 1 s boot delay keeps P02's boot
+output until the monitor is open after `west flash`. If the boot output is missing on your computer,
+increase `CONFIG_BOOT_DELAY` in the app's `prj.conf` (e.g. to `3000`). The RESET button disconnects USB,
+and usbipd needs a few seconds to re-attach the board, so the boot output after RESET is lost; a watchdog
+restart keeps USB connected.
 
 ### Useful files and commands
 

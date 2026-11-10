@@ -4,17 +4,20 @@
 #pragma once
 
 #include <cstddef>
+#include <cstdint>
 #include <zephyr/device.h>
+#include <zephyr/sys/ring_buffer.h>
 
 #include "driver/serial/interface.h"
 
 namespace driver::serial
 {
 /**
- * @brief Serial driver for Zephyr, using UART polling (uart_poll_in/uart_poll_out).
+ * @brief Serial driver for Zephyr: an interrupt receives into a ring buffer, output by polling
+ *        (uart_poll_out).
  *
  * Used with the console device (zephyr,console = USB-C on the Nano ESP32), but works with any
- * UART device.
+ * UART device. A UART without the interrupt API is read by polling (uart_poll_in) instead.
  */
 class Zephyr final : public Interface
 {
@@ -27,9 +30,9 @@ public:
     explicit Zephyr(const device* uart) noexcept;
 
     /**
-     * @brief Destroy the Zephyr object
+     * @brief Destroy the Zephyr object: stops the receive interrupt, which holds a pointer to it.
      */
-    ~Zephyr() noexcept override = default;
+    ~Zephyr() noexcept override;
 
     /**
      * @brief Print function
@@ -55,11 +58,39 @@ public:
     Zephyr& operator=(Zephyr&&)      = delete;
 
 private:
+    /**
+     * @brief Interrupt handler: moves the received bytes into the ring buffer.
+     *
+     * @param[in] uart The UART device.
+     * @param[in] param The Zephyr object (user data).
+     */
+    static void onInterrupt(const device* uart, void* param) noexcept;
+
+    /**
+     * @brief Read one received byte, from the ring buffer or by polling.
+     *
+     * @param[out] byte The byte read.
+     *
+     * @return true if a byte was read, false if there was none.
+     */
+    bool readByte(unsigned char& byte) noexcept;
+
     /** UART device (from devicetree). */
     const device* const myUart;
 
     /** True if the device was ready in the constructor. */
     bool myReady;
+
+    /** True if bytes are received by the interrupt, false if read by polling. */
+    bool myInterruptDriven;
+
+    static constexpr std::size_t RxBufLen{256U};
+
+    /** Bytes received by the interrupt and not yet read by readLine(). */
+    ring_buf myRxRing;
+
+    /** Storage of myRxRing. */
+    std::uint8_t myRxStorage[RxBufLen];
 
     static constexpr std::size_t InternalBufLen{256U};
 

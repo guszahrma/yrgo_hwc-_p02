@@ -15,7 +15,7 @@ down, not necessarily the code that was tested.
 | Iteration | Goal | Boards | State | Merge commit |
 |---|---|---|---|---|
 | Hardware test in CI | On every push, flash the P02 that CI built onto a board on a self-hosted runner and check its replies to serial commands | Nano ESP32 (ESP-IDF) | Merged 2026-11-09 | b26b038 |
-| Hardware tests on more boards and platforms | The same for P02 under Zephyr on the Nano and on the Nucleo-G0B1RE, one runner per board, MCUboot and P02 flashed together | Nano ESP32 (ESP-IDF and Zephyr), Nucleo-G0B1RE | Passed in CI before MCUboot (run #331); not yet run with MCUboot | Not merged |
+| Hardware tests on more boards and platforms | The same for P02 under Zephyr on the Nano and on the Nucleo-G0B1RE, one runner per board, MCUboot and P02 flashed together | Nano ESP32 (ESP-IDF and Zephyr), Nucleo-G0B1RE | Passed in CI with MCUboot (run #337) | Not merged |
 
 ## Verification
 
@@ -38,6 +38,8 @@ down, not necessarily the code that was tested.
 | `hang` restarts P02 through MCUboot | `nucleo_g0b1re` (with MCUboot) | `hang` over the serial port, reading the output with timestamps | MCUboot starts ~3 s after `hang` (see Measurements); P02 prints `Last reset was caused by the watchdog` and loads the saved settings | c313f55 |
 | `hardware-test-nucleo` in CI: flashes P02 with OpenOCD on the self-hosted runner and runs `tools/hil/p02_test.py` | `nucleo_g0b1re` (without MCUboot) | Push of `ci/hardware-test-nucleo`, CI run #331 (re-run 2026-11-10) | The run passed; the job took 17 s | d38b7d5 |
 | `hardware-test-nano` and `hardware-test-nano-zephyr` in CI: both platforms flashed and tested in turn on the Nano's one runner | Nano ESP32 (ESP-IDF) and `arduino_nano_esp32/esp32s3/procpu` (Zephyr, without MCUboot) | Push of `ci/hardware-test-nucleo`, CI run #331 (re-run 2026-11-10) | The run passed; each job took 28 s | d38b7d5 |
+| `hardware-test-nucleo` in CI with MCUboot: OpenOCD programs MCUboot's `zephyr.hex` and P02's `zephyr.signed.hex`, then `tools/hil/p02_test.py` | `nucleo_g0b1re` (with MCUboot) | Push of `ci/hardware-test-nucleo`, CI run #337 (2026-11-10) | The job passed in 16 s | 89e0599 |
+| `hardware-test-nano` and `hardware-test-nano-zephyr` in CI, the Zephyr job with MCUboot at 0x0 and P02 at 0x20000 | Nano ESP32 (ESP-IDF) and `arduino_nano_esp32/esp32s3/procpu` (with MCUboot) | Push of `ci/hardware-test-nucleo`, CI run #337 (2026-11-10) | Both jobs passed, in 27 s (ESP-IDF) and 24 s (Zephyr) | 89e0599 |
 
 ## Measurements
 

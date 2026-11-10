@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
-"""Hardware test: sends commands to P02 on a Nano ESP32 over USB serial and checks the replies.
+"""Hardware test: sends commands to P02 on a board over USB serial and checks the replies.
 
 Run after flashing, e.g. by the CI's self-hosted runner:
-    python tools/hil/nano_esp32_test.py --port /dev/tty_arduino_nano_esp32
+    python tools/hil/p02_test.py --port /dev/tty_arduino_nano_esp32
+    python3 tools/hil/p02_test.py --port /dev/tty_nucleo_g0b1re --board nucleo_g0b1re --platform Zephyr
 
-Needs pyserial (included in ESP-IDF's Python environment). Exits with 1 if any test fails.
+Needs pyserial (included in ESP-IDF's Python environment; python3-serial on Ubuntu). Exits with 1 if
+any test fails.
 """
 
 import argparse
@@ -30,6 +32,8 @@ def open_port(port: str) -> serial.Serial:
     ser.port = port
     ser.baudrate = 115200
     ser.timeout = 0.1
+    # Without a timeout, write() blocks for ever when the board takes no input
+    ser.write_timeout = 2.0
     ser.dtr = False
     ser.rts = False
     for _ in range(20):
@@ -61,12 +65,27 @@ def command(ser: serial.Serial, cmd: str, expected: str, timeout_s: float = 2.0)
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--port", default="/dev/tty_arduino_nano_esp32")
+    # What 'status' must show: CONFIG_BOARD on Zephyr, arduino_nano_esp32 on ESP-IDF
+    parser.add_argument("--board", default="arduino_nano_esp32")
+    parser.add_argument("--platform", default="ESP-IDF", choices=["ESP-IDF", "Zephyr"])
     parser.add_argument("--boot-timeout", type=float, default=30.0)
     args = parser.parse_args()
 
     wait_for_port(args.port, args.boot_timeout)
     ser = open_port(args.port)
+    try:
+        return run_tests(ser, args)
+    except serial.SerialTimeoutException:
+        print("FAIL: P02 takes no input (writing to the port timed out)")
+        return 1
+    finally:
+        # Drop unsent bytes first: closing waits until they are sent, which a board that takes
+        # no input never does.
+        ser.reset_output_buffer()
+        ser.close()
 
+
+def run_tests(ser: serial.Serial, args: argparse.Namespace) -> int:
     # The boot output may be gone before the port was open, so wait for P02 to answer instead:
     # 'help' until it replies. A line break first ends any junk left in P02's input buffer.
     ser.write(b"\r\n")
@@ -79,8 +98,8 @@ def main() -> int:
     # (name, command, text the reply must contain)
     tests = [
         ("help lists the commands", "help", "period <ms>"),
-        ("status shows the board", "status", "Board: arduino_nano_esp32"),
-        ("status shows the platform", "status", "Platform: ESP-IDF"),
+        ("status shows the board", "status", f"Board: {args.board}"),
+        ("status shows the platform", "status", f"Platform: {args.platform}"),
         ("period accepts 500 ms", "period 500", "Handling 'period' command...500 ms"),
         ("status shows the new period", "status", "Blink Period: 500 ms"),
         ("period rejects 5 ms", "period 5", "Invalid period"),
@@ -100,7 +119,6 @@ def main() -> int:
             failures += 1
             print(f"FAIL: {name}\n  sent:     {cmd!r}\n  expected: {expected!r}\n  got:      {reply!r}")
 
-    ser.close()
     print(f"\n{len(tests) - failures}/{len(tests)} passed")
     return 1 if failures else 0
 

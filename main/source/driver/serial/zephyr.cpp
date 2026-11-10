@@ -48,6 +48,16 @@ Zephyr::Zephyr(const device* uart) noexcept
 }
 
 // --------------------------------------------------------------------------------
+Zephyr::~Zephyr() noexcept
+{
+    if (myInterruptDriven)
+    {
+        uart_irq_rx_disable(myUart);
+        uart_irq_callback_user_data_set(myUart, nullptr, nullptr);
+    }
+}
+
+// --------------------------------------------------------------------------------
 void Zephyr::onInterrupt(const device* uart, void* param) noexcept
 {
     auto* self{static_cast<Zephyr*>(param)};

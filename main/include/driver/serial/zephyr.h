@@ -30,9 +30,9 @@ public:
     explicit Zephyr(const device* uart) noexcept;
 
     /**
-     * @brief Destroy the Zephyr object
+     * @brief Destroy the Zephyr object: stops the receive interrupt, which holds a pointer to it.
      */
-    ~Zephyr() noexcept override = default;
+    ~Zephyr() noexcept override;
 
     /**
      * @brief Print function

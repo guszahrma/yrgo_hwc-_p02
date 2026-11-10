@@ -9,7 +9,7 @@
  * is added.
  *
  * Only P02's own wiring belongs here. The LEDs on the board itself (led0-led3) are defined by the
- * board (zephyr/boards/arduino/nano_esp32/arduino_nano_esp32_procpu.dts).  
+ * board (zephyr/boards/arduino/nano_esp32/arduino_nano_esp32_procpu.dts).
  */
 
 #include <zephyr/dt-bindings/gpio/gpio.h>

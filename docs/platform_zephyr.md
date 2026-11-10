@@ -48,21 +48,35 @@ From the **repository root** (attach the board first, see [Setup](setup.md#4-att
 
 ```bash
 source tools/zephyr_env.sh
-west build -p always -b arduino_nano_esp32/esp32s3/procpu -s zephyr/app -d zephyr/app/build
-west flash -d zephyr/app/build --esp-device /dev/tty_arduino_nano_esp32 && tio /dev/tty_arduino_nano_esp32
+west build -p always --sysbuild -b arduino_nano_esp32/esp32s3/procpu -s zephyr/app -d zephyr/app/build/arduino_nano_esp32 -- -DBOARD_ROOT=$P02_ROOT/zephyr
+west flash -d zephyr/app/build/arduino_nano_esp32 --esp-device /dev/tty_arduino_nano_esp32 && tio /dev/tty_arduino_nano_esp32
 ```
 
-`-s` is the app and `-d` its build directory. Always give `-d`: without it, west builds in `./build`, which
-belongs to ESP-IDF. Inside `zephyr/app` the short form `west build -p always -b arduino_nano_esp32/esp32s3/procpu .`
-and `west flash --esp-device /dev/tty_arduino_nano_esp32` do the same.
+`-s` is the app and `-d` its build directory, one per board (`zephyr/app/build/<board>`). Always give `-d`:
+without it, west builds in `./build`, which belongs to ESP-IDF.
+
+**P02 boots through MCUboot** on every Zephyr board. `--sysbuild` builds MCUboot and P02 together
+(`zephyr/app/sysbuild.conf`), and `west flash` writes both: MCUboot at the start of the flash, P02 in
+`slot0_partition`. `-DBOARD_ROOT` is needed on the command line for our own boards (Nano, Daisy): sysbuild
+looks up the board before the app's `CMakeLists.txt` runs. There is no signature yet, only a hash check.
+
+**The first time on a Nano** that ran ESP-IDF or Zephyr without MCUboot, erase the whole flash once
+(`esptool --chip esp32s3 -p /dev/tty_arduino_nano_esp32 erase-flash`, see below): the old program at the
+start of the flash has another format.
+
+On the Nano, the monitor does not show MCUboot's own output (`MCUboot 2nd stage bootloader`) right after
+`west flash`: it is printed before the monitor has opened the port. P02 starting at all shows that MCUboot
+started it. After a restart with the monitor already open, such as the watchdog after `hang`, MCUboot's
+output is shown.
 
 The monitor is `tio`: it waits until the port is there and reconnects after every reset, so it can stay
 open. Exit with `Ctrl+T`, `q` – and quit it before the next `west flash`, which needs the port.
 
 Then use the [serial commands](usage.md#serial-commands).
 
-The Daisy Seed is built with MCUboot (`--sysbuild`) and flashed differently: see
-[Daisy Seed → Building and flashing](p02_daisy_seed.md#building-and-flashing).
+The other boards: [Nucleo-G0B1RE → Building and flashing](p02_nucleo_g0b1re.md#building-and-flashing)
+(OpenOCD) and [Daisy Seed → Building and flashing](p02_daisy_seed.md#building-and-flashing) (MCUboot's
+recovery mode and `smpmgr`).
 
 ### Our samples (`zephyr/samples/`)
 
@@ -104,19 +118,22 @@ Expected output:
 Hello World! arduino_nano_esp32/esp32s3/procpu
 ```
 
-**Why `BOOT_DELAY`?** The console runs over the ESP32-S3's built-in USB. Every reset disconnects USB, and
-usbipd has to re-attach the board to WSL before the monitor can open `/dev/tty_arduino_nano_esp32`. The 1 s boot delay
-keeps the boot output until the monitor is open. If the boot output is missing on your computer,
-increase `CONFIG_BOOT_DELAY` in the app's `prj.conf` (e.g. to `3000`).
+**Why `BOOT_DELAY`?** The console runs over the ESP32-S3's built-in USB, and the monitor can only show
+what is printed after it has opened `/dev/tty_arduino_nano_esp32`. The 1 s boot delay keeps P02's boot
+output until the monitor is open after `west flash`. If the boot output is missing on your computer,
+increase `CONFIG_BOOT_DELAY` in the app's `prj.conf` (e.g. to `3000`). The RESET button disconnects USB,
+and usbipd needs a few seconds to re-attach the board, so the boot output after RESET is lost; a watchdog
+restart keeps USB connected.
 
 ### Useful files and commands
 
 | File / command | Contents |
 |---|---|
-| `west build -d zephyr/app/build -t menuconfig` | Interactive Kconfig browser (`/` to search, `?` for help) |
-| `zephyr/app/build/zephyr/.config` | All active Kconfig options |
-| `zephyr/app/build/zephyr/zephyr.dts` | The final devicetree (board + overlays), with the source file of every line |
-| `zephyr/app/build/zephyr/zephyr.bin`, `zephyr.elf` | Firmware, ELF with symbols |
+| `west build -d zephyr/app/build/<board> -t menuconfig` | Interactive Kconfig browser for P02 (`/` to search, `?` for help); `-t mcuboot_menuconfig` for MCUboot, `-t sysbuild_menuconfig` for sysbuild |
+| `zephyr/app/build/<board>/app/zephyr/.config` | All active Kconfig options of P02 (`mcuboot/zephyr/.config` for MCUboot) |
+| `zephyr/app/build/<board>/app/zephyr/zephyr.dts` | The final devicetree (board + overlays), with the source file of every line |
+| `zephyr/app/build/<board>/app/zephyr/zephyr.signed.bin`, `zephyr.elf` | P02 as MCUboot loads it (with its image header), ELF with symbols |
+| `zephyr/app/build/<board>/mcuboot/zephyr/zephyr.bin` | MCUboot |
 | `esptool --chip esp32s3 -p /dev/tty_arduino_nano_esp32 erase-flash` | Nano ESP32: erase the whole flash, including saved settings – e.g. after [switching from ESP-IDF](usage.md#switching-between-esp-idf-and-zephyr) |
 
 ## Drivers

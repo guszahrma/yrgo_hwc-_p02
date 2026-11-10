@@ -10,9 +10,8 @@
  * For a RESET press, the hook reports "no bootable image", and MCUboot enters serial recovery
  * (CONFIG_BOOT_SERIAL_NO_APPLICATION), where it waits for smpmgr as long as needed.
  *
- * USB is switched on only in serial recovery (CONFIG_CDC_ACM_SERIAL_ENABLE_AT_BOOT=n). Switched on
- * at boot, the PC saw MCUboot connect and vanish again when the app started, half-way through
- * enumeration, and Windows (usbipd) was slow or failed to find the app's USB serial port.
+ * USB is switched on only in serial recovery (CONFIG_CDC_ACM_SERIAL_ENABLE_AT_BOOT=n), so the PC
+ * does not see MCUboot's USB device come and go before the app's (see AGENTS.md: MCUboot USB).
  */
 #include <soc.h>
 #include <zephyr/sys/iterable_sections.h>

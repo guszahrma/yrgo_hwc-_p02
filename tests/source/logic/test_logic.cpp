@@ -94,6 +94,8 @@ TEST(Logic, PeriodAcceptsAValidValue)
     EXPECT_FALSE(contains(output, "Usage: period"));
 
     EXPECT_TRUE(contains(sendCommand(factory, logic, "status"), "Blink Period: 500 ms\r\n"));
+
+    EXPECT_EQ(500U, factory.timer().periodMs());
 }
 
 TEST(Logic, PeriodAcceptsTheLimits)
@@ -104,9 +106,11 @@ TEST(Logic, PeriodAcceptsTheLimits)
     // MinPeriodMs = 50 and MaxPeriodMs = 10000 in logic.h.
     sendCommand(factory, logic, "period 50");
     EXPECT_TRUE(contains(sendCommand(factory, logic, "status"), "Blink Period: 50 ms\r\n"));
+    EXPECT_EQ(50U, factory.timer().periodMs());
 
     sendCommand(factory, logic, "period 10000");
     EXPECT_TRUE(contains(sendCommand(factory, logic, "status"), "Blink Period: 10000 ms\r\n"));
+    EXPECT_EQ(10000U, factory.timer().periodMs());
 }
 
 TEST(Logic, PeriodOutsideTheLimitsKeepsTheOldPeriod)
@@ -114,15 +118,18 @@ TEST(Logic, PeriodOutsideTheLimitsKeepsTheOldPeriod)
     driver::factory::Stub factory{};
     logic::Logic logic{factory};
 
+    // Not the default (1000 ms), so "keeps the old period" cannot pass by falling back to it.
+    sendCommand(factory, logic, "period 300");
+
     for (const char* command : {"period 49", "period 10001", "period 0"})
     {
         const std::string output{sendCommand(factory, logic, command)};
-        EXPECT_TRUE(contains(output, "Invalid period (valid: 50-10000 ms), keeping 1000 ms"))
+        EXPECT_TRUE(contains(output, "Invalid period (valid: 50-10000 ms), keeping 300 ms"))
             << command;
-        EXPECT_TRUE(contains(sendCommand(factory, logic, "status"), "Blink Period: 1000 ms\r\n"));
+        EXPECT_TRUE(contains(sendCommand(factory, logic, "status"), "Blink Period: 300 ms\r\n"))
+            << command;
+        EXPECT_EQ(300U, factory.timer().periodMs()) << command;
     }
-
-    EXPECT_TRUE(contains(sendCommand(factory, logic, "status"), "Blink Period: 1000 ms\r\n"));
 }
 
 TEST(Logic, PeriodRejectsAnArgumentThatIsNotANumber)
@@ -130,15 +137,19 @@ TEST(Logic, PeriodRejectsAnArgumentThatIsNotANumber)
     driver::factory::Stub factory{};
     logic::Logic logic{factory};
 
+    // Not the default (1000 ms), so "keeps the old period" cannot pass by falling back to it.
+    sendCommand(factory, logic, "period 300");
+
     // 70000 does not fit in std::uint16_t (max 65535), so std::from_chars reports out of range.
     for (const char* command :
          {"period", "period abc", "period 500abc", "period -5", "period 70000"})
     {
         const std::string output{sendCommand(factory, logic, command)};
         EXPECT_TRUE(contains(output, "Usage: period <ms>")) << command;
+        EXPECT_TRUE(contains(sendCommand(factory, logic, "status"), "Blink Period: 300 ms\r\n"))
+            << command;
+        EXPECT_EQ(300U, factory.timer().periodMs()) << command;
     }
-
-    EXPECT_TRUE(contains(sendCommand(factory, logic, "status"), "Blink Period: 1000 ms\r\n"));
 }
 
 TEST(Logic, OnAndOffSetTheStatusLed)
@@ -158,13 +169,17 @@ TEST(Logic, BlinkOnAndOffChangeTheBlinkState)
     driver::factory::Stub factory{};
     logic::Logic logic{factory};
 
+    // A new factory::Stub has empty NVS, so blinking starts off.
     EXPECT_TRUE(contains(sendCommand(factory, logic, "status"), "Blink State: off\r\n"));
+    EXPECT_FALSE(factory.timer().isRunning());
 
     sendCommand(factory, logic, "blink on");
     EXPECT_TRUE(contains(sendCommand(factory, logic, "status"), "Blink State: on\r\n"));
+    EXPECT_TRUE(factory.timer().isRunning());
 
     sendCommand(factory, logic, "blink off");
     EXPECT_TRUE(contains(sendCommand(factory, logic, "status"), "Blink State: off\r\n"));
+    EXPECT_FALSE(factory.timer().isRunning());
 }
 
 TEST(Logic, BlinkWithoutOnOrOffPrintsUsage)
@@ -212,9 +227,12 @@ TEST(Logic, HelpListsEveryCommand)
     logic::Logic logic{factory};
 
     const std::string output{sendCommand(factory, logic, "help")};
-    for (const char* command :
-         {"on", "off", "blink on", "blink off", "period <ms>", "status", "store", "hang", "help"})
+    // Whole lines: the output also echoes the input ("Reading line...help"), and "on" is part of
+    // "blink on".
+    for (const char* line :
+         {"  on\r\n", "  off\r\n", "  blink on\r\n", "  blink off\r\n", "  period <ms>\r\n",
+          "  status\r\n", "  store\r\n", "  hang  (", "  help\r\n"})
     {
-        EXPECT_TRUE(contains(output, command)) << command;
+        EXPECT_TRUE(contains(output, line)) << line;
     }
 }

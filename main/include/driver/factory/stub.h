@@ -8,6 +8,7 @@
 #include <string>
 
 #include "driver/adc/stub.h"
+#include "driver/boot/stub.h"
 #include "driver/factory/interface.h"
 #include "driver/gpio/stub.h"
 #include "driver/nvs/stub.h"
@@ -177,6 +178,18 @@ public:
     }
 
     /**
+     * @brief Create a simulated boot driver (v1.0.0, confirmed, nothing in the second slot).
+     *
+     * @return unique pointer to the boot driver stub.
+     */
+    std::unique_ptr<driver::boot::Interface> createBoot() noexcept override
+    {
+        auto boot{std::make_unique<driver::boot::Stub>()};
+        myBoot = boot.get(); // Logic owns the stub; keep a pointer for the tests
+        return boot;
+    }
+
+    /**
      * @brief The board: "stub" in the tests.
      *
      * @return C-string literal.
@@ -274,6 +287,17 @@ public:
         return *myWatchdog;
     }
 
+    /**
+     * @brief The boot driver stub created by createBoot().
+     *
+     * @return reference to the boot driver stub.
+     */
+    driver::boot::Stub& boot() noexcept
+    {
+        assert(nullptr != myBoot && "createBoot() has not been called");
+        return *myBoot;
+    }
+
     Stub(const Stub&)            = delete;
     Stub(Stub&&)                 = delete;
     Stub& operator=(const Stub&) = delete;
@@ -288,6 +312,7 @@ private:
     driver::tempsensor::Stub* myTempSensor{nullptr};
     driver::timer::Stub* myTimer{nullptr};
     driver::watchdog::Stub* myWatchdog{nullptr};
+    driver::boot::Stub* myBoot{nullptr};
 
     /** Strings put into every NVS stub that createNvs() creates (see presetNvsString()). */
     std::map<std::string, std::string> myNvsPreset{};

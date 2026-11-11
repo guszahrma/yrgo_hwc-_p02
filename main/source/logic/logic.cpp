@@ -42,6 +42,7 @@ Logic::Logic(driver::factory::Interface& factory) noexcept
     myTimerDriver->stop(); // Start the timer for blinking
     myNvsUserSettingsStorage = factory.createNvs("user_settings");
     myWatchdog               = factory.createWatchdog(WatchdogTimeoutMs);
+    myBoot                   = factory.createBoot();
 
     if (myWatchdog->causedLastReset())
     {
@@ -256,6 +257,30 @@ void Logic::handleStatus() noexcept
     mySerialDriver->print("Platform: ");
     mySerialDriver->print(myPlatform);
     mySerialDriver->print("\r\n");
+
+    // The firmware versions: the running image, and the image in the second slot (a new image to
+    // install, or the previous one after an update)
+    const driver::boot::Version running{myBoot->version()};
+    char line[OutputLineSize]{};
+    std::snprintf(line, sizeof(line), "Firmware: v%u.%u.%u+%u (%s)\r\n",
+                  static_cast<unsigned>(running.major), static_cast<unsigned>(running.minor),
+                  static_cast<unsigned>(running.revision), static_cast<unsigned>(running.build),
+                  myBoot->isConfirmed() ? "confirmed" : "not confirmed");
+    mySerialDriver->print(line);
+
+    driver::boot::Version secondary{};
+    if (myBoot->secondaryVersion(secondary))
+    {
+        std::snprintf(
+            line, sizeof(line), "Second slot: v%u.%u.%u+%u\r\n",
+            static_cast<unsigned>(secondary.major), static_cast<unsigned>(secondary.minor),
+            static_cast<unsigned>(secondary.revision), static_cast<unsigned>(secondary.build));
+        mySerialDriver->print(line);
+    }
+    else
+    {
+        mySerialDriver->print("Second slot: empty\r\n");
+    }
     mySerialDriver->print("Blink State: ");
     mySerialDriver->print(myBlinkState ? "on\r\n" : "off\r\n");
     mySerialDriver->print("Blink Period: ");

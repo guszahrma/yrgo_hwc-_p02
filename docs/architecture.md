@@ -79,7 +79,7 @@ The current wiring is listed in [Usage](usage.md#hardware-and-wiring).
 │   ├── include/
 │   │   ├── arch/env/         # Platform selection (real hardware / test environment)
 │   │   ├── communication/    # wifi, mqtt (publish/subscribe) – ESP-IDF only
-│   │   ├── driver/           # adc, factory, gpio, nvs, pin, serial, tempsensor, timer, watchdog
+│   │   ├── driver/           # adc, boot, factory, gpio, nvs, pin, serial, tempsensor, timer, watchdog
 │   │   ├── logic/            # Application logic (command parser)
 │   │   └── ml/               # Linear regression
 │   └── source/               # Implementations, same layout as include/
@@ -116,6 +116,7 @@ Generated and not committed: `sdkconfig` and `build/` (ESP-IDF), `.west/`, `deps
 | NVS | `driver::nvs` | Strings + integers (template), keys max 15 characters | ✅ | ✅ |
 | Watchdog | `driver::watchdog` | Restarts the system if `kick()` is not called in time; `causedLastReset()` | ✅ | ✅ |
 | Temp sensor | `driver::tempsensor` | `Tmp36` uses an `adc::Interface`, platform independent | ✅ | ✅ |
+| Boot | `driver::boot` | Running firmware version, whether it is confirmed, the second slot's version, `confirm()`. Interface and stub only: both factories return the stub, so a board always reports v1.0.0, confirmed | – | – |
 | Wi-Fi | `comm::wifi` | Scans for and connects to the configured network | ✅ | – |
 | MQTT | `comm::mqtt::publish/subscribe` | Publish and subscribe to topics | ✅ | – |
 | ML | `ml::lin_reg` | Adaptive linear regression, platform independent | ✅ | – |

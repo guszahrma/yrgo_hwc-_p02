@@ -92,6 +92,13 @@ public:
     createWatchdog(std::uint32_t timeoutMs) noexcept override;
 
     /**
+     * @brief Create a boot driver: the version of the images, and confirming the running one
+     *
+     * @return unique pointer
+     */
+    std::unique_ptr<driver::boot::Interface> createBoot() noexcept override;
+
+    /**
      * @brief The board. ESP-IDF knows only the chip, and this factory maps the Nano's pins.
      *
      * @return "arduino_nano_esp32"

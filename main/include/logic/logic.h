@@ -131,5 +131,6 @@ private:
     std::unique_ptr<driver::nvs::Interface>
         myNvsUserSettingsStorage; // NVS driver for non-volatile storage of Usersettings
     std::unique_ptr<driver::watchdog::Interface> myWatchdog;
+    std::unique_ptr<driver::boot::Interface> myBoot; // Boot driver: firmware versions and confirm
 };
 } // namespace logic

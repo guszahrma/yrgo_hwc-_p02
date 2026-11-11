@@ -73,15 +73,10 @@ TEST(Logic, StatusPrintsBoardBoardTargetAndPlatform)
     driver::factory::Stub factory{};
     logic::Logic logic{factory};
 
-    // The serial stub prints to std::cout.
-    factory.serial().simulateInputData("status");
-    testing::internal::CaptureStdout();
-    logic.step();
-    const std::string output{testing::internal::GetCapturedStdout()};
-
-    EXPECT_NE(std::string::npos, output.find("Board: stub\r\n"));
-    EXPECT_NE(std::string::npos, output.find("Board target: stub\r\n"));
-    EXPECT_NE(std::string::npos, output.find("Platform: stub\r\n"));
+    const std::string output{sendCommand(factory, logic, "status")};
+    EXPECT_TRUE(contains(output, "Board: stub\r\n"));
+    EXPECT_TRUE(contains(output, "Board target: stub\r\n"));
+    EXPECT_TRUE(contains(output, "Platform: stub\r\n"));
 }
 
 TEST(Logic, PeriodAcceptsAValidValue)
@@ -209,6 +204,44 @@ TEST(Logic, StoreSavesBlinkStateAndPeriod)
     ASSERT_TRUE(factory.nvs().getString("blink_period", blinkPeriod));
     EXPECT_EQ("on", blinkState);
     EXPECT_EQ("300", blinkPeriod);
+
+    // A second store overwrites the first, also with blinking off.
+    sendCommand(factory, logic, "blink off");
+    sendCommand(factory, logic, "period 2000");
+    sendCommand(factory, logic, "store");
+
+    ASSERT_TRUE(factory.nvs().getString("blink_state", blinkState));
+    ASSERT_TRUE(factory.nvs().getString("blink_period", blinkPeriod));
+    EXPECT_EQ("off", blinkState);
+    EXPECT_EQ("2000", blinkPeriod);
+}
+
+TEST(Logic, BlinkOnTogglesTheStatusLed)
+{
+    driver::factory::Stub factory{};
+    logic::Logic logic{factory};
+
+    sendCommand(factory, logic, "period 50"); // The shortest period, so the test is quick
+    sendCommand(factory, logic, "blink on");
+
+    // step() sleeps 10 ms when no command arrives; 100 steps (≥ 1 s) leave plenty of margin.
+    const bool before{factory.statusLed().read()};
+    bool toggled{false};
+    for (int i{0}; (i < 100) && !toggled; ++i)
+    {
+        logic.step();
+        toggled = (before != factory.statusLed().read());
+    }
+    EXPECT_TRUE(toggled);
+
+    // After 'blink off' the LED stays as it is.
+    sendCommand(factory, logic, "blink off");
+    const bool afterOff{factory.statusLed().read()};
+    for (int i{0}; i < 10; ++i)
+    {
+        logic.step();
+    }
+    EXPECT_EQ(afterOff, factory.statusLed().read());
 }
 
 TEST(Logic, UnknownCommandIsNamedInTheReply)
@@ -242,11 +275,7 @@ TEST(Logic, StatusPrintsFirmwareVersions)
     driver::factory::Stub factory{};
     logic::Logic logic{factory};
 
-    factory.serial().simulateInputData("status");
-    testing::internal::CaptureStdout();
-    logic.step();
-    const std::string output{testing::internal::GetCapturedStdout()};
-
-    EXPECT_NE(std::string::npos, output.find("Firmware: v1.0.0+0 (confirmed)\r\n"));
-    EXPECT_NE(std::string::npos, output.find("Second slot: empty\r\n"));
+    const std::string output{sendCommand(factory, logic, "status")};
+    EXPECT_TRUE(contains(output, "Firmware: v1.0.0+0 (confirmed)\r\n"));
+    EXPECT_TRUE(contains(output, "Second slot: empty\r\n"));
 }

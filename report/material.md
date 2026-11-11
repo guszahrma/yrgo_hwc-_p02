@@ -34,7 +34,7 @@ down, not necessarily the code that was tested.
 | Hardware test in CI | On every push, flash the P02 that CI built onto a board on a self-hosted runner and check its replies to serial commands | Nano ESP32 (ESP-IDF) | Merged 2026-11-09 | b26b038 |
 | Hardware tests on more boards and platforms | The same for P02 under Zephyr on the Nano and on the Nucleo-G0B1RE, one runner per board, MCUboot and P02 flashed together | Nano ESP32 (ESP-IDF and Zephyr), Nucleo-G0B1RE | Passed in CI with MCUboot (run #337) | 89e0599 |
 | Prototype: MCUboot on the boards | P02 boots through MCUboot on every Zephyr board (built with `--sysbuild`), no signature yet | Nano, Nucleo, Daisy | Merged 2026-11-09 | bb17d47 |
-| Prototype: firmware update by hand | v2 signed with `west sign --pad`, written to slot 1, started as a test, reverted at the next reset | Nano, Nucleo | In progress (`feature/mcuboot-update-demo`) | – |
+| Prototype: firmware update by hand | v2 signed with `west sign --pad`, written to slot 1, started as a test, reverted at the next reset | Nano, Nucleo | Verified on both boards (2026-11-05), not merged yet (`feature/mcuboot-update-demo`) | 371c8b5 |
 | Generalised for Zephyr | Firmware updates in both variants: swap (Nano, Nucleo) and RAM load (Daisy) | Nano, Nucleo, Daisy | Planned | – |
 | Signed images | Images signed with our own key and checked by MCUboot, in both variants | Nano, Nucleo, Daisy | Planned | – |
 
@@ -65,6 +65,8 @@ down, not necessarily the code that was tested.
 | Runner guard stops a runner whose port is gone, and starts it again | Daisy Seed (runner on QR-PF2KTLE6) | USB cable pulled ~11:34, guard on its timer (2026-11-11) | Stopped at 11:36:37 (`gone for 120 s`); started again within 30 s of the port coming back | a955a31 |
 | Runner guard's job check (`pgrep -f "^<runner folder>/bin/Runner.Worker"`) | Nano ESP32 (runner on QR-PF2KTLE6) | `pgrep -af Runner.Worker` while a job ran | `/home/ghrunner/runners/arduino_nano_esp32/bin/Runner.Worker spawnclient ...`, which the pattern matches | a955a31 |
 | `ghrunner` can open the Nano's port with `GROUP="dialout"` in `99-p02.rules` (Ubuntu's `openocd` package gave it `plugdev`) | Nano ESP32 (ESP-IDF, runner on QR-PF2KTLE6) | `hardware-test-nano` in CI, before and after installing the rule (2026-11-11) | Before: esptool `Permission denied`; after: `/dev/ttyACM0` in `dialout`, and esptool opened the port | a955a31 |
+| Update demo: v2 starts as a test, and the next reset reverts to v1 (swap using move) | `nucleo_g0b1re` (with MCUboot) | v1 flashed; v2 (2.0.0) built in its own directory, `west sign --pad`, written to slot 1 (0x0803E000) with OpenOCD; RESET twice, `tio` open (2026-11-05) | First reset: `Swap type: test`, `Starting swap using move algorithm.`, `Image version: v2.0.0`. Second reset: `Swap type: revert`, `Image version: v1.0.0`; the settings in `storage_partition` kept | 371c8b5 |
+| Update demo: v2 starts as a test, and the next reset reverts to v1 (swap using move) | `arduino_nano_esp32/esp32s3/procpu` (with MCUboot) | As on the Nucleo, v2 written to slot 1 (0x170000) with esptool; MCUboot's output is not seen on the Nano, so slot 0's image header read with `esptool read-flash 0x20000 32` after each reset (2026-11-05) | Image magic `0x96f3b83d`; slot 0 `v2.0.0` after the first reset, `v1.0.0` after the second | 371c8b5 |
 
 ## Measurements
 

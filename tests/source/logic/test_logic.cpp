@@ -119,6 +119,7 @@ TEST(Logic, PeriodOutsideTheLimitsKeepsTheOldPeriod)
         const std::string output{sendCommand(factory, logic, command)};
         EXPECT_TRUE(contains(output, "Invalid period (valid: 50-10000 ms), keeping 1000 ms"))
             << command;
+        EXPECT_TRUE(contains(sendCommand(factory, logic, "status"), "Blink Period: 1000 ms\r\n"));
     }
 
     EXPECT_TRUE(contains(sendCommand(factory, logic, "status"), "Blink Period: 1000 ms\r\n"));

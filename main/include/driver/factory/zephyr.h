@@ -96,6 +96,13 @@ public:
     createWatchdog(std::uint32_t timeoutMs) noexcept override;
 
     /**
+     * @brief Create a boot driver: the version of the images, and confirming the running one
+     *
+     * @return unique pointer
+     */
+    std::unique_ptr<driver::boot::Interface> createBoot() noexcept override;
+
+    /**
      * @brief The board, from the build (CONFIG_BOARD)
      *
      * @return C-string literal, e.g. "daisy_seed"

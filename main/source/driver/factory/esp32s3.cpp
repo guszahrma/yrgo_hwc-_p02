@@ -12,6 +12,9 @@
 #include "driver/timer/esp32s3.h"
 #include "driver/watchdog/esp32s3.h"
 
+// Running stub until real drivers are implemented
+#include "driver/boot/stub.h"
+
 namespace driver::factory
 {
 
@@ -72,6 +75,13 @@ std::unique_ptr<driver::timer::Interface> Esp32s3::createTimer() noexcept
 std::unique_ptr<driver::watchdog::Interface>
 Esp32s3::createWatchdog(std::uint32_t timeoutMs) noexcept
 { return std::make_unique<driver::watchdog::Esp32s3>(timeoutMs); }
+
+// -----------------------------------------------------------------------------
+std::unique_ptr<driver::boot::Interface> Esp32s3::createBoot() noexcept
+{
+    // Stub until boot::Esp32s3 is written
+    return std::make_unique<driver::boot::Stub>();
+}
 
 // -----------------------------------------------------------------------------
 const char* Esp32s3::board() const noexcept { return "arduino_nano_esp32"; }

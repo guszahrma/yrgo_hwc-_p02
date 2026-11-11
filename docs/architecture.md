@@ -103,7 +103,7 @@ The current wiring is listed in [Usage](usage.md#hardware-and-wiring).
 ```
 
 Generated and not committed: `sdkconfig` and `build/` (ESP-IDF), `.west/`, `deps/`, `zephyr/*/build/`
-and `zephyr/app/daisy_seed_build/` (Zephyr), `.venv/` (Python tools for Zephyr and clang-format).
+(Zephyr, one subdirectory per board), `.venv/` (Python tools for Zephyr and clang-format).
 
 ## Drivers
 

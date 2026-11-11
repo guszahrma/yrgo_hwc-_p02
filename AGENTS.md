@@ -46,8 +46,8 @@ idf.py -p /dev/tty_arduino_nano_esp32 flash monitor
 # Zephyr
 tools/zephyr_setup.sh                # first time only
 source tools/zephyr_env.sh
-west build -p always -b arduino_nano_esp32/esp32s3/procpu -s zephyr/app -d zephyr/app/build
-west flash -d zephyr/app/build --esp-device /dev/tty_arduino_nano_esp32 && tio /dev/tty_arduino_nano_esp32
+west build -p always --sysbuild -b arduino_nano_esp32/esp32s3/procpu -s zephyr/app -d zephyr/app/build/arduino_nano_esp32 -- -DBOARD_ROOT=$P02_ROOT/zephyr
+west flash -d zephyr/app/build/arduino_nano_esp32 --esp-device /dev/tty_arduino_nano_esp32 && tio /dev/tty_arduino_nano_esp32
 
 # Unit tests on the host (GoogleTest). Building also runs them (custom target "run" in
 # tests/CMakeLists.txt); no CTest. Compiled with -Wall -Werror, so a warning fails the build.
@@ -135,13 +135,17 @@ tools/clang-format/check.sh
 |---|---|
 | `error: the Zephyr workspace is not set up` | Run `tools/zephyr_setup.sh` first (once per clone). |
 | `west: unknown command "build"` | `ZEPHYR_BASE` is not set. Run `source tools/zephyr_env.sh`. |
-| `No board named 'arduino_nano_esp32' found` | Zephyr cannot find our board. Our apps: `list(APPEND BOARD_ROOT ...)` must come before `find_package(Zephyr)` in `CMakeLists.txt`. Zephyr's samples, and any build with `--sysbuild` (also `zephyr/app`, e.g. the Daisy's `ram_load`): add `-- -DBOARD_ROOT=$P02_ROOT/zephyr` – sysbuild looks up the board before the app's `CMakeLists.txt` runs. |
+| `No board named 'arduino_nano_esp32' found` | Zephyr cannot find our board. Our apps: `list(APPEND BOARD_ROOT ...)` must come before `find_package(Zephyr)` in `CMakeLists.txt`. Zephyr's samples, and any build with `--sysbuild` (every P02 build, since P02 boots through MCUboot): add `-- -DBOARD_ROOT=$P02_ROOT/zephyr` – sysbuild looks up the board before the app's `CMakeLists.txt` runs. Not for the Nucleo, which is in Zephyr. |
 | `devicetree error: ... 'pinctrl-names' is marked as required` (after enabling `i2c0`/`spi2`) | Disabled nodes are not checked against their bindings – errors only show when a node is enabled. Test the board with each bus enabled. |
 | `CMake was unable to find a build program corresponding to "Ninja"` | `pip install ninja` in the Zephyr venv, or `sudo apt install ninja-build`. |
 | `west blobs fetch` fails with `504 Gateway Time-out` | Temporary GitHub error. Run `west blobs fetch hal_espressif` again. |
 | Flashing works but the monitor shows nothing | Boot output was printed before the monitor connected (usbipd re-attached the board slowly). Increase `CONFIG_BOOT_DELAY` in the app's `prj.conf`, e.g. to `3000`. |
 | Strange compiler errors when building for the ESP32-S3 | The course's `env.sh` is active in the terminal. Open a new terminal and run `source tools/zephyr_env.sh`. |
+| Nano: the monitor does not show `MCUboot 2nd stage bootloader` after `west flash` or RESET | Expected: after `west flash`, MCUboot prints before the monitor has opened the port; RESET disconnects USB, and the whole boot output is printed before usbipd has attached the board again. If P02 starts, MCUboot started it. A watchdog restart (`hang`) with the monitor open shows MCUboot's output. |
+| `region 'FLASH' overflowed` when building P02 with `--sysbuild` | P02 no longer fits in `slot0_partition` (200 KB on the Nucleo). Check what takes the space before changing partitions: `ninja -C zephyr/app/build/<board>/app rom_report` (with sysbuild, `rom_report` is in the app's own build directory). |
+| `warning: MCUBOOT_UPDATE_FOOTER_SIZE ... was assigned the value '0x800' but got the value ''` (building with `--sysbuild`) | Harmless. MCUboot's sysbuild code always passes the footer size to the app, but only mcumgr's image management uses it, and P02 does not enable it yet (`IMG_MANAGER=n`). Goes away when mcumgr is added. |
 | `west flash`: `libusb_open() failed with LIBUSB_ERROR_ACCESS` (OpenOCD, Nucleo) | The ST-Link's USB device belongs to root: install `tools/udev/99-p02.rules` again (it gives `dialout` access to `0483:374b`). |
+| `/dev/tty_nucleo_g0b1re` cannot be opened by a user in `dialout` (e.g. `ghrunner`), but by you | The port's group is `plugdev`: Ubuntu's `openocd` package (`60-openocd.rules`) sets it on everything on an ST-Link, the serial port included. Install `tools/udev/99-p02.rules` again, which sets `dialout` on the port. |
 | `CMake Error: Not a file: .../cmake/pristine.cmake` | The build directory was made with another Zephyr installation. Delete it once: `rm -rf zephyr/app/build`. |
 
 ---
@@ -187,10 +191,13 @@ tools/clang-format/check.sh
 | ADC attenuation | `zephyr,gain` in devicetree; `referenceVoltage` is ignored | Zephyr configures channels from devicetree, not at runtime |
 | Timer | Polled `timeout()`, restarts from "now" | `Logic` stays unchanged. Rejected: a `k_timer` callback (more idiomatic, but changes the interface). |
 | Serial | Our own command parser kept | `Logic` stays unchanged on both platforms. Rejected: Zephyr's shell (`Logic` would change). |
+| Serial input | An interrupt moves received bytes into a 256-byte ring buffer (`CONFIG_UART_INTERRUPT_DRIVEN`, `CONFIG_RING_BUFFER`); `readLine()` reads from it. Polling (`uart_poll_in`) on the Nano (`zephyr/app/boards/arduino_nano_esp32_procpu.conf`) and for a UART without the interrupt API | Polled once per loop (10 ms), the Nucleo's UART, which holds one received byte, kept only the last byte of each 10 ms (see [Measurements](report/material.md#measurements)): a command sent at once arrived garbled (`help` as `hhhh…`). The USB serial ports (Nano, Daisy) buffer, and typing is slow enough, so it only showed with the Nucleo's hardware test. On the Nano's USB-Serial/JTAG, receive by interrupt took no input at all: the PC's first write timed out, so the CI test and `tio` hung (the cause in Zephyr's driver is not known). Rejected: sending the test's commands slowly (would hide the bug from the test); receive by interrupt on the Nano (took no input). Verified: commands sent at once and `tools/hil/p02_test.py`, Nucleo and Daisy; `p02_test.py` with polling, `arduino_nano_esp32/esp32s3/procpu` (see [Verification](report/material.md#verification)). |
 | Watchdog | The board's alias `watchdog0` – `wdt0` (Timer Group 0) on the Nano, the IWDG on the Daisy Seed – with `WDT_FLAG_RESET_SOC`, `window.min = 0`; reset cause from `hwinfo_get_reset_cause()` (`CONFIG_HWINFO`) | Zephyr's ESP32 driver uses two stages with the same time (interrupt, then reset), so the Nano restarts after about **twice** the timeout (~6 s instead of 3 s). `window.max = timeoutMs / 2` would make it match ESP-IDF. The Daisy's IWDG is not tested yet (see the Daisy's open items) |
 | Board in `status` | `factory::Zephyr` returns `CONFIG_BOARD` and `CONFIG_BOARD_TARGET`; `Logic` prints them with the platform (three methods on `factory::Interface`, not a struct) | Each new board gets the right name without code changes. The board target shows the build variant (Daisy: `ram_load` or not); the platform tells ESP-IDF and Zephyr apart on the Nano |
 | NVS | Settings subsystem (NVS backend) | String keys like ESP-IDF. The namespace is the key prefix (`user_settings/blink_state`). Every write goes to flash at once, so `autoCommit`/`commit()` have no effect. Rejected: the raw NVS API (numeric IDs). |
 | Output from `Logic` | `mySerialDriver->print()`, with `std::snprintf` for lines with numbers | `<iostream>` (streams and locales) cost most of P02's flash: removing it took the Nucleo from ~206 to ~48 KB (see [Measurements](report/material.md#measurements)). Zephyr logging would be a further improvement. Rejected: `std::cout`. |
+| Bootloader | MCUboot on every board (`zephyr/app/sysbuild.conf`, build with `--sysbuild`), no signature yet (`BOOT_SIGNATURE_TYPE_NONE`), each board's default mode: Nucleo swap using offset, Nano overwrite only (Zephyr's default for Espressif chips), Daisy RAM load (its board's `Kconfig.sysbuild`) | The same ground on all boards before the update demo (Fas 1). Rollback needs a swap mode (or RAM load with revert), chosen per board later. ECDSA P-256 with MCUboot's bundled TinyCrypt would work without mbedTLS. Not on ESP-IDF, which has its own bootloader. Rejected: RSA, sysbuild's default signature (needs the mbedTLS module, not in `west.yml`); one mode for all boards in `sysbuild.conf` (would override the Daisy's RAM load). Verified: P02 boots through MCUboot, and `hang` restarts it through MCUboot with the watchdog as the reset cause, Nucleo and `arduino_nano_esp32/esp32s3/procpu` (see [Verification](report/material.md#verification)); Daisy, see its board definition's `AGENTS.md`. |
+| Build directories | P02 in `zephyr/app/build/<board>` (`arduino_nano_esp32`, `daisy_seed`, `nucleo_g0b1re`); Zephyr's samples in `<sample>_build` at the root (`hello_world_build`); CI one directory per build in `build-zephyr/` | A build for one board does not overwrite another's. Before MCUboot, P02 built in `zephyr/app/build` and the Daisy in `zephyr/app/daisy_seed_build`; delete both once (`rm -rf zephyr/app/build zephyr/app/daisy_seed_build`). Rejected: one build directory per application (a build for one board overwrote another's). |
 | ESP-IDF and Zephyr in one repository | Yes | The shared logic is built for both in CI; reorganise (`common/`, `esp-idf/`, `zephyr/`) if the ESP-IDF build is dropped |
 
 ### Pitfalls and lessons learned
@@ -268,8 +275,10 @@ tools/clang-format/check.sh
 
 #### USB console (usbipd/WSL)
 
-* Every reset re-enumerates USB, and usbipd has to re-attach the board to WSL. `CONFIG_BOOT_DELAY=1000`
-  keeps the boot output, and the monitor is started right after `west flash`. With a slower usbipd, add a
+* RESET re-enumerates USB, and usbipd has to re-attach the board to WSL: ~6 s on the Nano, and the boot
+  output was lost. A watchdog restart kept USB connected (see [Verification](report/material.md#verification)).
+  `CONFIG_BOOT_DELAY=1000` keeps P02's boot output after `west flash`, and the monitor is started right after
+  it. Whether `west flash`'s reset also re-enumerates USB is not known. With a slower usbipd, add a
   `sleep` before the monitor (see [Troubleshooting → Setup](#setup-wsl-usb-serial)).
 * The monitor is `tio`, not `miniterm`: `tio` waits for the port and reconnects after every reset. `miniterm`
   crashed when the board left USB (RESET pressed), and as it still held `/dev/ttyACM0`, the board came back as
@@ -297,6 +306,17 @@ tools/clang-format/check.sh
 
 ---
 
+## CI: design decisions
+
+| Decision | Choice | Why |
+|---|---|---|
+| When CI runs | On every push, for the whole workflow; not on pull requests | A pull request comes from a pushed branch, so CI has already run for its last commit, and the pull request shows those checks. Running on both would build and test every change twice – runner time and energy, and the hardware tests would flash the board twice. Side effect: a pull request from a fork never runs its code on our self-hosted runners. Cost: CI tests the branch, not its merge with `main`, so `main` is merged into the branch before a pull request is approved (see [docs/contributing.md](docs/contributing.md#workflow)). Rejected: push and pull requests (every change built and tested twice). |
+| Hardware tests | Jobs on self-hosted runners, one runner per board (a PC with the board attached through usbipd), all as a user `ghrunner` without `sudo`, home folder and `/mnt/c` closed to it; one run at a time: flash the whole image CI built – ESP-IDF's bootloader, partition table and P02 (through `flash_args`), or MCUboot and P02 on Zephyr – and run `tools/hil/p02_test.py`, which sends `help`, `status`, `period`, `blink` and an unknown command over serial and checks the replies | GitHub's machines have no board. One runner per board so the boards are tested at the same time (a runner runs one job at a time). Its own user because a job runs whatever the workflow says; through `/mnt/c`, WSL also lets any Linux user start Windows programs as the Windows user. The whole image, because the board may have the other platform, a test build or (Nano) the Arduino bootloader on it. One run at a time, as each runner has one board. While a runner is offline its jobs wait in the queue (GitHub gives up after 24 hours); the other jobs are not affected. Rejected: one runner for all boards (would test them one after the other), the runner as your own user (a job could read your files). |
+| Hardware test of both platforms on the Nano | Two jobs on the Nano's one runner: `hardware-test-nano` (ESP-IDF) and `hardware-test-nano-zephyr` (MCUboot at 0x0 and P02 at 0x20000 with esptool), each with its own concurrency group; the ESP-IDF job erases its `nvs` partition (0x9000, 24 KB) before flashing | The runner runs one job at a time, so the jobs take turns and each starts by flashing its own platform. Zephyr's MCUboot (~37 KB from 0x0, see [Measurements](report/material.md#measurements)) covers the start of ESP-IDF's `nvs`; Zephyr's own `storage_partition` (0x3B0000) is outside ESP-IDF's image. Rejected: one concurrency group for both jobs (a group keeps only one waiting job, so it would cancel one of them), a second runner for the same board (would only wait for the first), one job testing both platforms (one check for two results). Verified: both jobs passed in CI, the Zephyr job with MCUboot and P02, Nano (see [Verification](report/material.md#verification)). |
+| Time limits for the hardware tests | `timeout-minutes: 10` on the hardware jobs; `tools/hil/p02_test.py` writes with a 2 s timeout | A board that took no input made the test's `write()` block, and the job held the Nano's runner until GitHub cancelled it after 6 hours. Verified: with a build that takes no input, the test fails after 2 s, `arduino_nano_esp32/esp32s3/procpu` (see [Verification](report/material.md#verification)). |
+
+---
+
 ## Daisy Seed (work in progress): P02 on the Daisy
 
 The board definition is in `zephyr/boards/electrosmith/daisy_seed/`, with its own board document
@@ -312,15 +332,9 @@ Read that file before changing anything in the board directory. P02 on the Daisy
 | Main stack | `CONFIG_MAIN_STACK_SIZE=4096` in `zephyr/app/prj.conf` | Zephyr's default 1 KB overflowed on `store` (Settings → NVS → flash driver in the main thread); with the MPU stack guard the app halted. The Nano's board already used 4 KB, so it never showed there |
 | App wiring | One overlay per board in `zephyr/app/boards/` providing `p02-led` and `zephyr,user`: `arduino_nano_esp32_procpu.overlay`, `daisy_seed_ram_load.overlay` | `factory::Zephyr` uses only those names; `boards/<board>.overlay` replaces `app.overlay`. See *App overlays* under Board and devicetree for the file name. |
 | Wiring comments | Give all three names: Daisy name, physical pin, STM32 name (`/* D15 = pin 22 = PC0 */`) | Only the physical pin number matches the board's print; the STM32 name is what the datasheet and errors use |
-| CI | A separate job per board: the Nano's `zephyr-build` stays, a new Daisy job builds Zephyr's blinky on `daisy_seed` and P02 with MCUboot (`--sysbuild`) on `daisy_seed/stm32h750xx/ram_load` | Each job is its own check in the PR, so it shows directly whether Zephyr works for the Nano and/or the Daisy. Cost: the workspace setup runs in both jobs (in parallel) – runner time and energy, judged worth it. Later: per-board setup, so each job downloads only its own toolchain |
+| CI | A separate job per board: the Nano's `zephyr-build-nano` stays, a new Daisy job builds Zephyr's blinky on `daisy_seed` and P02 with MCUboot (`--sysbuild`) on `daisy_seed/stm32h750xx/ram_load` | Each job is its own check in the PR, so it shows directly whether Zephyr works for the Nano and/or the Daisy. Cost: the workspace setup runs in both jobs (in parallel) – runner time and energy, judged worth it. Later: per-board setup, so each job downloads only its own toolchain |
 | Role mapping | External parts, like the Nano: `StatusLed` = LED on D26 = pin 33 = PD11 (330 Ω to GND, active high); `TempSensor` = potentiometer simulating a TMP36 on A3/D18 = pin 25 = PA7 (ADC1 ch 7), fed from 3V3 pin 38 / GND pin 40 | Pins 16, 20–24 are used by another project on the same breadboard. D1–D14 and D29–D30 are kept free for the Daisy's usual buses (SD card, SPI, I2C, UART, USB HS). Breadboard tip: on the side with pins 21–40, the row number counts the other way, so one row off is an easy mistake. Verified: pin 33 = D26 and pin 25 = A3, Daisy (see [Verification](report/material.md#verification)). |
 | Modules | `hal_stm32`, `cmsis_6` (Cortex-M; `cmsis` is for Cortex-A/R), `mcuboot` and `zcbor` (MCUboot's serial recovery) in `west.yml`; `arm-zephyr-eabi` in `tools/zephyr_setup.sh` | Needed to build for the STM32H750 |
-
-Build directories: today's pattern names the **application**, not the board – our apps build in
-`<app>/build` (`zephyr/app/build`), Zephyr's samples in `<sample>_build` at the root (`hello_world_build`),
-CI in `build-zephyr/<app>`. With two boards, a build for one board overwrites the other's. Proposal, not
-yet applied: add the board as a subdirectory, `<build dir>/<board>` (`zephyr/app/build/daisy_seed`,
-`blinky_build/arduino_nano_esp32`), for all boards and applications.
 
 Open items: **P02 sometimes starts with its USB off** after a software reset (`smpmgr os reset`, the end of
 `west flash`), never seen after power-on or RESET. P02 runs, but the PC sees no device on the port (UsbTreeView:
@@ -354,12 +368,12 @@ here. P02 on the Nucleo for people: [docs/p02_nucleo_g0b1re.md](docs/p02_nucleo_
 | Decision | Choice | Why |
 |---|---|---|
 | Board definition | Zephyr's own `nucleo_g0b1re` | It already has a console (USART2 via the ST-Link), `watchdog0` = IWDG, `adc1` with PA0/PA1 and a 64 KB `storage_partition` |
-| No MCUboot | P02 links from the start of flash (~48 KB, see [Measurements](report/material.md#measurements)) | The board's `zephyr,code-partition` is the 200 KB `slot0_partition`, but without a bootloader Zephyr ignores it (`CONFIG_USE_DT_CODE_PARTITION` off) and the FLASH region is all 512 KB. The image ends well before `storage_partition` at 0x70000; nothing stops it from growing into it, so watch the size |
+| MCUboot | MCUboot (~26 KB) in the board's 48 KB `boot_partition`, P02 (~48 KB) linked to the 200 KB `slot0_partition` at 0xC000 (see [Measurements](report/material.md#measurements)) | The board's partitions are already laid out for MCUboot. P02 only fits since `std::cout` is gone (~206 KB before). Default mode swap using offset, with the board's equal slots: fine for booting, not tried for an update yet |
 | Flash runner | `--runner openocd` | OpenOCD comes with the Zephyr SDK. Rejected: STM32CubeProgrammer, the board's first runner (not installed). |
-| Role mapping | `StatusLed` = external LED on D6 = PB14 (330 Ω to GND, active high); `TempSensor` = TMP36 on A0 = PA0 (ADC1 ch 0), Vs from 3V3 | D6 as on the Nano, so the wiring is the same. A0 because the board already has PA0 in `adc1`'s pinctrl. Rejected: the on-board LD4 (PA5 = D13), tried first. |
+| Role mapping | `StatusLed` = external LED on D6 = PB14 (330 Ω to GND, active high); `TempSensor` = TMP36 on A0 = PA0 (ADC1 ch 0), Vs from 3V3 | D6 as on the Nano, so the wiring is the same. A0 because the board already has PA0 in `adc1`'s pinctrl. Rejected: the on-board LD4 (PA5 = D13), tried first. Verified: the LED on D6, and A0 over ~0–3300 mV, Nucleo (see [Verification](report/material.md#verification)). |
 | udev | `0483:374b` → `/dev/tty_nucleo_g0b1re` (`-echo`), and `MODE=0660 GROUP=dialout` on the USB device | OpenOCD failed with `LIBUSB_ERROR_ACCESS` without it. The rule matches any ST-Link/V2-1 (most Nucleo-64 boards) |
-| Build directory | `zephyr/app/build/nucleo_g0b1re` | The board subdirectory proposed under the Daisy Seed, so a Nucleo build does not overwrite the other boards' |
+| Watchdog | The board's `watchdog0` (IWDG), as on the other boards | MCUboot leaves the reset flags alone here (unlike the Daisy's `mcuboot_hooks.c`), so P02 can report the watchdog as the reset cause. Verified: `hang` restarts P02 through MCUboot and the reset cause is the watchdog, Nucleo (see [Verification](report/material.md#verification)). |
+| CI hardware test | `zephyr-build-nucleo` builds on GitHub and uploads MCUboot's `zephyr.hex` and P02's `zephyr.signed.hex`; `hardware-test-nucleo` flashes both on a self-hosted runner (label `nucleo_g0b1re`) with OpenOCD from apt (`board/st_nucleo_g0.cfg`, the file Zephyr's board uses) and runs `tools/hil/p02_test.py` | The runner needs no Zephyr workspace or SDK, and flashes exactly what CI built. Rejected: building on the runner (needs the Zephyr workspace and SDK on the PC). Verified: the job passed in CI with MCUboot and P02, Nucleo (see [Verification](report/material.md#verification)). |
 
-Open items: run P02 on the board (LED, `temp`, `store` after a reset, `hang` → IWDG restart and the reset
-cause); a CI job for the board; the wiring picture the user drew shows an MB1814C (USB-C, STLINK-V3), while
+Open items: the wiring picture the user drew shows an MB1814C (USB-C, STLINK-V3), while
 the board here reports an ST-Link/V2-1 – check which board revision it is.

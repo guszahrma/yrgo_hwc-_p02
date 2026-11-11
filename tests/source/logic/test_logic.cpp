@@ -236,3 +236,17 @@ TEST(Logic, HelpListsEveryCommand)
         EXPECT_TRUE(contains(output, line)) << line;
     }
 }
+
+TEST(Logic, StatusPrintsFirmwareVersions)
+{
+    driver::factory::Stub factory{};
+    logic::Logic logic{factory};
+
+    factory.serial().simulateInputData("status");
+    testing::internal::CaptureStdout();
+    logic.step();
+    const std::string output{testing::internal::GetCapturedStdout()};
+
+    EXPECT_NE(std::string::npos, output.find("Firmware: v1.0.0+0 (confirmed)\r\n"));
+    EXPECT_NE(std::string::npos, output.find("Second slot: empty\r\n"));
+}

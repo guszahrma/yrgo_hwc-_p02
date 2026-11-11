@@ -59,6 +59,8 @@ without it, west builds in `./build`, which belongs to ESP-IDF.
 (`zephyr/app/sysbuild.conf`), and `west flash` writes both: MCUboot at the start of the flash, P02 in
 `slot0_partition`. `-DBOARD_ROOT` is needed on the command line for our own boards (Nano, Daisy): sysbuild
 looks up the board before the app's `CMakeLists.txt` runs. There is no signature yet, only a hash check.
+On the Nano and the Nucleo, MCUboot runs in swap using move (`zephyr/app/Kconfig.sysbuild`), so it can
+roll an update back: see the [update demo](#update-demo).
 
 **The first time on a Nano** that ran ESP-IDF or Zephyr without MCUboot, erase the whole flash once
 (`esptool --chip esp32s3 -p /dev/tty_arduino_nano_esp32 erase-flash`, see below): the old program at the
@@ -77,6 +79,93 @@ Then use the [serial commands](usage.md#serial-commands).
 The other boards: [Nucleo-G0B1RE → Building and flashing](p02_nucleo_g0b1re.md#building-and-flashing)
 (OpenOCD) and [Daisy Seed → Building and flashing](p02_daisy_seed.md#building-and-flashing) (MCUboot's
 recovery mode and `smpmgr`).
+
+### Update demo
+
+Shows what MCUboot does with a new version, on the **Nucleo-G0B1RE and the Nano**: it starts v2 once as a
+test, and since v2 does not confirm itself, it goes back to v1 at the next reset. On these boards MCUboot
+runs in **swap using move** (`zephyr/app/Kconfig.sysbuild`): it swaps the images in `slot0_partition` and
+`slot1_partition`, so the old version is kept and can come back. The Daisy keeps RAM load, which has no
+rollback here.
+
+The steps are done by hand for now: v2 is marked "test me" with `west sign --pad` and written to slot 1 with
+OpenOCD or esptool. With signing and updates over MCUmgr/SMP, the build signs the image, and P02 itself
+writes slot 1 and asks MCUboot for the test (`boot_request_upgrade()`), so these steps go away. P02 never
+confirms an image yet (`boot_write_img_confirmed()`), so every test ends in a revert.
+
+P02's version is in `zephyr/app/VERSION` (1.0.0) and goes into the image header when the image is signed.
+
+| Board | `slot0_partition` | `slot1_partition` |
+|---|---|---|
+| Nucleo-G0B1RE | 0x0800C000 | 0x0803E000 |
+| Nano ESP32 | 0x20000 | 0x170000 |
+
+The addresses are the `reg` of the partitions in `zephyr/app/build/<board>/app/zephyr/zephyr.dts` (on the
+Nucleo plus the flash's start, 0x08000000).
+
+**1. Flash v1** as usual: [above](#p02-zephyrapp) for the Nano, [Nucleo-G0B1RE → Building and
+flashing](p02_nucleo_g0b1re.md#building-and-flashing) for the Nucleo. On the Nano, erase the flash first if
+MCUboot ran in another mode before: the trailer at the end of the slots has another layout.
+
+**2. Build v2** in its own build directory, with version 2.0.0 in the image header. The `app_` prefix gives
+the option to P02's build only, not MCUboot's:
+
+```bash
+# Nucleo
+west build -p always --sysbuild -b nucleo_g0b1re -s zephyr/app -d zephyr/app/build/nucleo_g0b1re_v2 -- -Dapp_CONFIG_MCUBOOT_IMGTOOL_SIGN_VERSION=\"2.0.0\"
+# Nano
+west build -p always --sysbuild -b arduino_nano_esp32/esp32s3/procpu -s zephyr/app -d zephyr/app/build/arduino_nano_esp32_v2 -- -DBOARD_ROOT=$P02_ROOT/zephyr -Dapp_CONFIG_MCUBOOT_IMGTOOL_SIGN_VERSION=\"2.0.0\"
+```
+
+**3. Mark v2 for a test.** `--pad` fills the image up to the slot size and writes the trailer's boot magic at
+the end, which tells MCUboot that slot 1 holds an update to test (`<v2>` is the build directory from step 2):
+
+```bash
+west sign -d <v2>/app -t imgtool -- --pad --version 2.0.0
+python3 deps/bootloader/mcuboot/scripts/imgtool.py dumpinfo <v2>/app/zephyr/zephyr.signed.bin
+```
+
+`dumpinfo` should show `version: 2.0.0+0` in the header and the bytes of `boot magic` in the trailer.
+
+**4. Write v2 to slot 1.** Nucleo, with the Zephyr SDK's OpenOCD:
+
+```bash
+OPENOCD=~/zephyr-sdk-1.0.1/hosttools/sysroots/x86_64-pokysdk-linux/usr
+$OPENOCD/bin/openocd -s deps/zephyr/boards/st/nucleo_g0b1re/support -s $OPENOCD/share/openocd/scripts \
+  -f deps/zephyr/boards/st/nucleo_g0b1re/support/openocd.cfg \
+  -c "init" -c "reset halt" \
+  -c "flash write_image erase zephyr/app/build/nucleo_g0b1re_v2/app/zephyr/zephyr.signed.bin 0x0803E000" \
+  -c "reset run" -c "shutdown"
+```
+
+OpenOCD resets the board at the end (`reset run`), so open `tio` before step 4 to see MCUboot's output.
+
+Nano:
+
+```bash
+esptool --chip esp32s3 -p /dev/tty_arduino_nano_esp32 --after no-reset write-flash 0x170000 zephyr/app/build/arduino_nano_esp32_v2/app/zephyr/zephyr.signed.bin
+```
+
+`--after no-reset` on every esptool command: esptool otherwise resets the chip when it is done, and every
+reset runs MCUboot. With it, the chip stays in its ROM bootloader until you press RESET, so every press is
+one run of MCUboot.
+
+**5. Reset: v2 starts as a test.** Wait a few seconds after the reset: MCUboot moves the images first. On the
+Nucleo, `tio` shows `Swap type: test`, `Starting swap using move algorithm.` and `Image version: v2.0.0`.
+
+**6. Reset again: back to v1.** v2 did not confirm itself, so MCUboot swaps back: `Swap type: revert` and
+`Image version: v1.0.0`. The settings in `storage_partition` are kept.
+
+**On the Nano,** MCUboot's output is not seen (see above), so read the version from the image header in
+slot 0 after step 5 and after step 6 (and in slot 1 with `0x170000`):
+
+```bash
+esptool --chip esp32s3 -p /dev/tty_arduino_nano_esp32 --after no-reset read-flash 0x20000 32 slot0_hdr.bin
+python3 -c "import struct; d=open('slot0_hdr.bin','rb').read(); print(hex(struct.unpack_from('<I',d,0)[0]), 'v%d.%d.%d' % struct.unpack_from('<BBH',d,20))"
+```
+
+`0x96f3b83d` is MCUboot's image magic (a valid image header), followed by the version: `v2.0.0` after step 5,
+`v1.0.0` after step 6. Delete `slot0_hdr.bin` afterwards.
 
 ### Our samples (`zephyr/samples/`)
 
@@ -134,6 +223,8 @@ restart keeps USB connected.
 | `zephyr/app/build/<board>/app/zephyr/zephyr.dts` | The final devicetree (board + overlays), with the source file of every line |
 | `zephyr/app/build/<board>/app/zephyr/zephyr.signed.bin`, `zephyr.elf` | P02 as MCUboot loads it (with its image header), ELF with symbols |
 | `zephyr/app/build/<board>/mcuboot/zephyr/zephyr.bin` | MCUboot |
+| `zephyr/app/sysbuild.conf`, `zephyr/app/Kconfig.sysbuild` | Sysbuild settings: for every board (MCUboot, no signature), and per board (the MCUboot mode) |
+| `zephyr/app/VERSION` | P02's version, written into the image header when it is signed |
 | `esptool --chip esp32s3 -p /dev/tty_arduino_nano_esp32 erase-flash` | Nano ESP32: erase the whole flash, including saved settings – e.g. after [switching from ESP-IDF](usage.md#switching-between-esp-idf-and-zephyr) |
 
 ## Drivers

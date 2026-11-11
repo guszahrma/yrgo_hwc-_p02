@@ -24,6 +24,13 @@ implementations next to the interfaces in `main/`. See [docs/architecture.md](do
 | Platform | What P02 runs on: ESP-IDF or Zephyr, each with its own factory. Not the *environment*, which is the shell setup for one platform (`export.sh`, `tools/zephyr_env.sh`) |
 | App overlay | `zephyr/app/boards/<board target, / → _>.overlay`: P02's wiring on one board target (`p02-led`, `zephyr,user`). Not part of the board definition |
 | `docs/boards.md` | What is true for P02 on every board: what a board needs, the supported boards |
+| Firmware update | Installing a new P02 version through MCUboot's two slots (`slot0_partition`, `slot1_partition`), in the swap or the RAM-load variant. Zephyr only: no firmware updates on ESP-IDF. Not *flashing* or a *recovery upload*, which only put bytes into a slot |
+| Swap variant | Firmware update where P02 fits in the internal flash: it runs from slot 0 in place, and MCUboot (swap using move) swaps the new image in from slot 1 and starts it as a test; P02 confirms it, or the next reset reverts it. Nano, Nucleo |
+| RAM-load variant | Firmware update where P02 does not fit in the internal flash: the slots are in external flash (QSPI), and MCUboot (RAM load) copies the image into RAM and runs it there. Daisy |
+| Flashing | Writing MCUboot and P02 with the board's runner (`west flash`: OpenOCD, esptool, `dfu-util`). No test, no revert |
+| Recovery upload | `smpmgr` writing slot 0 while MCUboot is in serial recovery (the Daisy after RESET). No test, no revert |
+| Signed image | An image with a signature from our private key, checked by MCUboot before it starts the image. Not *secure boot* on its own |
+| Secure boot | Signed images **and** a bootloader that cannot be replaced (the chip's write and read-out protection), so only our images can run. Encrypted images (keeping the firmware secret) are a separate goal |
 
 ## Commands
 
@@ -72,7 +79,8 @@ tools/clang-format/check.sh
 * `docs/`, `readme.md` and board documents are for people: what to do and a short why. Mechanism,
   decisions, lessons and exact error bytes go in an `AGENTS.md` (the root one, or the board definition's
   own). Records for the report – verification, measurements, iterations, background and requirements – go
-  in [`report/material.md`](report/material.md).
+  in [`report/material.md`](report/material.md): records only grow, and `AGENTS.md` is loaded in every
+  session.
 * Decision tables (*Decision | Choice | Why*): the Why ends with `Rejected: <option> (<reason>).` and
   `Verified: <what>, <board>.` where they apply, so alternatives and evidence can be found (also with
   `grep`). Numbers in a decision are rounded and point to the measurement (`~48 KB, see Measurements`);
@@ -188,7 +196,7 @@ tools/clang-format/check.sh
 | Board in `status` | `factory::Zephyr` returns `CONFIG_BOARD` and `CONFIG_BOARD_TARGET`; `Logic` prints them with the platform (three methods on `factory::Interface`, not a struct) | Each new board gets the right name without code changes. The board target shows the build variant (Daisy: `ram_load` or not); the platform tells ESP-IDF and Zephyr apart on the Nano |
 | NVS | Settings subsystem (NVS backend) | String keys like ESP-IDF. The namespace is the key prefix (`user_settings/blink_state`). Every write goes to flash at once, so `autoCommit`/`commit()` have no effect. Rejected: the raw NVS API (numeric IDs). |
 | Output from `Logic` | `mySerialDriver->print()`, with `std::snprintf` for lines with numbers | `<iostream>` (streams and locales) cost most of P02's flash: removing it took the Nucleo from ~206 to ~48 KB (see [Measurements](report/material.md#measurements)). Zephyr logging would be a further improvement. Rejected: `std::cout`. |
-| Bootloader | MCUboot on every board (`zephyr/app/sysbuild.conf`, build with `--sysbuild`), no signature yet (`BOOT_SIGNATURE_TYPE_NONE`), each board's default mode: Nucleo swap using offset, Nano overwrite only (Zephyr's default for Espressif chips), Daisy RAM load (its board's `Kconfig.sysbuild`) | The same ground on all boards before the update demo (Fas 1). Rollback needs a swap mode (or RAM load with revert), chosen per board later. ECDSA P-256 with MCUboot's bundled TinyCrypt would work without mbedTLS. Not on ESP-IDF, which has its own bootloader. Rejected: RSA, sysbuild's default signature (needs the mbedTLS module, not in `west.yml`); one mode for all boards in `sysbuild.conf` (would override the Daisy's RAM load). Verified: P02 boots through MCUboot, and `hang` restarts it through MCUboot with the watchdog as the reset cause, Nucleo and `arduino_nano_esp32/esp32s3/procpu` (see [Verification](report/material.md#verification)); Daisy, see its board definition's `AGENTS.md`. |
+| Bootloader | MCUboot on every board (`zephyr/app/sysbuild.conf`, build with `--sysbuild`), no signature yet (`BOOT_SIGNATURE_TYPE_NONE`); swap using move on the Nucleo and the Nano (`zephyr/app/Kconfig.sysbuild`), RAM load on the Daisy (its board's `Kconfig.sysbuild`) | The same ground on all boards. Swap using move can roll an update back, with the boards' equal slots; the update demo (test, then revert) is in `docs/platform_zephyr.md`. The mode is set per board in `Kconfig.sysbuild`. ECDSA P-256 with MCUboot's bundled TinyCrypt would work without mbedTLS. Not on ESP-IDF, which has its own bootloader. Rejected: RSA, sysbuild's default signature (needs the mbedTLS module, not in `west.yml`); one mode for all boards in `sysbuild.conf` (would override the Daisy's RAM load); the boards' default modes, swap using offset on the Nucleo and overwrite only on the Nano (overwrite only has no rollback). Verified: the update demo, Nucleo and `arduino_nano_esp32/esp32s3/procpu`; with the default modes, before swap using move: P02 boots through MCUboot, and `hang` restarts it through MCUboot with the watchdog as the reset cause, Nucleo and `arduino_nano_esp32/esp32s3/procpu` (see [Verification](report/material.md#verification)); Daisy, see its board definition's `AGENTS.md`. |
 | Build directories | P02 in `zephyr/app/build/<board>` (`arduino_nano_esp32`, `daisy_seed`, `nucleo_g0b1re`); Zephyr's samples in `<sample>_build` at the root (`hello_world_build`); CI one directory per build in `build-zephyr/` | A build for one board does not overwrite another's. Before MCUboot, P02 built in `zephyr/app/build` and the Daisy in `zephyr/app/daisy_seed_build`; delete both once (`rm -rf zephyr/app/build zephyr/app/daisy_seed_build`). Rejected: one build directory per application (a build for one board overwrote another's). |
 | ESP-IDF and Zephyr in one repository | Yes | The shared logic is built for both in CI; reorganise (`common/`, `esp-idf/`, `zephyr/`) if the ESP-IDF build is dropped |
 
@@ -339,6 +347,16 @@ happens without it is not yet known. Other open items: a `zephyr/module.yml` wit
 whether `Last reset was caused by the watchdog` is printed – `mcuboot_hooks.c` clears the reset flags
 (`RCC->RSR`) before P02 reads them, so `causedLastReset()` is expected to be false there.
 
+Open items for firmware updates in the RAM-load variant: **what test, confirm and revert mean there** –
+MCUboot copies an image into RAM instead of swapping slots, and the update demo
+(f06ade1) says the Daisy's RAM load "has no rollback"; this decides whether both variants can
+offer the same update flow. The **USB-off fault** above comes after a software reset, which ends every
+update (`smpmgr os reset`): a Daisy that was just updated may run P02 without its USB, so the update looks
+failed although it worked. **Locking MCUboot** (secure boot): the ROM bootloader (`dfu-util`, BOOT + RESET)
+can rewrite the internal flash and so replace MCUboot; the option bytes (write protection, RDP level) can
+stop that, but also block our own `dfu-util` flashing, and the highest RDP level cannot be undone. Check
+ST's documentation for the STM32H750 before deciding.
+
 ---
 
 ## Nucleo-G0B1RE (work in progress): P02 on the Nucleo
@@ -350,7 +368,7 @@ here. P02 on the Nucleo for people: [docs/p02_nucleo_g0b1re.md](docs/p02_nucleo_
 | Decision | Choice | Why |
 |---|---|---|
 | Board definition | Zephyr's own `nucleo_g0b1re` | It already has a console (USART2 via the ST-Link), `watchdog0` = IWDG, `adc1` with PA0/PA1 and a 64 KB `storage_partition` |
-| MCUboot | MCUboot (~26 KB) in the board's 48 KB `boot_partition`, P02 (~48 KB) linked to the 200 KB `slot0_partition` at 0xC000 (see [Measurements](report/material.md#measurements)) | The board's partitions are already laid out for MCUboot. P02 only fits since `std::cout` is gone (~206 KB before). Default mode swap using offset, with the board's equal slots: fine for booting, not tried for an update yet |
+| MCUboot | MCUboot (~26 KB) in the board's 48 KB `boot_partition`, P02 (~48 KB) linked to the 200 KB `slot0_partition` at 0xC000 (see [Measurements](report/material.md#measurements)) | The board's partitions are already laid out for MCUboot. P02 only fits since `std::cout` is gone (~206 KB before). Swap using move (`zephyr/app/Kconfig.sysbuild`). Verified: the update demo, v2 in slot 1 (0x0803E000) starts as a test and the next reset reverts to v1, Nucleo. |
 | Flash runner | `--runner openocd` | OpenOCD comes with the Zephyr SDK. Rejected: STM32CubeProgrammer, the board's first runner (not installed). |
 | Role mapping | `StatusLed` = external LED on D6 = PB14 (330 Ω to GND, active high); `TempSensor` = TMP36 on A0 = PA0 (ADC1 ch 0), Vs from 3V3 | D6 as on the Nano, so the wiring is the same. A0 because the board already has PA0 in `adc1`'s pinctrl. Rejected: the on-board LD4 (PA5 = D13), tried first. Verified: the LED on D6, and A0 over ~0–3300 mV, Nucleo (see [Verification](report/material.md#verification)). |
 | udev | `0483:374b` → `/dev/tty_nucleo_g0b1re` (`-echo`), and `MODE=0660 GROUP=dialout` on the USB device | OpenOCD failed with `LIBUSB_ERROR_ACCESS` without it. The rule matches any ST-Link/V2-1 (most Nucleo-64 boards) |

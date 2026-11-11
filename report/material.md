@@ -31,11 +31,12 @@ down, not necessarily the code that was tested.
 
 | Iteration | Goal | Boards | State | Commit |
 |---|---|---|---|---|
-| Prototype | A firmware update by hand: v2 signed with `west sign --pad`, written to slot 1, started as a test, reverted at the next reset | Nano, Nucleo | In progress | `feature/mcuboot-zephyr-boards`, `feature/mcuboot-update-demo` |
-| Generalised for Zephyr | Firmware updates in both variants: swap (Nano, Nucleo) and RAM load (Daisy) | Nano, Nucleo, Daisy | Planned | – |
-| Signed images | Images signed with our own key and checked by MCUboot, in both variants | Nano, Nucleo, Daisy | Planned | – |
 | Hardware test in CI | On every push, flash the P02 that CI built onto a board on a self-hosted runner and check its replies to serial commands | Nano ESP32 (ESP-IDF) | Merged 2026-11-09 | b26b038 |
 | Hardware tests on more boards and platforms | The same for P02 under Zephyr on the Nano and on the Nucleo-G0B1RE, one runner per board, MCUboot and P02 flashed together | Nano ESP32 (ESP-IDF and Zephyr), Nucleo-G0B1RE | Passed in CI with MCUboot (run #337) | 89e0599 |
+| Prototype: MCUboot on the boards | P02 boots through MCUboot on every Zephyr board (built with `--sysbuild`), no signature yet | Nano, Nucleo, Daisy | Merged 2026-11-09 | bb17d47 |
+| Prototype: firmware update by hand | v2 signed with `west sign --pad`, written to slot 1, started as a test, reverted at the next reset | Nano, Nucleo | In progress (`feature/mcuboot-update-demo`) | – |
+| Generalised for Zephyr | Firmware updates in both variants: swap (Nano, Nucleo) and RAM load (Daisy) | Nano, Nucleo, Daisy | Planned | – |
+| Signed images | Images signed with our own key and checked by MCUboot, in both variants | Nano, Nucleo, Daisy | Planned | – |
 
 ## Verification
 

@@ -348,8 +348,8 @@ whether `Last reset was caused by the watchdog` is printed – `mcuboot_hooks.c`
 (`RCC->RSR`) before P02 reads them, so `causedLastReset()` is expected to be false there.
 
 Open items for firmware updates in the RAM-load variant: **what test, confirm and revert mean there** –
-MCUboot copies an image into RAM instead of swapping slots, and the update demo on
-`feature/mcuboot-update-demo` says the Daisy "has no rollback here"; this decides whether both variants can
+MCUboot copies an image into RAM instead of swapping slots, and the update demo
+(f06ade1) says the Daisy's RAM load "has no rollback"; this decides whether both variants can
 offer the same update flow. The **USB-off fault** above comes after a software reset, which ends every
 update (`smpmgr os reset`): a Daisy that was just updated may run P02 without its USB, so the update looks
 failed although it worked. **Locking MCUboot** (secure boot): the ROM bootloader (`dfu-util`, BOOT + RESET)

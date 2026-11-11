@@ -169,6 +169,21 @@ Linux user, which cannot read your files:
    Attaching by port also follows a board that changes its USB ID, like the Daisy in MCUboot or DFU
    mode. The runners only work while the PC is awake and you are logged in; jobs queued in the meantime
    run afterwards.
+6. Keep each runner online only while its board is attached, so that a job never lands on a PC without
+   the board (e.g. the Nano's runner at home and at work). Every 30 s, a timer starts a runner whose port
+   is there and stops one whose port has been gone for 2 minutes, unless a job is running – a board
+   leaves USB for a moment each time a job flashes it. A stopped runner shows as offline, and its jobs
+   wait for a runner that has the board. Install it as yourself, and remove the lines for boards this PC
+   does not have from `/etc/p02-runner-guard.conf`:
+
+   ```bash
+   sudo install -m 755 tools/hil/runner_guard/runner_guard.sh /usr/local/sbin/p02-runner-guard
+   sudo install -m 644 tools/hil/runner_guard/p02-runner-guard.conf /etc/
+   sudo install -m 644 tools/hil/runner_guard/p02-runner-guard.{service,timer} /etc/systemd/system/
+   sudo systemctl daemon-reload && sudo systemctl enable --now p02-runner-guard.timer
+   ```
+
+   `journalctl -u p02-runner-guard` shows when it started or stopped a runner.
 
 While a job runs:
 

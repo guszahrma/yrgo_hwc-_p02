@@ -39,7 +39,7 @@ Logic::Logic(driver::factory::Interface& factory) noexcept
         factory.createAdc(driver::factory::AdcId::TempSensor, TempSensorReferenceVoltage);
     myTempSensor  = factory.createTempSensor(*myTempSensorAdc);
     myTimerDriver = factory.createTimer();
-    myTimerDriver->stop(); // Start the timer for blinking
+    myTimerDriver->stop(); // Blinking is off until 'blink on' or the stored settings start it
     myNvsUserSettingsStorage = factory.createNvs("user_settings");
     myWatchdog               = factory.createWatchdog(WatchdogTimeoutMs);
     myBoot                   = factory.createBoot();

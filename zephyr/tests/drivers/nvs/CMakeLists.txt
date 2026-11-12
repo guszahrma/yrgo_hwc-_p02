@@ -1,4 +1,4 @@
-# Ztest for P02's nvs::Zephyr on native_sim (run with Twister, see docs/platform_zephyr.md).
+# Ztest for P02's nvs::Zephyr on native_sim (run with Twister, see docs/contributing.md).
 
 cmake_minimum_required(VERSION 3.20.0)
 

@@ -38,7 +38,8 @@ public:
     /**
      * @brief Constructs a new Logic instance.
      * Uses the factory to create the necessary drivers and initializes the system state.
-     * Initialises Led as off and Blink as off, and sets a default blinking period (e.g., 1000 ms).
+     * Initialises Led as off and loads the stored user settings (blink state and period); without
+     * stored settings, blinking is off and the period is 1000 ms.
      *
      * @param[in] factory Factory that creates the drivers for the current platform
      *                    (e.g. driver::factory::Esp32s3 or driver::factory::Stub).
@@ -47,8 +48,8 @@ public:
     ~Logic() noexcept;
 
     /**
-     * @brief Runs the application: loads the stored user settings, prints the welcome text and
-     *        then calls step() forever. Never returns.
+     * @brief Runs the application: prints the welcome text and then calls step() forever. Never
+     *        returns.
      *
      * Commands come from the serial input; MQTT and other sources may be added later.
      */

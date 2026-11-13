@@ -139,24 +139,14 @@ Linux user, which cannot read your files:
 
 5. Start WSL and attach the boards at logon. Windows stops WSL, and the runners with it, soon after the
    last WSL window closes, and the boards are only in WSL while `usbipd attach` runs. Share each board
-   once (`usbipd bind --busid <id>`, as administrator), then save this as e.g.
-   `C:\Users\<you>\Scripts\autostart\p02-runners.ps1`, with the bus IDs from `usbipd list`:
+   once (`usbipd bind --busid <id>`, as administrator), then copy
+   [`tools/hil/p02-runners.ps1`](../tools/hil/p02-runners.ps1) to e.g.
+   `C:\Users\<you>\Scripts\autostart\p02-runners.ps1` and keep only the boards this PC has. The Nucleo
+   and the Nano are attached by USB ID, so any USB port works. The Daisy is attached by its USB port (bus
+   ID from `usbipd list`), since it changes its USB ID in MCUboot and DFU mode: keep it in that port, or
+   change the bus ID in the script.
 
-   ```powershell
-   $distro = "Ubuntu"
-   $boards = @{
-       "1-3" = "Nucleo-G0B1RE (ST-Link)"
-       "5-4" = "Daisy Seed"
-   }
-   # WSL stops soon after its last process ends; this one never ends
-   Start-Process -WindowStyle Hidden wsl.exe -ArgumentList "-d $distro --exec /bin/sleep infinity"
-   # Re-attaches after every reset/re-plug; --unplugged also waits for a board that is not plugged in
-   foreach ($busid in $boards.Keys) {
-       Start-Process -WindowStyle Hidden usbipd -ArgumentList "attach --wsl $distro --busid $busid --auto-attach --unplugged"
-   }
-   ```
-
-   and run it at logon with a task (PowerShell, not as administrator):
+   Run it at logon with a task (PowerShell, not as administrator):
 
    ```powershell
    $action   = New-ScheduledTaskAction -Execute "conhost.exe" -Argument "--headless powershell.exe -NoProfile -ExecutionPolicy Bypass -File $env:USERPROFILE\Scripts\autostart\p02-runners.ps1"
@@ -165,10 +155,8 @@ Linux user, which cannot read your files:
    Register-ScheduledTask -TaskName "P02 runners" -Action $action -Trigger $trigger -Settings $settings
    ```
 
-   Bus IDs belong to the USB port, not the board: keep each board in its port (or update the script).
-   Attaching by port also follows a board that changes its USB ID, like the Daisy in MCUboot or DFU
-   mode. The runners only work while the PC is awake and you are logged in; jobs queued in the meantime
-   run afterwards.
+   The runners only work while the PC is awake and you are logged in; jobs queued in the meantime run
+   afterwards.
 6. Keep each runner online only while its board is attached, so that a job never lands on a PC without
    the board (e.g. the Nano's runner at home and at work). Every 30 s, a timer starts a runner whose port
    is there and stops one whose port has been gone for 2 minutes, unless a job is running – a board

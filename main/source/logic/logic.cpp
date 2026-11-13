@@ -31,7 +31,7 @@ Logic::Logic(driver::factory::Interface& factory) noexcept
     // Create the necessary drivers using the factory and initialize the system state.
     // For example, you might create a serial driver for communication and a GPIO driver for
     // controlling the LED. Initialize the LED as off, set the blink state to off, and set a default
-    // blinking period (e.g., 1000 ms). Example of creating drivers using the factory:
+// Create the drivers for this platform, then load the stored user settings.
     mySerialDriver = factory.createSerial();
     myStatusLed =
         factory.createGpio(driver::factory::GpioId::StatusLed, driver::gpio::Direction::OUTPUT);

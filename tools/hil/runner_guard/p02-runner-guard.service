@@ -1,0 +1,6 @@
+[Unit]
+Description=Start or stop the P02 runners depending on whether their boards are attached
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/p02-runner-guard

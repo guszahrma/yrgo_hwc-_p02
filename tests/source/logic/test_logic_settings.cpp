@@ -79,8 +79,8 @@ TEST(LogicSettings, StoredSettingsAreLoaded)
 
 TEST(LogicSettings, InvalidStoredPeriodGivesTheDefault)
 {
-    // Not a number, too large for the parser's range check, below MinPeriodMs (50), above
-    // MaxPeriodMs (10000), and empty.
+    // In the order of the list: not a number, digits then letters, far above MaxPeriodMs (10000),
+    // just below MinPeriodMs (50), just above MaxPeriodMs, and empty.
     for (const char* stored : {"abc", "500abc", "70000", "49", "10001", ""})
     {
         driver::factory::Stub factory{};

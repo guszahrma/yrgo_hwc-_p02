@@ -111,8 +111,8 @@ public:
     }
 
     /**
-     * @brief Store a string in the NVS stub that createNvs() creates next, as if it had been saved
-     *        before a restart.
+     * @brief Store a string in every NVS stub that createNvs() creates from now on, as if it had
+     *        been saved before a restart.
      *
      *        Call it before creating Logic, which creates the NVS stub in its constructor.
      *

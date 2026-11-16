@@ -9,8 +9,8 @@
 # boards. The Daisy Seed is not listed: its board keeps RAM load (zephyr/boards/electrosmith/daisy_seed/
 # Kconfig.sysbuild).
 choice MCUBOOT_MODE
-	default MCUBOOT_MODE_SWAP_USING_MOVE if BOARD_NUCLEO_G0B1RE
-	default MCUBOOT_MODE_SWAP_USING_MOVE if BOARD_ARDUINO_NANO_ESP32
+	default MCUBOOT_MODE_SWAP_USING_OFFSET if BOARD_NUCLEO_G0B1RE
+	default MCUBOOT_MODE_SWAP_USING_OFFSET if BOARD_ARDUINO_NANO_ESP32
 endchoice
 
 source "share/sysbuild/Kconfig"

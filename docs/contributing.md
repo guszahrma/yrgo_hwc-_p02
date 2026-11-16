@@ -34,6 +34,23 @@ The tests run automatically as part of the build (target `run`); a failing test 
 To add a test: write `TEST(...)` cases in `tests/source/`, and add the test file and the code under test to
 `TST_FILES` / `SRC_FILES` in `tests/CMakeLists.txt`.
 
+### Zephyr drivers on `native_sim`
+
+The Zephyr drivers (`main/source/driver/*/zephyr.cpp`) include Zephyr's headers, so GoogleTest cannot build
+them. They are tested with Zephyr's own **Ztest**, on `native_sim`: Zephyr built as a Linux program, with
+simulated hardware (flash, GPIO, ADC). One test app per driver in `zephyr/tests/drivers/<name>/`, run with
+Twister in the Zephyr environment:
+
+```bash
+source tools/zephyr_env.sh
+west twister -T zephyr/tests -p native_sim/native/64
+```
+
+Twister builds and runs every app and writes its results to `twister-out/`. No board is needed.
+
+To add a test app: copy `zephyr/tests/drivers/nvs/` (`CMakeLists.txt` lists the driver's `.cpp`, `prj.conf`
+its Kconfig, `testcase.yaml` the platform), and write `ZTEST(...)` cases in `src/main.cpp`.
+
 ## Code style
 
 The code is formatted with `clang-format` according to `.clang-format`. Everyone, including CI, uses the
@@ -80,6 +97,7 @@ branch and shows that push's checks.
 | Build Zephyr apps for the Arduino Nano ESP32 | `tools/zephyr_setup.sh`, then `zephyr/app` with MCUboot (`--sysbuild`) and `zephyr/samples/blinky` with the Zephyr version from `west.yml` |
 | Build Zephyr apps for the Daisy Seed | `tools/zephyr_setup.sh`, then Zephyr's `samples/basic/blinky` for `daisy_seed`, and `zephyr/app` with MCUboot (`--sysbuild`) for `daisy_seed/stm32h750xx/ram_load` |
 | Build Zephyr apps for the Nucleo-G0B1RE | `tools/zephyr_setup.sh`, then Zephyr's `samples/basic/blinky` and `zephyr/app` with MCUboot (`--sysbuild`) for `nucleo_g0b1re` |
+| Run Zephyr tests on native_sim | `tools/zephyr_setup.sh`, then Twister builds and runs the Ztest apps in `zephyr/tests/` on `native_sim/native/64`; uploads the report `twister.xml` |
 | Run unit tests on the host | Builds and runs the GoogleTest suite in `tests/` |
 | Flash and test ESP-IDF on the Nano ESP32 | On a self-hosted runner: flashes the Ubuntu ESP-IDF build on a Nano ESP32 and runs `tools/hil/p02_test.py` (see below) |
 | Flash and test Zephyr on the Nano ESP32 | The same for the Zephyr build (MCUboot and P02), on the same Nano and runner |

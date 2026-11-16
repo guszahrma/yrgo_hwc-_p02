@@ -1,0 +1,218 @@
+/**
+ * @brief Ztest for nvs::Zephyr on native_sim, where storage_partition is in a simulated flash.
+ */
+#include <cstdint>
+#include <limits>
+#include <string>
+
+#include <zephyr/ztest.h>
+
+#include "driver/nvs/zephyr.h"
+
+namespace
+{
+/** The namespace most tests use. */
+constexpr const char* TestNamespace{"test"};
+
+/** A second namespace, to check that namespaces are kept apart. */
+constexpr const char* OtherNamespace{"other"};
+
+/**
+ * @brief Erase both namespaces before each test.
+ *
+ *        All tests in a run share the simulated flash, so each test starts from empty storage.
+ *
+ * @param[in] fixture Not used.
+ */
+void eraseBothNamespaces(void* fixture)
+{
+    (void)fixture;
+    driver::nvs::Zephyr{TestNamespace}.eraseAll();
+    driver::nvs::Zephyr{OtherNamespace}.eraseAll();
+}
+} // namespace
+
+ZTEST_SUITE(nvs_zephyr, nullptr, nullptr, eraseBothNamespaces, nullptr, nullptr);
+
+ZTEST(nvs_zephyr, test_string_can_be_read_back)
+{
+    driver::nvs::Zephyr nvs{TestNamespace};
+    std::string value{};
+
+    zassert_true(nvs.setString("key", "value"));
+    zassert_true(nvs.getString("key", value));
+    zassert_equal(std::string{"value"}, value);
+}
+
+ZTEST(nvs_zephyr, test_string_survives_a_new_driver)
+{
+    // A new driver reads the same flash, as after a restart.
+    {
+        driver::nvs::Zephyr nvs{TestNamespace};
+        zassert_true(nvs.setString("blink_period", "300"));
+    }
+
+    driver::nvs::Zephyr nvs{TestNamespace};
+    std::string value{};
+    zassert_true(nvs.getString("blink_period", value));
+    zassert_equal(std::string{"300"}, value);
+}
+
+ZTEST(nvs_zephyr, test_a_second_write_replaces_the_first)
+{
+    driver::nvs::Zephyr nvs{TestNamespace};
+    std::string value{};
+
+    zassert_true(nvs.setString("key", "first"));
+    zassert_true(nvs.setString("key", "second"));
+    zassert_true(nvs.getString("key", value));
+    zassert_equal(std::string{"second"}, value);
+}
+
+ZTEST(nvs_zephyr, test_empty_string_can_be_read_back)
+{
+    // As on ESP-IDF: an empty string is a value, not a deleted key.
+    driver::nvs::Zephyr nvs{TestNamespace};
+    std::string value{"unchanged"};
+
+    zassert_true(nvs.setString("key", ""));
+    zassert_true(nvs.getString("key", value));
+    zassert_true(value.empty());
+}
+
+ZTEST(nvs_zephyr, test_empty_string_replaces_a_value)
+{
+    driver::nvs::Zephyr nvs{TestNamespace};
+    std::string value{};
+
+    zassert_true(nvs.setString("key", "first"));
+    zassert_true(nvs.setString("key", ""));
+    zassert_true(nvs.getString("key", value));
+    zassert_true(value.empty());
+}
+
+ZTEST(nvs_zephyr, test_missing_key_is_not_found)
+{
+    driver::nvs::Zephyr nvs{TestNamespace};
+    std::string value{"unchanged"};
+
+    zassert_false(nvs.getString("missing", value));
+}
+
+ZTEST(nvs_zephyr, test_namespaces_are_kept_apart)
+{
+    driver::nvs::Zephyr test{TestNamespace};
+    driver::nvs::Zephyr other{OtherNamespace};
+    std::string value{};
+
+    zassert_true(test.setString("key", "in test"));
+    zassert_true(other.setString("key", "in other"));
+
+    zassert_true(test.getString("key", value));
+    zassert_equal(std::string{"in test"}, value);
+    zassert_true(other.getString("key", value));
+    zassert_equal(std::string{"in other"}, value);
+}
+
+ZTEST(nvs_zephyr, test_integer_can_be_read_back)
+{
+    driver::nvs::Zephyr nvs{TestNamespace};
+    std::uint16_t value{};
+
+    zassert_true(nvs.set<std::uint16_t>("period", 500U));
+    zassert_true(nvs.get<std::uint16_t>("period", value));
+    zassert_equal(500U, value);
+}
+
+ZTEST(nvs_zephyr, test_integers_of_other_types_can_be_read_back)
+{
+    driver::nvs::Zephyr nvs{TestNamespace};
+    std::int32_t negative{};
+    std::uint64_t largest{};
+    std::int8_t smallest{};
+
+    zassert_true(nvs.set<std::int32_t>("negative", -123456));
+    zassert_true(nvs.set<std::uint64_t>("largest", std::numeric_limits<std::uint64_t>::max()));
+    zassert_true(nvs.set<std::int8_t>("smallest", std::numeric_limits<std::int8_t>::min()));
+
+    zassert_true(nvs.get<std::int32_t>("negative", negative));
+    zassert_equal(-123456, negative);
+    zassert_true(nvs.get<std::uint64_t>("largest", largest));
+    zassert_true(std::numeric_limits<std::uint64_t>::max() == largest);
+    zassert_true(nvs.get<std::int8_t>("smallest", smallest));
+    zassert_equal(std::numeric_limits<std::int8_t>::min(), smallest);
+}
+
+ZTEST(nvs_zephyr, test_missing_integer_is_not_found)
+{
+    driver::nvs::Zephyr nvs{TestNamespace};
+    std::uint16_t value{};
+
+    zassert_false(nvs.get<std::uint16_t>("missing", value));
+}
+
+ZTEST(nvs_zephyr, test_integer_with_a_too_long_key_is_rejected)
+{
+    driver::nvs::Zephyr nvs{TestNamespace};
+    const std::string tooLong(driver::nvs::Interface::MaxKeyLength + 1U, 'a');
+    std::uint16_t value{};
+
+    zassert_false(nvs.set<std::uint16_t>(tooLong.c_str(), 1U));
+    zassert_false(nvs.get<std::uint16_t>(tooLong.c_str(), value));
+}
+
+ZTEST(nvs_zephyr, test_integer_read_as_another_size_is_rejected)
+{
+    // Stored as 2 bytes; reading 4 or 1 bytes is caught. A type of the same size (int16_t) is not:
+    // the Settings subsystem stores bytes, not types (see get() in nvs/zephyr.h).
+    driver::nvs::Zephyr nvs{TestNamespace};
+    std::uint32_t wider{};
+    std::uint8_t narrower{};
+
+    zassert_true(nvs.set<std::uint16_t>("period", 500U));
+    zassert_false(nvs.get<std::uint32_t>("period", wider));
+    zassert_false(nvs.get<std::uint8_t>("period", narrower));
+}
+
+ZTEST(nvs_zephyr, test_erase_key_removes_only_that_key)
+{
+    driver::nvs::Zephyr nvs{TestNamespace};
+    std::string value{};
+
+    zassert_true(nvs.setString("first", "1"));
+    zassert_true(nvs.setString("second", "2"));
+    zassert_true(nvs.eraseKey("first"));
+
+    zassert_false(nvs.getString("first", value));
+    zassert_true(nvs.getString("second", value));
+    zassert_equal(std::string{"2"}, value);
+}
+
+ZTEST(nvs_zephyr, test_erase_all_keeps_other_namespaces)
+{
+    driver::nvs::Zephyr test{TestNamespace};
+    driver::nvs::Zephyr other{OtherNamespace};
+    std::string value{};
+
+    zassert_true(test.setString("first", "1"));
+    zassert_true(test.setString("second", "2"));
+    zassert_true(other.setString("key", "kept"));
+    zassert_true(test.eraseAll());
+
+    zassert_false(test.getString("first", value));
+    zassert_false(test.getString("second", value));
+    zassert_true(other.getString("key", value));
+    zassert_equal(std::string{"kept"}, value);
+}
+
+ZTEST(nvs_zephyr, test_key_longer_than_max_key_length_is_rejected)
+{
+    driver::nvs::Zephyr nvs{TestNamespace};
+    const std::string longest(driver::nvs::Interface::MaxKeyLength, 'a');
+    const std::string tooLong(driver::nvs::Interface::MaxKeyLength + 1U, 'a');
+    std::string value{};
+
+    zassert_true(nvs.setString(longest.c_str(), "longest"));
+    zassert_false(nvs.setString(tooLong.c_str(), "too long"));
+    zassert_false(nvs.getString(tooLong.c_str(), value));
+}

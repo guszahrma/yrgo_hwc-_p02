@@ -132,13 +132,14 @@ ZTEST(nvs_zephyr, test_erase_all_keeps_other_namespaces)
     zassert_equal(std::string{"kept"}, value);
 }
 
-ZTEST(nvs_zephyr, test_key_longer_than_15_characters_is_rejected)
+ZTEST(nvs_zephyr, test_key_longer_than_max_key_length_is_rejected)
 {
     driver::nvs::Zephyr nvs{TestNamespace};
+    const std::string longest(driver::nvs::Interface::MaxKeyLength, 'a');
+    const std::string tooLong(driver::nvs::Interface::MaxKeyLength + 1U, 'a');
     std::string value{};
 
-    // 15 characters is the limit (as ESP-IDF's NVS), 16 is one too many.
-    zassert_true(nvs.setString("abcdefghijklmno", "15"));
-    zassert_false(nvs.setString("abcdefghijklmnop", "16"));
-    zassert_false(nvs.getString("abcdefghijklmnop", value));
+    zassert_true(nvs.setString(longest.c_str(), "longest"));
+    zassert_false(nvs.setString(tooLong.c_str(), "too long"));
+    zassert_false(nvs.getString(tooLong.c_str(), value));
 }

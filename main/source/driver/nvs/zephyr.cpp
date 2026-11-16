@@ -13,10 +13,9 @@ namespace driver::nvs
 
 bool Zephyr::isValidKey(const char* key) noexcept
 {
-    constexpr std::size_t maxKeyLength{15};
-    if ((nullptr == key) || (maxKeyLength < std::strlen(key)))
+    if ((nullptr == key) || (MaxKeyLength < std::strlen(key)))
     {
-        printf("nvs: key is null or exceeds %zu characters\n", maxKeyLength);
+        printf("nvs: key is null or exceeds %zu characters\n", MaxKeyLength);
         return false;
     }
     return true;

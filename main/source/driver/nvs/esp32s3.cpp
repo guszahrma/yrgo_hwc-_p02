@@ -8,13 +8,16 @@
 
 namespace driver::nvs
 {
+// The common key limit must be ESP-IDF's: a longer key would pass isValidKey() and fail in NVS.
+static_assert(
+    Interface::MaxKeyLength + 1U == NVS_KEY_NAME_MAX_SIZE,
+    "nvs::Interface::MaxKeyLength must be ESP-IDF's key limit (NVS_KEY_NAME_MAX_SIZE - 1)");
 
 bool Esp32s3::isValidKey(const char* key) noexcept
 {
-    constexpr std::size_t maxKeyLength{15};
-    if ((nullptr == key) || (maxKeyLength < std::strlen(key)))
+    if ((nullptr == key) || (MaxKeyLength < std::strlen(key)))
     {
-        printf("nvs: key is null or exceeds %zu characters\n", maxKeyLength);
+        printf("nvs: key is null or exceeds %zu characters\n", MaxKeyLength);
         return false;
     }
     return true;

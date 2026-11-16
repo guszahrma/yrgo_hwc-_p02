@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 # Keeps a board's self-hosted runner online only while its board is attached: starts the runner's
 # service when the port appears, stops it when the port has been gone for GRACE_S seconds and no job
-# runs. Run as root by p02-runner-guard.timer; reads "<port> <runner folder>" lines from CONFIG.
+# runs. Run as root by p02-runner-guard.timer; reads "<port> <runner folder> <service>" lines from
+# CONFIG. The service name comes from CONFIG, not from the runner's own .service file, which a job can
+# rewrite (it runs as the folder's owner).
 # The grace time and the job check are there because a board leaves USB for a moment each time a job
 # flashes and resets it.
 set -u
@@ -13,13 +15,12 @@ STATE_DIR=/run/p02-runner-guard
 mkdir -p "$STATE_DIR"
 now=$(date +%s)
 
-while read -r port dir _; do
+while read -r port dir service _; do
     [[ -z "${port:-}" || "$port" == \#* ]] && continue
-    if [[ ! -r "$dir/.service" ]]; then
-        echo "$dir: no .service file (runner not installed with svc.sh?)" >&2
+    if [[ -z "${service:-}" ]]; then
+        echo "$CONFIG: no service name for $port" >&2
         continue
     fi
-    service=$(<"$dir/.service")
     missing="$STATE_DIR/$(basename "$dir").missing_since"
 
     if [[ -e "$port" ]]; then

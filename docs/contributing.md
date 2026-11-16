@@ -161,8 +161,10 @@ Linux user, which cannot read your files:
    the board (e.g. the Nano's runner at home and at work). Every 30 s, a timer starts a runner whose port
    is there and stops one whose port has been gone for 2 minutes, unless a job is running – a board
    leaves USB for a moment each time a job flashes it. A stopped runner shows as offline, and its jobs
-   wait for a runner that has the board. Install it as yourself, and remove the lines for boards this PC
-   does not have from `/etc/p02-runner-guard.conf`:
+   wait for a runner that has the board. Install it as yourself. Then, in `/etc/p02-runner-guard.conf`,
+   remove the lines for boards this PC does not have, and check that each service name is the one in the
+   runner's folder (`sudo cat /home/ghrunner/runners/*/.service`). The guard runs as root, so it takes the
+   name from this file, which only root can change, not from the runner's folder, which a job can change:
 
    ```bash
    sudo install -m 755 tools/hil/runner_guard/runner_guard.sh /usr/local/sbin/p02-runner-guard

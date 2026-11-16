@@ -6,52 +6,12 @@
 
 #include "driver/factory/stub.h"
 #include "logic/logic.h"
+#include "logic/logic_test_helpers.h"
 #include "gtest/gtest.h"
 
-namespace
-{
-/**
- * @brief Create Logic and return what it printed while it was constructed.
- *
- * @param[in] factory The factory to create Logic with.
- * @param[out] logic The created Logic.
- *
- * @return Everything printed to stdout by the constructor (the serial stub prints there).
- */
-std::string createLogic(driver::factory::Stub& factory, std::unique_ptr<logic::Logic>& logic)
-{
-    testing::internal::CaptureStdout();
-    logic = std::make_unique<logic::Logic>(factory);
-    return testing::internal::GetCapturedStdout();
-}
-
-/**
- * @brief Send the status command and return the reply.
- *
- * @param[in] factory The factory that Logic was created with.
- * @param[in] logic The Logic under test.
- *
- * @return Everything printed to stdout during one step().
- */
-std::string status(driver::factory::Stub& factory, logic::Logic& logic)
-{
-    factory.serial().simulateInputData("status");
-    testing::internal::CaptureStdout();
-    logic.step();
-    return testing::internal::GetCapturedStdout();
-}
-
-/**
- * @brief Check whether a text contains a substring.
- *
- * @param[in] text The text to search.
- * @param[in] part The substring to look for.
- *
- * @return True if part is found in text, false otherwise.
- */
-bool contains(const std::string& text, const std::string& part)
-{ return std::string::npos != text.find(part); }
-} // namespace
+using logic_test::contains;
+using logic_test::createLogic;
+using logic_test::sendCommand;
 
 TEST(LogicSettings, NoStoredSettingsGiveTheDefaults)
 {
@@ -59,7 +19,7 @@ TEST(LogicSettings, NoStoredSettingsGiveTheDefaults)
     std::unique_ptr<logic::Logic> logic{};
     createLogic(factory, logic);
 
-    const std::string output{status(factory, *logic)};
+    const std::string output{sendCommand(factory, *logic, "status")};
     EXPECT_TRUE(contains(output, "Blink State: off\r\n"));
     EXPECT_TRUE(contains(output, "Blink Period: 1000 ms\r\n"));
 
@@ -76,7 +36,7 @@ TEST(LogicSettings, StoredSettingsAreLoaded)
     std::unique_ptr<logic::Logic> logic{};
     createLogic(factory, logic);
 
-    const std::string output{status(factory, *logic)};
+    const std::string output{sendCommand(factory, *logic, "status")};
     EXPECT_TRUE(contains(output, "Blink State: on\r\n"));
     EXPECT_TRUE(contains(output, "Blink Period: 300 ms\r\n"));
 
@@ -98,7 +58,8 @@ TEST(LogicSettings, InvalidStoredPeriodGivesTheDefault)
         EXPECT_TRUE(contains(output, std::string{"Invalid stored blink period '"} + stored +
                                          "', using 1000 ms"))
             << stored;
-        EXPECT_TRUE(contains(status(factory, *logic), "Blink Period: 1000 ms\r\n")) << stored;
+        EXPECT_TRUE(contains(sendCommand(factory, *logic, "status"), "Blink Period: 1000 ms\r\n"))
+            << stored;
         EXPECT_EQ(1000U, factory.timer().periodMs()) << stored;
     }
 }
@@ -111,8 +72,7 @@ TEST(LogicSettings, StoreSurvivesARestart)
     createLogic(before, logic);
     for (const char* command : {"blink on", "period 300", "store"})
     {
-        before.serial().simulateInputData(command);
-        logic->step();
+        sendCommand(before, *logic, command);
     }
 
     std::string blinkState{};
@@ -127,7 +87,7 @@ TEST(LogicSettings, StoreSurvivesARestart)
     after.presetNvsString("blink_period", blinkPeriod);
     createLogic(after, logic);
 
-    const std::string output{status(after, *logic)};
+    const std::string output{sendCommand(after, *logic, "status")};
     EXPECT_TRUE(contains(output, "Blink State: on\r\n"));
     EXPECT_TRUE(contains(output, "Blink Period: 300 ms\r\n"));
 

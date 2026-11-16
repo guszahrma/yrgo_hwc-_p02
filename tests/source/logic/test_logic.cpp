@@ -6,38 +6,11 @@
 
 #include "driver/factory/stub.h"
 #include "logic/logic.h"
+#include "logic/logic_test_helpers.h"
 #include "gtest/gtest.h"
 
-namespace
-{
-/**
- * @brief Send one command to Logic and return what was printed while it was handled.
- *
- * @param[in] factory The factory that Logic was created with.
- * @param[in] logic The Logic under test.
- * @param[in] command The command line, without line ending.
- *
- * @return Everything printed to stdout during one step() (the serial stub prints there).
- */
-std::string sendCommand(driver::factory::Stub& factory, logic::Logic& logic, const char* command)
-{
-    factory.serial().simulateInputData(command);
-    testing::internal::CaptureStdout();
-    logic.step();
-    return testing::internal::GetCapturedStdout();
-}
-
-/**
- * @brief Check whether a text contains a substring.
- *
- * @param[in] text The text to search.
- * @param[in] part The substring to look for.
- *
- * @return True if part is found in text, false otherwise.
- */
-bool contains(const std::string& text, const char* part)
-{ return std::string::npos != text.find(part); }
-} // namespace
+using logic_test::contains;
+using logic_test::sendCommand;
 
 TEST(Logic, StepKicksWatchdogOncePerPass)
 {

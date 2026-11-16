@@ -68,6 +68,28 @@ ZTEST(nvs_zephyr, test_a_second_write_replaces_the_first)
     zassert_equal(std::string{"second"}, value);
 }
 
+ZTEST(nvs_zephyr, test_empty_string_can_be_read_back)
+{
+    // As on ESP-IDF: an empty string is a value, not a deleted key.
+    driver::nvs::Zephyr nvs{TestNamespace};
+    std::string value{"unchanged"};
+
+    zassert_true(nvs.setString("key", ""));
+    zassert_true(nvs.getString("key", value));
+    zassert_true(value.empty());
+}
+
+ZTEST(nvs_zephyr, test_empty_string_replaces_a_value)
+{
+    driver::nvs::Zephyr nvs{TestNamespace};
+    std::string value{};
+
+    zassert_true(nvs.setString("key", "first"));
+    zassert_true(nvs.setString("key", ""));
+    zassert_true(nvs.getString("key", value));
+    zassert_true(value.empty());
+}
+
 ZTEST(nvs_zephyr, test_missing_key_is_not_found)
 {
     driver::nvs::Zephyr nvs{TestNamespace};

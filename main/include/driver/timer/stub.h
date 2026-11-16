@@ -85,6 +85,20 @@ public:
         return false;
     }
 
+    /**
+     * @brief The period last set with setPeriod(), for the tests.
+     *
+     * @return The period in milliseconds.
+     */
+    std::uint32_t periodMs() const noexcept { return myPeriodMs; }
+
+    /**
+     * @brief Whether the timer is running (started and not stopped), for the tests.
+     *
+     * @return True if the timer is running, false otherwise.
+     */
+    bool isRunning() const noexcept { return myStarted; }
+
 private:
     using Clock = std::chrono::steady_clock;
 

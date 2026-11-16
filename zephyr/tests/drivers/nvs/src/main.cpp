@@ -2,6 +2,7 @@
  * @brief Ztest for nvs::Zephyr on native_sim, where storage_partition is in a simulated flash.
  */
 #include <cstdint>
+#include <limits>
 #include <string>
 
 #include <zephyr/ztest.h>
@@ -121,6 +122,56 @@ ZTEST(nvs_zephyr, test_integer_can_be_read_back)
     zassert_true(nvs.set<std::uint16_t>("period", 500U));
     zassert_true(nvs.get<std::uint16_t>("period", value));
     zassert_equal(500U, value);
+}
+
+ZTEST(nvs_zephyr, test_integers_of_other_types_can_be_read_back)
+{
+    driver::nvs::Zephyr nvs{TestNamespace};
+    std::int32_t negative{};
+    std::uint64_t largest{};
+    std::int8_t smallest{};
+
+    zassert_true(nvs.set<std::int32_t>("negative", -123456));
+    zassert_true(nvs.set<std::uint64_t>("largest", std::numeric_limits<std::uint64_t>::max()));
+    zassert_true(nvs.set<std::int8_t>("smallest", std::numeric_limits<std::int8_t>::min()));
+
+    zassert_true(nvs.get<std::int32_t>("negative", negative));
+    zassert_equal(-123456, negative);
+    zassert_true(nvs.get<std::uint64_t>("largest", largest));
+    zassert_true(std::numeric_limits<std::uint64_t>::max() == largest);
+    zassert_true(nvs.get<std::int8_t>("smallest", smallest));
+    zassert_equal(std::numeric_limits<std::int8_t>::min(), smallest);
+}
+
+ZTEST(nvs_zephyr, test_missing_integer_is_not_found)
+{
+    driver::nvs::Zephyr nvs{TestNamespace};
+    std::uint16_t value{};
+
+    zassert_false(nvs.get<std::uint16_t>("missing", value));
+}
+
+ZTEST(nvs_zephyr, test_integer_with_a_too_long_key_is_rejected)
+{
+    driver::nvs::Zephyr nvs{TestNamespace};
+    const std::string tooLong(driver::nvs::Interface::MaxKeyLength + 1U, 'a');
+    std::uint16_t value{};
+
+    zassert_false(nvs.set<std::uint16_t>(tooLong.c_str(), 1U));
+    zassert_false(nvs.get<std::uint16_t>(tooLong.c_str(), value));
+}
+
+ZTEST(nvs_zephyr, test_integer_read_as_another_size_is_rejected)
+{
+    // Stored as 2 bytes; reading 4 or 1 bytes is caught. A type of the same size (int16_t) is not:
+    // the Settings subsystem stores bytes, not types (see get() in nvs/zephyr.h).
+    driver::nvs::Zephyr nvs{TestNamespace};
+    std::uint32_t wider{};
+    std::uint8_t narrower{};
+
+    zassert_true(nvs.set<std::uint16_t>("period", 500U));
+    zassert_false(nvs.get<std::uint32_t>("period", wider));
+    zassert_false(nvs.get<std::uint8_t>("period", narrower));
 }
 
 ZTEST(nvs_zephyr, test_erase_key_removes_only_that_key)

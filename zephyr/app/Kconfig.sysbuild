@@ -5,7 +5,8 @@
 # is true, and Zephyr's own defaults (swap using offset; overwrite only on Espressif chips) are in the
 # sourced files.
 
-# The MCUboot mode: one that can roll an update back. Swap using move works with equal slots, as on these
+# The MCUboot mode: one that can roll an update back. Swap using offset: an update is written one sector
+# into slot 1, whose first sector is the free one during the swap; it works with equal slots, as on these
 # boards. The Daisy Seed is not listed: its board keeps RAM load (zephyr/boards/electrosmith/daisy_seed/
 # Kconfig.sysbuild).
 choice MCUBOOT_MODE

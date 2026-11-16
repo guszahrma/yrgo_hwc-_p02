@@ -6,7 +6,8 @@
 
 # Arduino Nano ESP32 -> /dev/tty_arduino_nano_esp32. The ESP32-S3's built-in USB-Serial/JTAG, the same
 # under ESP-IDF, Zephyr and the ROM bootloader. Matches any board with that chip: attach one at a time.
-SUBSYSTEM=="tty", ATTRS{idVendor}=="303a", ATTRS{idProduct}=="1001", SYMLINK+="tty_arduino_nano_esp32", RUN+="/bin/stty -F /dev/%k -echo"
+# GROUP: Ubuntu's openocd package (60-openocd.rules) gives 303a:1001 to plugdev, the serial port included.
+SUBSYSTEM=="tty", ATTRS{idVendor}=="303a", ATTRS{idProduct}=="1001", GROUP="dialout", SYMLINK+="tty_arduino_nano_esp32", RUN+="/bin/stty -F /dev/%k -echo"
 
 # Daisy Seed -> /dev/tty_daisy_seed, in MCUboot's recovery mode and in the app. 2fe3:0004 is Zephyr's
 # default USB ID; the product name is set in the board's Kconfig.defconfig.

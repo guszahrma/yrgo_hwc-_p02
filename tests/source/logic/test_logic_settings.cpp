@@ -62,6 +62,10 @@ TEST(LogicSettings, NoStoredSettingsGiveTheDefaults)
     const std::string output{status(factory, *logic)};
     EXPECT_TRUE(contains(output, "Blink State: off\r\n"));
     EXPECT_TRUE(contains(output, "Blink Period: 1000 ms\r\n"));
+
+    // The timer got the values too, not only what status prints.
+    EXPECT_EQ(1000U, factory.timer().periodMs());
+    EXPECT_FALSE(factory.timer().isRunning());
 }
 
 TEST(LogicSettings, StoredSettingsAreLoaded)
@@ -75,6 +79,9 @@ TEST(LogicSettings, StoredSettingsAreLoaded)
     const std::string output{status(factory, *logic)};
     EXPECT_TRUE(contains(output, "Blink State: on\r\n"));
     EXPECT_TRUE(contains(output, "Blink Period: 300 ms\r\n"));
+
+    EXPECT_EQ(300U, factory.timer().periodMs());
+    EXPECT_TRUE(factory.timer().isRunning());
 }
 
 TEST(LogicSettings, InvalidStoredPeriodGivesTheDefault)
@@ -92,6 +99,7 @@ TEST(LogicSettings, InvalidStoredPeriodGivesTheDefault)
                                          "', using 1000 ms"))
             << stored;
         EXPECT_TRUE(contains(status(factory, *logic), "Blink Period: 1000 ms\r\n")) << stored;
+        EXPECT_EQ(1000U, factory.timer().periodMs()) << stored;
     }
 }
 
@@ -122,4 +130,7 @@ TEST(LogicSettings, StoreSurvivesARestart)
     const std::string output{status(after, *logic)};
     EXPECT_TRUE(contains(output, "Blink State: on\r\n"));
     EXPECT_TRUE(contains(output, "Blink Period: 300 ms\r\n"));
+
+    EXPECT_EQ(300U, after.timer().periodMs());
+    EXPECT_TRUE(after.timer().isRunning());
 }

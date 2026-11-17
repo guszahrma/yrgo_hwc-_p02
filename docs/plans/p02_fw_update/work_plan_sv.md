@@ -61,7 +61,7 @@ flowchart LR
 
 | Steg | Vad | Beror på | Granskaren testar |
 |---|---|---|---|
-| B1 Swap using offset | `zephyr/app/Kconfig.sysbuild`, Nanons partitioner om det behövs, raderna i AGENTS.md. Svarar på den öppna frågan *Swap using offset på Nano* i [flödet](flow_sv.md). Kan börja direkt | – | Update-demon (test, sedan revert), Nucleo och Nano |
+| B1 Swap using offset | `zephyr/app/Kconfig.sysbuild`, raderna i AGENTS.md (inga partitionsändringar behövdes). Klar i #104, som besvarade den öppna frågan *Swap using offset på Nano* i [flödet](flow_sv.md) | – | Update-demon (test, sedan revert), Nucleo och Nano |
 | B2 Modul och mcumgr | `modules/fw_update/` med `zephyr/module.yml` och Kconfig; modulens funktioner ovanpå MCUboots API (version, confirmed, andra sloten, `fw_update_selftest_done()` med confirm eller `sys_reboot()`); mcumgr påslaget i `prj.conf`; CI bygger det. Mät flashen på Nucleo (200 KB slot) | – | CI grönt; storleken i `report/material.md` |
 | B3 SMP-transport | `serial::Zephyr` lämnar SMP-frames till modulen; `smp_transport_init()` och hookarna registreras i modulens `SYS_INIT`, och `fw_update_init(tx)` ger bara skrivfunktionen; ringbufferten eller sorteringen i avbrottet; utbufferten för svaren (`fw_update_init(tx)`); SMP-frames ekas inte | B2 | `smpmgr image state-read` svarar och `p02_test.py` går igenom på samma port, Nucleo och Nano; en uppladdning med blink på ger inga trasiga frames, och `smpmgr` hoppar över text mellan frames; det största svaret ryms i utbufferten (mät) |
 | B4 Uppladdning | `smpmgr image upload` till slot 1, progressiv radering, mcumgrs kontroller (storlek, SHA-256) | B1, B3 | En hel uppladdning med blink och watchdog mätta, Nano; en för stor image nekas |

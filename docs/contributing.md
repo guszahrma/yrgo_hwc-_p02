@@ -34,6 +34,23 @@ The tests run automatically as part of the build (target `run`); a failing test 
 To add a test: write `TEST(...)` cases in `tests/source/`, and add the test file and the code under test to
 `TST_FILES` / `SRC_FILES` in `tests/CMakeLists.txt`.
 
+### Zephyr drivers on `native_sim`
+
+The Zephyr drivers (`main/source/driver/*/zephyr.cpp`) include Zephyr's headers, so GoogleTest cannot build
+them. They are tested with Zephyr's own **Ztest**, on `native_sim`: Zephyr built as a Linux program, with
+simulated hardware (flash, GPIO, ADC). One test app per driver in `zephyr/tests/drivers/<name>/`, run with
+Twister in the Zephyr environment:
+
+```bash
+source tools/zephyr_env.sh
+west twister -T zephyr/tests -p native_sim/native/64
+```
+
+Twister builds and runs every app and writes its results to `twister-out/`. No board is needed.
+
+To add a test app: copy `zephyr/tests/drivers/nvs/` (`CMakeLists.txt` lists the driver's `.cpp`, `prj.conf`
+its Kconfig, `testcase.yaml` the platform), and write `ZTEST(...)` cases in `src/main.cpp`.
+
 ## Code style
 
 The code is formatted with `clang-format` according to `.clang-format`. Everyone, including CI, uses the
@@ -80,6 +97,7 @@ branch and shows that push's checks.
 | Build Zephyr apps for the Arduino Nano ESP32 | `tools/zephyr_setup.sh`, then `zephyr/app` with MCUboot (`--sysbuild`) and `zephyr/samples/blinky` with the Zephyr version from `west.yml` |
 | Build Zephyr apps for the Daisy Seed | `tools/zephyr_setup.sh`, then Zephyr's `samples/basic/blinky` for `daisy_seed`, and `zephyr/app` with MCUboot (`--sysbuild`) for `daisy_seed/stm32h750xx/ram_load` |
 | Build Zephyr apps for the Nucleo-G0B1RE | `tools/zephyr_setup.sh`, then Zephyr's `samples/basic/blinky` and `zephyr/app` with MCUboot (`--sysbuild`) for `nucleo_g0b1re` |
+| Run Zephyr tests on native_sim | `tools/zephyr_setup.sh`, then Twister builds and runs the Ztest apps in `zephyr/tests/` on `native_sim/native/64`; uploads the report `twister.xml` |
 | Run unit tests on the host | Builds and runs the GoogleTest suite in `tests/` |
 | Flash and test ESP-IDF on the Nano ESP32 | On a self-hosted runner: flashes the Ubuntu ESP-IDF build on a Nano ESP32 and runs `tools/hil/p02_test.py` (see below) |
 | Flash and test Zephyr on the Nano ESP32 | The same for the Zephyr build (MCUboot and P02), on the same Nano and runner |
@@ -139,24 +157,14 @@ Linux user, which cannot read your files:
 
 5. Start WSL and attach the boards at logon. Windows stops WSL, and the runners with it, soon after the
    last WSL window closes, and the boards are only in WSL while `usbipd attach` runs. Share each board
-   once (`usbipd bind --busid <id>`, as administrator), then save this as e.g.
-   `C:\Users\<you>\Scripts\autostart\p02-runners.ps1`, with the bus IDs from `usbipd list`:
+   once (`usbipd bind --busid <id>`, as administrator), then copy
+   [`tools/hil/p02-runners.ps1`](../tools/hil/p02-runners.ps1) to e.g.
+   `C:\Users\<you>\Scripts\autostart\p02-runners.ps1` and keep only the boards this PC has. The Nucleo
+   and the Nano are attached by USB ID, so any USB port works. The Daisy is attached by its USB port (bus
+   ID from `usbipd list`), since it changes its USB ID in MCUboot and DFU mode: keep it in that port, or
+   change the bus ID in the script.
 
-   ```powershell
-   $distro = "Ubuntu"
-   $boards = @{
-       "1-3" = "Nucleo-G0B1RE (ST-Link)"
-       "5-4" = "Daisy Seed"
-   }
-   # WSL stops soon after its last process ends; this one never ends
-   Start-Process -WindowStyle Hidden wsl.exe -ArgumentList "-d $distro --exec /bin/sleep infinity"
-   # Re-attaches after every reset/re-plug; --unplugged also waits for a board that is not plugged in
-   foreach ($busid in $boards.Keys) {
-       Start-Process -WindowStyle Hidden usbipd -ArgumentList "attach --wsl $distro --busid $busid --auto-attach --unplugged"
-   }
-   ```
-
-   and run it at logon with a task (PowerShell, not as administrator):
+   Run it at logon with a task (PowerShell, not as administrator):
 
    ```powershell
    $action   = New-ScheduledTaskAction -Execute "conhost.exe" -Argument "--headless powershell.exe -NoProfile -ExecutionPolicy Bypass -File $env:USERPROFILE\Scripts\autostart\p02-runners.ps1"
@@ -165,10 +173,25 @@ Linux user, which cannot read your files:
    Register-ScheduledTask -TaskName "P02 runners" -Action $action -Trigger $trigger -Settings $settings
    ```
 
-   Bus IDs belong to the USB port, not the board: keep each board in its port (or update the script).
-   Attaching by port also follows a board that changes its USB ID, like the Daisy in MCUboot or DFU
-   mode. The runners only work while the PC is awake and you are logged in; jobs queued in the meantime
-   run afterwards.
+   The runners only work while the PC is awake and you are logged in; jobs queued in the meantime run
+   afterwards.
+6. Keep each runner online only while its board is attached, so that a job never lands on a PC without
+   the board (e.g. the Nano's runner at home and at work). Every 30 s, a timer starts a runner whose port
+   is there and stops one whose port has been gone for 2 minutes, unless a job is running – a board
+   leaves USB for a moment each time a job flashes it. A stopped runner shows as offline, and its jobs
+   wait for a runner that has the board. Install it as yourself. Then, in `/etc/p02-runner-guard.conf`,
+   remove the lines for boards this PC does not have, and check that each service name is the one in the
+   runner's folder (`sudo cat /home/ghrunner/runners/*/.service`). The guard runs as root, so it takes the
+   name from this file, which only root can change, not from the runner's folder, which a job can change:
+
+   ```bash
+   sudo install -m 755 tools/hil/runner_guard/runner_guard.sh /usr/local/sbin/p02-runner-guard
+   sudo install -m 644 tools/hil/runner_guard/p02-runner-guard.conf /etc/
+   sudo install -m 644 tools/hil/runner_guard/p02-runner-guard.{service,timer} /etc/systemd/system/
+   sudo systemctl daemon-reload && sudo systemctl enable --now p02-runner-guard.timer
+   ```
+
+   `journalctl -u p02-runner-guard` shows when it started or stopped a runner.
 
 While a job runs:
 

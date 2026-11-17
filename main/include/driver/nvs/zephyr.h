@@ -89,7 +89,9 @@ public:
      *  @param [in]  key    Key to look up.
      *  @param [out] value  Retrieved value. Only valid if true is returned.
      *  @return True if exactly sizeof(T) bytes were read, false if the key does not exist, was
-     *          stored with another type, or the read failed.
+     *          stored with a type of another size, or the read failed. A type of the same size
+     *          (e.g. uint16_t read as int16_t) is not detected: the Settings subsystem stores
+     *          bytes, not types (ESP-IDF's NVS does detect it).
      */
     template<typename T>
     bool get(const char* key, T& value) noexcept

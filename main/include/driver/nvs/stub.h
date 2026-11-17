@@ -155,11 +155,9 @@ public:
 private:
     static bool isValidKey(const char* key) noexcept
     {
-        constexpr std::size_t maxKeyLength{15};
-
-        if ((nullptr == key) || (maxKeyLength < std::strlen(key)))
+        if ((nullptr == key) || (MaxKeyLength < std::strlen(key)))
         {
-            std::printf("nvs: key is null or exceeds %zu characters\n", maxKeyLength);
+            std::printf("nvs: key is null or exceeds %zu characters\n", MaxKeyLength);
             return false;
         }
         return true;

@@ -28,10 +28,7 @@ Logic::Logic(driver::factory::Interface& factory) noexcept
     , myBoardTarget{factory.boardTarget()}
     , myPlatform{factory.platform()}
 {
-    // Create the necessary drivers using the factory and initialize the system state.
-    // For example, you might create a serial driver for communication and a GPIO driver for
-    // controlling the LED. Initialize the LED as off, set the blink state to off, and set a default
-    // blinking period (e.g., 1000 ms). Example of creating drivers using the factory:
+    // Create the drivers for this platform, then load the stored user settings.
     mySerialDriver = factory.createSerial();
     myStatusLed =
         factory.createGpio(driver::factory::GpioId::StatusLed, driver::gpio::Direction::OUTPUT);
@@ -39,7 +36,7 @@ Logic::Logic(driver::factory::Interface& factory) noexcept
         factory.createAdc(driver::factory::AdcId::TempSensor, TempSensorReferenceVoltage);
     myTempSensor  = factory.createTempSensor(*myTempSensorAdc);
     myTimerDriver = factory.createTimer();
-    myTimerDriver->stop(); // Start the timer for blinking
+    myTimerDriver->stop(); // Blinking is off until 'blink on' or the stored settings start it
     myNvsUserSettingsStorage = factory.createNvs("user_settings");
     myWatchdog               = factory.createWatchdog(WatchdogTimeoutMs);
     myBoot                   = factory.createBoot();
@@ -49,7 +46,7 @@ Logic::Logic(driver::factory::Interface& factory) noexcept
         mySerialDriver->print("Last reset was caused by the watchdog\r\n");
     }
 
-    // Initialize other necessary components and state variables here.
+    loadStoredUserSettings();
 }
 
 // --------------------------------------------------------------------------------
@@ -63,8 +60,6 @@ Logic::~Logic() noexcept
 // --------------------------------------------------------------------------------
 void Logic::run() noexcept
 {
-    loadStoredUserSettings();
-
     mySerialDriver->print(
         "write relevant command, write help to get a list of available commands\r\n");
 
@@ -189,7 +184,6 @@ void Logic::handleOn() noexcept
 {
     mySerialDriver->print("\r\nHandling 'on' command...\r\n");
 
-    // Implement the logic to turn the LED on.
     myStatusLed->write(true);
 }
 
@@ -198,7 +192,6 @@ void Logic::handleOff() noexcept
 {
     mySerialDriver->print("\r\nHandling 'off' command...\r\n");
 
-    // Implement the logic to turn the LED off.
     myStatusLed->write(false);
 }
 
@@ -207,7 +200,6 @@ void Logic::handleBlinkOn() noexcept
 {
     mySerialDriver->print("\r\nHandling 'blink on' command...\r\n");
 
-    // Implement the logic to turn blinking on.
     myTimerDriver->start(); // Start the timer for blinking
     myBlinkState = true;
 }
@@ -217,7 +209,6 @@ void Logic::handleBlinkOff() noexcept
 {
     mySerialDriver->print("\r\nHandling 'blink off' command...\r\n");
 
-    // Implement the logic to turn blinking off.
     myTimerDriver->stop(); // Stop the timer for blinking
     myBlinkState = 0;
 }
@@ -239,7 +230,6 @@ void Logic::handlePeriod(uint16_t periodLengthMs) noexcept
         return;
     }
 
-    // Implement the logic to set the blinking period.
     myTimerDriver->setPeriod(periodLengthMs);
     myPeriodLengthMs = periodLengthMs; // Store the new period length
 }
@@ -247,8 +237,6 @@ void Logic::handlePeriod(uint16_t periodLengthMs) noexcept
 // --------------------------------------------------------------------------------
 void Logic::handleStatus() noexcept
 {
-    // Implement the logic to print the current status.
-    // This is a placeholder implementation - replace with actual status printing logic.
     mySerialDriver->print("Status:\r\n");
     mySerialDriver->print("Board: ");
     mySerialDriver->print(myBoard);
@@ -301,8 +289,6 @@ void Logic::handleStore() noexcept
     myNvsUserSettingsStorage->setString("blink_state", myBlinkState ? "on" : "off");
     myNvsUserSettingsStorage->setString("blink_period", std::to_string(myPeriodLengthMs));
 
-    // Implement the logic to store the current state to non-volatile memory.
-    // This is a placeholder implementation - replace with actual storage logic.
     mySerialDriver->print("Storing current state to non-volatile memory...\r\n");
 }
 
@@ -356,8 +342,6 @@ void Logic::loadStoredUserSettings() noexcept
         myPeriodLengthMs = DefaultPeriodMs;
     }
 
-    // Implement the logic to load the stored state from non-volatile memory.
-    // This is a placeholder implementation - replace with actual loading logic.
     mySerialDriver->print("Loaded user settings:\r\n");
     mySerialDriver->print("Blink State: ");
     mySerialDriver->print(myBlinkState ? "on\r\n" : "off\r\n");

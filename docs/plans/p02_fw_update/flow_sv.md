@@ -243,8 +243,9 @@ exempel `Image in slot 1 is for daisy_seed, not nucleo_g0b1re: erased`. Med swap
 sektorn i slot 1, inte den första. Ett följande `image test` nekas då av mcumgr, och `image state-read` visar
 slot 1 som tom.
 
-> Headern i slot 1 läses på fler ställen (modulens kortkontroll, `Second slot` i P02:s `status`). Alla måste
-> ta hänsyn till var imagen börjar, helst genom samma funktion som mcumgr använder i stället för en egen
+> Headern i slot 1 läses på fler ställen (modulens kortkontroll, `Second slot` i P02:s `status`). Den ligger
+> på två olika ställen: en ny image en sektor in, och förra versionen efter en swap i början av sloten (#104).
+> Alla som läser den måste klara båda, helst genom samma funktion som mcumgr använder i stället för en egen
 > offset.
 
 > Varför radera och inte bara avböja `os reset`: testmarkeringen ligger kvar, så nästa omstart (ström, RESET,
@@ -280,14 +281,15 @@ confirm av P02, revert).
 > signalerar "redo". Sedan fortsätter loopen tills omstarten, så att main hinner skriva ut svaret på
 > `os reset` från utbufferten. Vill klienten behålla inställningarna kör den `store` före `os reset`.
 
-### 5. Swap (Överens; Öppen: verifiera v1:s plats)
+### 5. Swap (Överens; Öppen: att mcumgr hittar v1)
 
 MCUboot (swap using offset) byter plats på imagerna sektor för sektor och startar v2 som test. Eftersom v2
 redan ligger en sektor in i slot 1 behöver imagen i slot 0 inte först flyttas en sektor, som i swap using
-move. En update skriver därför flashen ungefär en tredjedel mindre. v1 ligger kvar i slot 1.
+move. En update skriver därför flashen ungefär en tredjedel mindre. v1 ligger kvar i slot 1, i **början** av
+sloten (verifierat i #104).
 
-> Att verifiera: var v1 hamnar i slot 1 efter swappen (vid sektor 0 eller en sektor in), och att mcumgr
-> (`image state-read`), `status` och ett `image test` på v1 (rollback) hittar den.
+> Att verifiera när mcumgr finns: att `image state-read`, `status` och ett `image test` på v1 (rollback)
+> hittar v1 i början av slot 1.
 
 ### 6. Självtest och confirm (Överens)
 
@@ -379,16 +381,11 @@ kontroll man gör och sedan går vidare från, men det är ett provskott med avs
 
 ## Öppna frågor
 
-### Swap using offset på Nano (Öppen)
+### Swap using offset på Nano (Besvarad)
 
-Zephyrs standard för Espressif-chip är overwrite only, och det är inte känt om MCUboots Espressif-port stöder
-swap using offset. Swap using offset kräver också en extra sektor i slot 1, så Nanons partitioner kan behöva
-ändras i dess board definition.
-
-* Bygg med `MCUBOOT_MODE_SWAP_USING_OFFSET` för `arduino_nano_esp32/esp32s3/procpu` och kör update-demon
-  (test, sedan revert).
-* Fungerar det inte: swap using move på Nano och offset på Nucleo, eller move på båda. Beslutas när resultatet
-  finns.
+Fungerar, med Nanons nuvarande partitioner (#104, 2026-11-16): update-demon gick igenom (test, sedan revert).
+Det enda priset är att en image får vara högst en sektor mindre än sloten (Nano 0x14F000, Nucleo 0x31800),
+eftersom den skrivs en sektor in i slot 1.
 
 ### Versionen på ESP-IDF (Öppen)
 
@@ -408,7 +405,7 @@ firmware update. Förslag till senare: `PROJECT_VER` från samma `VERSION`-fil s
 | Avslut före omstart | `Logic` bestämmer när avslutet är klart och signalerar det till `boot`. `boot` (genom modulens reset-hook) godkänner då omstarten hos mcumgr | Överens |
 | Tidsgräns för avslutet | Om appen inte har signalerat "redo" inom tidsgränsen avböjer hooken omstarten med `busy`, och klienten kan försöka igen. Tidsgränsen är ett Kconfig-val i modulen (till exempel `CONFIG_FW_UPDATE_RESET_READY_TIMEOUT_MS`, standard 2 s, kortare än `smpmgr`s timeout). Om appen hänger startar watchdogen om kortet. Avvisat: godkänna ändå (kör över appens beslut), ingen tidsgräns (SMP hänger med appen, och klienten får en timeout i stället för ett svar) | Överens |
 | Avslutets innehåll | `Logic` skriver en rad (`Restarting for firmware update`), släcker LED:en, slutar blinka och signalerar "redo", och loopen fortsätter tills omstarten så att svaret på `os reset` hinner ut. Inget sparas, som vid varje reset: bara `store` sparar. Klienten kör `store` före `os reset` om inställningarna ska behållas. Avvisat: automatisk `store` (bryter regeln, en flashskrivning kan krocka med tidsgränsen, särskilt på Nano), spara bara ändrade inställningar (en "ändrad"-flagga, och regeln bryts ändå) | Överens |
-| Kort i första versionen | Swap-varianten: Nucleo och Nano, där test, confirm och revert redan är visade för hand (#91, med swap using move; görs om med swap using offset). Modulen slås inte på för Daisy (RAM load) eller ESP-IDF (ingen MCUboot). Avvisat: Daisy också (frågan om test/confirm/revert i RAM load är öppen, och USB-felet efter mjuk reset kan få en lyckad update att se misslyckad ut), alla Zephyr-kort med ett eget RAM load-flöde (mest jobb innan demon) | Överens |
+| Kort i första versionen | Swap-varianten: Nucleo och Nano, där test, confirm och revert redan är visade för hand (#91 med swap using move, #104 med swap using offset). Modulen slås inte på för Daisy (RAM load) eller ESP-IDF (ingen MCUboot). Avvisat: Daisy också (frågan om test/confirm/revert i RAM load är öppen, och USB-felet efter mjuk reset kan få en lyckad update att se misslyckad ut), alla Zephyr-kort med ett eget RAM load-flöde (mest jobb innan demon) | Överens |
 | Kort utan firmware update | `boot::Interface` får en metod (till exempel `isUpdateSupported()`). Där den är falsk (Daisy, ESP-IDF) svarar `confirm` `firmware update not supported on this board`, och `status` skriver `Firmware update: not supported` i stället för confirmed och andra sloten. Avvisat: stubben svarar som i dag (`already confirmed` är missvisande), ta bort `confirm` på de korten (`unknown command` förklarar inte varför) | Överens |
 | Fråga efter versionen | Inget nytt kommando. Människor använder `status` i `tio`: den körande imagen (`Firmware: v1.0.0+0 (confirmed)`) och slot 1 (`Second slot: v2.0.0+0`, `(test at next reset)` när den är markerad för test, eller `empty` utan giltig header, till exempel efter raderingen vid fel kort). Markeringen kommer från en ny metod i `boot::Interface` (till exempel `isSecondaryPending()`), samma flagga som `pending` i `state-read`. klienter och skript använder `smpmgr image state-read` (version, hash, active, confirmed, pending per slot). Båda läser MCUboot-headern, vars version kommer från `zephyr/app/VERSION`, så de kan inte visa olika saker. På kort utan firmware update visar `status` versionen från samma fil. Avvisat: `status` utan testmarkeringen (en reset för hand efter `image test` swappar utan att `tio`-användaren ser det), eget kommando `version` (en tredje väg till samma uppgift; skript har `state-read`), samma version på ESP-IDF nu (hör inte till firmware update) | Överens |
 | Transport | SMP (mcumgr) på samma serieport som textkommandona. P02 skiljer SMP-frames från text, mcumgr skriver slot 1 i en egen tråd, klienten är `smpmgr`. Avvisat: eget protokoll i `Logic` (skriver om mcumgr), egen port (Nanos USB-Serial/JTAG har bara en) | Överens |
@@ -420,7 +417,7 @@ firmware update. Förslag till senare: `PROJECT_VER` från samma `VERSION`-fil s
 | `boot::Zephyr` och modulen | `boot::Zephyr` är en tunn adapter: varje metod i `boot::Interface` anropar en funktion i modulen, och all läsning och skrivning av MCUboots tillstånd i P02 går genom modulen. Avvisat: `boot::Zephyr` direkt mot MCUboots API (två vägar till samma tillstånd), en och samma kod (modulen är C och känner inte till P02; `boot::Interface` är P02:s C++-gränssnitt, med stubb för värdtesterna) | Överens |
 | Vem gör confirm efter swappen | Modulen, utifrån det självtestresultat P02 rapporterar (`selfTestDone()`): godkänt ger confirm, misslyckat ger reset utan confirm (revert). Hänger självtestet återställer watchdogen chipet. En klient som inte vill behålla v2 gör en rollback med `image test` på förra versionen i slot 1. Avvisat: två steg, där klienten gör confirm efter P02:s självtest (kommer klienten aldrig tillbaka blir det en oväntad revert vid nästa omstart, till exempel ett strömavbrott), bara klienten utan självtest (en trasig v2 körs tills någon märker det) | Överens |
 | Confirm under självtestet | Modulen nekar `image state write` med hooken `MGMT_EVT_OP_CMD_RECV` så länge den körande imagen inte är confirmed, och läser det själv med `boot_is_img_confirmed()`. Att verifiera: att `west flash` ger en confirmed image. Avvisat: tillåta (klienten kan hoppa över självtestet med `image confirm`) | Överens |
-| Äldre version i slot 1 | Får testköras, det är klientens val (`upgrade` vid uppladdning, `image test` på förra versionen som rollback). Med swap using offset: verifiera att förra versionen hittas i slot 1 efter swappen (se fas 5). Avvisat: P02 nekar alltid lägre versioner (förra versionen i slot 1 kan ändå testköras), radera slot 1 vid confirm (ingen väg tillbaka) | Överens |
+| Äldre version i slot 1 | Får testköras, det är klientens val (`upgrade` vid uppladdning, `image test` på förra versionen som rollback). Med swap using offset hamnar förra versionen i början av slot 1 (#104); att mcumgr hittar den där återstår att verifiera (se fas 5). Avvisat: P02 nekar alltid lägre versioner (förra versionen i slot 1 kan ändå testköras), radera slot 1 vid confirm (ingen väg tillbaka) | Överens |
 | Självtestets innehåll | "Kom upp och kör", med det som redan finns: drivrutinerna skapade och ADC:n `isInitialized()`, NVS går att nå (saknade eller korrupta inställningar ger standardvärden och räknas som godkänt), och `Logic`s loop har gått en viss tid (till exempel 10 s) utan watchdog. Inga ändringar i interfacen. Avvisat: korrupt NVS som fel (ett dataproblem som även v1 har skulle stoppa alla updates, även en v2 som rättar det), `selfTest()` i varje drivrutin (ändrar alla drivrutiner och stubbar), bara att loopen startade (fångar inget som watchdogen inte redan fångar). För demon kan fältet `selftest` i NVS tvinga fram ett fel, utan Kconfig-val eftersom P02 är en demo. Avvisat för demon: en byggflagga (en build per utfall) | Överens |
 | Textkommandot `confirm` | Finns i `Logic` utöver `smpmgr image confirm` och anropar `boot::Interface::confirm()`. Svarar `already confirmed` om imagen redan är confirmed. Sedan modulen gör confirm efter självtestet behövs det nästan inte, och behålls det behöver modulen en egen funktion för det: att bestämma om det behålls för manuella tester i `tio` eller tas bort. Varningen vid start behövs inte längre, eftersom ingen image ligger kvar utan confirm efter självtestet | Öppen |
 | Vem begär testet och omstarten | Klienten över SMP (`image test`, `os reset`). `Logic` får avsluta ordnat genom mcumgrs reset-hook, som också kan avböja. Avvisat: textkommandot `update` i `Logic`, och båda vägarna likvärdiga (två vägar att testa) | Överens |

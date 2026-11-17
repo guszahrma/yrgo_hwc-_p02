@@ -3,6 +3,7 @@
  */
 #pragma once
 
+#include <cstddef>
 #include <cstdint>
 #include <string>
 
@@ -14,6 +15,14 @@ namespace driver::nvs
 class Interface
 {
 public:
+    /**
+     * @brief The longest key, in characters (without the terminating '\0').
+     *
+     * ESP-IDF's NVS limit (NVS_KEY_NAME_MAX_SIZE, 16 with the '\0'). Every implementation uses the
+     * same, so a key that works on one platform works on all.
+     */
+    static constexpr std::size_t MaxKeyLength{15U};
+
     virtual ~Interface() noexcept = default;
 
     /**

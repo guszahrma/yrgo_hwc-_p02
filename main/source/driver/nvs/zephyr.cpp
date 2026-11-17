@@ -13,10 +13,9 @@ namespace driver::nvs
 
 bool Zephyr::isValidKey(const char* key) noexcept
 {
-    constexpr std::size_t maxKeyLength{15};
-    if ((nullptr == key) || (maxKeyLength < std::strlen(key)))
+    if ((nullptr == key) || (MaxKeyLength < std::strlen(key)))
     {
-        printf("nvs: key is null or exceeds %zu characters\n", maxKeyLength);
+        printf("nvs: key is null or exceeds %zu characters\n", MaxKeyLength);
         return false;
     }
     return true;
@@ -43,7 +42,9 @@ bool Zephyr::setString(const char* key, const std::string& value, const bool aut
 
     if ((!myValid) || (!isValidKey(key))) { return false; }
 
-    const int err{settings_save_one(fullName(key).c_str(), value.data(), value.size())};
+    // Stored with its terminating '\0', so an empty string is 1 byte: the Settings subsystem
+    // deletes a setting saved with length 0, and getString() would then report it as missing.
+    const int err{settings_save_one(fullName(key).c_str(), value.c_str(), value.size() + 1U)};
     if (0 != err)
     {
         printf("nvs: setString('%s') failed: %d\n", key, err);
@@ -68,6 +69,10 @@ bool Zephyr::getString(const char* key, std::string& value) noexcept
         printf("nvs: getString('%s') failed: %d\n", key, static_cast<int>(readBytes));
         return false;
     }
+
+    // Drop the terminating '\0' (see setString()). A value stored before it was added has none, and
+    // is kept as it is.
+    if ('\0' == buf.back()) { buf.pop_back(); }
 
     value = std::move(buf);
     return true;

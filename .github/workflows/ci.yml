@@ -106,6 +106,8 @@ jobs:
           sudo apt-get install -y --no-install-recommends ninja-build gperf device-tree-compiler
       - name: Set up the Zephyr workspace (Zephyr version from west.yml)
         run: tools/zephyr_setup.sh
+        env:
+          GITHUB_TOKEN: ${{ github.token }} # west sdk install's API request, see zephyr_setup.sh
       # P02 with MCUboot (zephyr/app/sysbuild.conf). BOARD_ROOT is needed on the command line: sysbuild
       # looks up the board before the app's CMakeLists.txt runs.
       - name: Build the P02 app with MCUboot
@@ -140,6 +142,8 @@ jobs:
           sudo apt-get install -y --no-install-recommends ninja-build gperf device-tree-compiler
       - name: Set up the Zephyr workspace (Zephyr version from west.yml)
         run: tools/zephyr_setup.sh
+        env:
+          GITHUB_TOKEN: ${{ github.token }} # west sdk install's API request, see zephyr_setup.sh
       - name: Build Zephyr's blinky
         run: |
           source tools/zephyr_env.sh
@@ -174,6 +178,8 @@ jobs:
           sudo apt-get install -y --no-install-recommends ninja-build gperf device-tree-compiler
       - name: Set up the Zephyr workspace (Zephyr version from west.yml)
         run: tools/zephyr_setup.sh
+        env:
+          GITHUB_TOKEN: ${{ github.token }} # west sdk install's API request, see zephyr_setup.sh
       # The board is in Zephyr, so no BOARD_ROOT.
       - name: Build Zephyr's blinky
         run: |
@@ -211,6 +217,8 @@ jobs:
           sudo apt-get install -y --no-install-recommends ninja-build gperf device-tree-compiler
       - name: Set up the Zephyr workspace (Zephyr version from west.yml)
         run: tools/zephyr_setup.sh
+        env:
+          GITHUB_TOKEN: ${{ github.token }} # west sdk install's API request, see zephyr_setup.sh
       - name: Build and run the tests with Twister
         run: |
           source tools/zephyr_env.sh

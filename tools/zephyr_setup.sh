@@ -66,12 +66,20 @@ echo "==== Fetching Zephyr and its modules (the first time takes a few minutes)"
 echo "==== Installing Zephyr's Python requirements"
 ZEPHYR_BASE="$ROOT/deps/zephyr" .venv/bin/west packages pip --install
 
+# `west sdk install` asks GitHub's API for the SDK releases. With GITHUB_TOKEN (set in CI), the request
+# counts against the repository's limit instead of the limit shared by everyone on the runner's IP
+# address (AGENTS.md, CI design decision "Zephyr SDK in CI"). Without it, as on a PC, nothing changes.
+sdk_args=()
+if [ -n "${GITHUB_TOKEN:-}" ]; then
+    sdk_args=(--personal-access-token "$GITHUB_TOKEN")
+fi
+
 for toolchain in "${TOOLCHAINS[@]}"; do
     if compgen -G "$HOME/zephyr-sdk-*/gnu/$toolchain" > /dev/null; then
         echo "==== Zephyr SDK with $toolchain already installed"
     else
         echo "==== Installing the Zephyr SDK ($toolchain)"
-        (cd deps/zephyr && ZEPHYR_BASE="$ROOT/deps/zephyr" "$ROOT/.venv/bin/west" sdk install -t "$toolchain")
+        (cd deps/zephyr && ZEPHYR_BASE="$ROOT/deps/zephyr" "$ROOT/.venv/bin/west" sdk install -t "$toolchain" "${sdk_args[@]}")
     fi
 done
 

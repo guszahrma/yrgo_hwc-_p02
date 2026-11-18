@@ -104,6 +104,14 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends ninja-build gperf device-tree-compiler
+      # The SDK from an earlier run: zephyr_setup.sh then skips `west sdk install` and its API request
+      # (AGENTS.md, CI design decision "Zephyr SDK in CI"). The key changes with the Zephyr version
+      # (west.yml) and with the toolchains the script installs (zephyr_setup.sh).
+      - name: Cache the Zephyr SDK
+        uses: actions/cache@v6
+        with:
+          path: ~/zephyr-sdk-*
+          key: zephyr-sdk-${{ runner.os }}-${{ hashFiles('west.yml', 'tools/zephyr_setup.sh') }}
       - name: Set up the Zephyr workspace (Zephyr version from west.yml)
         run: tools/zephyr_setup.sh
         env:
@@ -140,6 +148,14 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends ninja-build gperf device-tree-compiler
+      # The SDK from an earlier run: zephyr_setup.sh then skips `west sdk install` and its API request
+      # (AGENTS.md, CI design decision "Zephyr SDK in CI"). The key changes with the Zephyr version
+      # (west.yml) and with the toolchains the script installs (zephyr_setup.sh).
+      - name: Cache the Zephyr SDK
+        uses: actions/cache@v6
+        with:
+          path: ~/zephyr-sdk-*
+          key: zephyr-sdk-${{ runner.os }}-${{ hashFiles('west.yml', 'tools/zephyr_setup.sh') }}
       - name: Set up the Zephyr workspace (Zephyr version from west.yml)
         run: tools/zephyr_setup.sh
         env:
@@ -176,6 +192,14 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends ninja-build gperf device-tree-compiler
+      # The SDK from an earlier run: zephyr_setup.sh then skips `west sdk install` and its API request
+      # (AGENTS.md, CI design decision "Zephyr SDK in CI"). The key changes with the Zephyr version
+      # (west.yml) and with the toolchains the script installs (zephyr_setup.sh).
+      - name: Cache the Zephyr SDK
+        uses: actions/cache@v6
+        with:
+          path: ~/zephyr-sdk-*
+          key: zephyr-sdk-${{ runner.os }}-${{ hashFiles('west.yml', 'tools/zephyr_setup.sh') }}
       - name: Set up the Zephyr workspace (Zephyr version from west.yml)
         run: tools/zephyr_setup.sh
         env:
@@ -215,6 +239,14 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends ninja-build gperf device-tree-compiler
+      # The SDK from an earlier run: zephyr_setup.sh then skips `west sdk install` and its API request
+      # (AGENTS.md, CI design decision "Zephyr SDK in CI"). The key changes with the Zephyr version
+      # (west.yml) and with the toolchains the script installs (zephyr_setup.sh).
+      - name: Cache the Zephyr SDK
+        uses: actions/cache@v6
+        with:
+          path: ~/zephyr-sdk-*
+          key: zephyr-sdk-${{ runner.os }}-${{ hashFiles('west.yml', 'tools/zephyr_setup.sh') }}
       - name: Set up the Zephyr workspace (Zephyr version from west.yml)
         run: tools/zephyr_setup.sh
         env:

@@ -5,6 +5,13 @@ cmake_minimum_required(VERSION 3.20.0)
 # Our board definition lives in this repository (zephyr/boards/arduino/nano_esp32).
 list(APPEND BOARD_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/..)
 
+# The firmware update module, a git submodule: Zephyr only finds west projects by itself.
+set(FW_UPDATE_MODULE ${CMAKE_CURRENT_SOURCE_DIR}/../../modules/fw_update)
+if(NOT EXISTS ${FW_UPDATE_MODULE}/zephyr/module.yml)
+  message(FATAL_ERROR "modules/fw_update is empty: run 'git submodule update --init modules/fw_update'")
+endif()
+list(APPEND ZEPHYR_EXTRA_MODULES ${FW_UPDATE_MODULE})
+
 find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
 project(p02_zephyr)
 

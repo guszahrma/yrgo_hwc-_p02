@@ -59,11 +59,69 @@ The app overlay is `zephyr/app/boards/<board>.overlay`, named after the full boa
 (`D6`, `A6`) in [`main/include/driver/pin/esp32s3.h`](../main/include/driver/pin/esp32s3.h). Another
 ESP-IDF board needs its own pin mapping and factory.
 
+## Memory layout
+
+Where each board's flash is divided into partitions, and how much room P02 has in its slot:
+
+| Board | Partitions | P02 in its slot |
+|---|---|---|
+| Arduino Nano ESP32 | [Board document → Memory layout](../zephyr/boards/arduino/nano_esp32/doc/index.md#memory-layout) | [P02 on the Arduino Nano ESP32 → Memory layout](p02_arduino_nano_esp32.md#memory-layout) |
+| Daisy Seed | [Board document → Memory layout](../zephyr/boards/electrosmith/daisy_seed/doc/index.md#memory-layout) | [P02 on the Daisy Seed → Memory layout](p02_daisy_seed.md#memory-layout) |
+| Nucleo-G0B1RE | [P02 on the Nucleo-G0B1RE → Memory layout](p02_nucleo_g0b1re.md#memory-layout) | The same page |
+
+MCUboot starts P02 from `slot0_partition` and receives an update in `slot1_partition`. P02 cannot use its
+whole slot:
+
+```
+slot0_partition
+┌────────┬───────────────────────────┬────────┬──────────────────────────────────┐
+│ header │ P02's code                │ free   │ reserved for MCUboot             │
+└────────┴───────────────────────────┴────────┴──────────────────────────────────┘
+ ROM_START_OFFSET                               ROM_END_OFFSET
+ ◄──────── maximum header + code ─────────────►
+```
+
+| Term | Meaning |
+|---|---|
+| Sector | The smallest block the flash can erase. MCUboot erases and moves whole sectors |
+| Header (`CONFIG_ROM_START_OFFSET`) | MCUboot's image header (version, sizes), written by `imgtool` when it signs the image |
+| Trailer | MCUboot's update state at the end of the slot: magic, `image_ok`, `copy_done`, swap progress |
+| `CONFIG_ROM_END_OFFSET` | What the build keeps free at the end of the slot: the trailer, room for the image's TLVs (hash, signature) and, depending on the mode, one sector |
+| Maximum header + code | Slot size − `ROM_END_OFFSET` (− one sector for swap using offset, see below) |
+| Margin | Maximum − what P02 uses today |
+
+What is kept free at the end of the slot depends on the MCUboot mode:
+
+| MCUboot mode | Kept free | Boards |
+|---|---|---|
+| Swap using move | Trailer + one sector, which the swap moves the image into. Both are in `ROM_END_OFFSET` | Nucleo, Nano |
+| Swap using offset | Trailer + one sector, the free one during the swap. MCUboot's build leaves the sector out of `ROM_END_OFFSET`, so only `tools/flash_layout.py` counts it | None yet |
+| RAM load | Trailer only. MCUboot copies header + code into RAM, where P02's data and stacks are too, so the RAM is the real limit | Daisy |
+
+Who stops an image that is too large:
+
+* **The linker**, with `region 'FLASH' overflowed`, on Cortex-M (Nucleo, Daisy): its FLASH region ends at
+  `ROM_END_OFFSET`. Not on the Nano: the ESP32-S3's linker script does not use `ROM_END_OFFSET`.
+* **`imgtool`**, when it signs the image (every board), but against the whole slot and with its own
+  trailer estimate, so it can pass an image that MCUboot later refuses.
+* **MCUboot**, at the update: it keeps the old version if the new one leaves no room for the trailer (from
+  MCUboot's code, not tested).
+
+So check the margin with `tools/flash_layout.py` after a build, in the Zephyr environment:
+
+```bash
+tools/flash_layout.py zephyr/app/build/nucleo_g0b1re
+```
+
+It prints both tables as Markdown, from the build's devicetree and Kconfig and the signed image's header.
+Paste them into the board's documents when the layout, the MCUboot mode or P02's size changes noticeably.
+
 ## Adding a board (Zephyr)
 
 1. If Zephyr has no definition for the board, add one in `zephyr/boards/<vendor>/<board>/`. Copy a board
    with the same chip, and change **every** board-specific value.
-2. Make sure the board has a console and a `storage_partition`.
+2. Make sure the board has a console and a `storage_partition`, and slots that P02 fits in: build, then run
+   `tools/flash_layout.py` and add its tables to the board's documents (see [Memory layout](#memory-layout)).
 3. Add the app overlay `zephyr/app/boards/<board>.overlay` with `p02-led` and `zephyr,user` (see
    [Architecture](architecture.md#adding-or-changing-hardware)), and check the `Found devicetree overlay:`
    line in the build output.

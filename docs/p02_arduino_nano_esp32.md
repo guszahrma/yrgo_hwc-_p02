@@ -19,6 +19,26 @@ Zephyr board definition – is described in its board document,
 | Pins, ESP-IDF | Arduino names mapped to GPIOs in [`main/include/driver/pin/esp32s3.h`](../main/include/driver/pin/esp32s3.h) |
 | Pins, Zephyr | App overlay [`zephyr/app/boards/arduino_nano_esp32_procpu.overlay`](../zephyr/app/boards/arduino_nano_esp32_procpu.overlay) |
 
+## Memory layout
+
+The flash's partitions are in the board document's
+[Memory layout](../zephyr/boards/arduino/nano_esp32/doc/index.md#memory-layout). The room P02 has in its slot
+on Zephyr, printed by `tools/flash_layout.py` from a build of 35bdfe8; what the terms mean:
+[Boards → Memory layout](boards.md#memory-layout).
+
+| P02 in `slot0_partition` | Value |
+|---|---|
+| Board target | `arduino_nano_esp32/esp32s3/procpu` |
+| MCUboot mode | swap using move |
+| Slot size | 1344 KB (0x150000) |
+| Header (`ROM_START_OFFSET`) | 0x20 (32 B) |
+| End of the slot reserved for MCUboot (`ROM_END_OFFSET`) | 0x2028 (8.0 KB) |
+| Maximum header + code | 1336.0 KB (0x14DFD8) |
+| P02 today: header + code | 138.4 KB (0x22994) |
+| Margin in the slot | 1197.6 KB |
+
+The linker does not check this maximum on the ESP32-S3, so check the margin after a build.
+
 ## Setup, building and flashing
 
 The Nano is the board the general guides use:

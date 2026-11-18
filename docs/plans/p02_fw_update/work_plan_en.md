@@ -2,8 +2,6 @@
 
 How the [P02 firmware update flow](flow_en.md) is built. Obsolete once step E is done.
 
-Svenska: [work_plan_sv.md](work_plan_sv.md)
-
 The work is split into small steps, one step per branch and PR. Two tracks can run in parallel after step 0:
 **track A** is the P02 side (`Logic` and `boot::Zephyr`), tested mostly on the host with the stub, and
 **track B** is the module and the Zephyr side, tested on boards. Whoever did not write a step reviews it and

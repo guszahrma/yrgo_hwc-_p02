@@ -4,7 +4,7 @@ How a new P02 image is received over the serial port, test-run through MCUboot, 
 reverted. Applies to the swap variant (Nano, Nucleo) on Zephyr, with swap using offset. The document is
 updated as we reach agreement.
 
-Last updated 2026-11-16 · Version 59 (no names in the questions) · Svenska: [flow_sv.md](flow_sv.md)
+Last updated 2026-11-16 · Version 59 (no names in the questions)
 
 Status:
 

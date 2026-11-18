@@ -2,8 +2,6 @@
 
 Appendix to [P02 firmware update flow](flow_en.md). Status **Option**: possible addition, if the need arises. Not planned. Taken on if stakeholders see a need.
 
-Svenska: [possible_additions_sv.md](possible_additions_sv.md)
-
 ## The RAM-load variant: firmware that does not fit in the internal flash (Option)
 
 Extend the module with RAM load, for products whose firmware does not fit in the chip's internal flash. The

@@ -107,8 +107,18 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends ninja-build gperf device-tree-compiler
+      # The SDK from an earlier run: zephyr_setup.sh then skips `west sdk install` and its API request
+      # (AGENTS.md, CI design decision "Zephyr SDK in CI"). The key changes with the Zephyr version
+      # (west.yml) and with the toolchains the script installs (zephyr_setup.sh).
+      - name: Cache the Zephyr SDK
+        uses: actions/cache@v6
+        with:
+          path: ~/zephyr-sdk-*
+          key: zephyr-sdk-${{ runner.os }}-${{ hashFiles('west.yml', 'tools/zephyr_setup.sh') }}
       - name: Set up the Zephyr workspace (Zephyr version from west.yml)
         run: tools/zephyr_setup.sh
+        env:
+          GITHUB_TOKEN: ${{ github.token }} # west sdk install's API request, see zephyr_setup.sh
       # P02 with MCUboot (zephyr/app/sysbuild.conf). BOARD_ROOT is needed on the command line: sysbuild
       # looks up the board before the app's CMakeLists.txt runs.
       - name: Build the P02 app with MCUboot
@@ -144,8 +154,18 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends ninja-build gperf device-tree-compiler
+      # The SDK from an earlier run: zephyr_setup.sh then skips `west sdk install` and its API request
+      # (AGENTS.md, CI design decision "Zephyr SDK in CI"). The key changes with the Zephyr version
+      # (west.yml) and with the toolchains the script installs (zephyr_setup.sh).
+      - name: Cache the Zephyr SDK
+        uses: actions/cache@v6
+        with:
+          path: ~/zephyr-sdk-*
+          key: zephyr-sdk-${{ runner.os }}-${{ hashFiles('west.yml', 'tools/zephyr_setup.sh') }}
       - name: Set up the Zephyr workspace (Zephyr version from west.yml)
         run: tools/zephyr_setup.sh
+        env:
+          GITHUB_TOKEN: ${{ github.token }} # west sdk install's API request, see zephyr_setup.sh
       - name: Build Zephyr's blinky
         run: |
           source tools/zephyr_env.sh
@@ -181,8 +201,18 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends ninja-build gperf device-tree-compiler
+      # The SDK from an earlier run: zephyr_setup.sh then skips `west sdk install` and its API request
+      # (AGENTS.md, CI design decision "Zephyr SDK in CI"). The key changes with the Zephyr version
+      # (west.yml) and with the toolchains the script installs (zephyr_setup.sh).
+      - name: Cache the Zephyr SDK
+        uses: actions/cache@v6
+        with:
+          path: ~/zephyr-sdk-*
+          key: zephyr-sdk-${{ runner.os }}-${{ hashFiles('west.yml', 'tools/zephyr_setup.sh') }}
       - name: Set up the Zephyr workspace (Zephyr version from west.yml)
         run: tools/zephyr_setup.sh
+        env:
+          GITHUB_TOKEN: ${{ github.token }} # west sdk install's API request, see zephyr_setup.sh
       # The board is in Zephyr, so no BOARD_ROOT.
       - name: Build Zephyr's blinky
         run: |
@@ -218,8 +248,18 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends ninja-build gperf device-tree-compiler
+      # The SDK from an earlier run: zephyr_setup.sh then skips `west sdk install` and its API request
+      # (AGENTS.md, CI design decision "Zephyr SDK in CI"). The key changes with the Zephyr version
+      # (west.yml) and with the toolchains the script installs (zephyr_setup.sh).
+      - name: Cache the Zephyr SDK
+        uses: actions/cache@v6
+        with:
+          path: ~/zephyr-sdk-*
+          key: zephyr-sdk-${{ runner.os }}-${{ hashFiles('west.yml', 'tools/zephyr_setup.sh') }}
       - name: Set up the Zephyr workspace (Zephyr version from west.yml)
         run: tools/zephyr_setup.sh
+        env:
+          GITHUB_TOKEN: ${{ github.token }} # west sdk install's API request, see zephyr_setup.sh
       - name: Build and run the tests with Twister
         run: |
           source tools/zephyr_env.sh

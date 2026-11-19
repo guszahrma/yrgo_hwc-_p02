@@ -22,9 +22,18 @@ every board needs: [Boards](boards.md).
 
 ## Memory layout
 
-The partitions in the 512 KB internal flash, and the room P02 has in its slot. P02 changes the board's
-slots: slot 1 is one sector larger than slot 0 (`zephyr/app/partitions/nucleo_g0b1re.overlay`). Printed by
-`tools/flash_layout.py` from a build of 10342b2; what the terms mean: [Boards → Memory layout](boards.md#memory-layout).
+The hardware gives one 512 KB flash, the chip's internal flash (`flash0`), with 2 KB sectors (the smallest
+block the flash can erase). How it is divided into partitions is the devicetree's choice, not the
+hardware's: Zephyr's board (`boards/st/nucleo_g0b1re/nucleo_g0b1re.dts` in Zephyr) defines the partitions,
+and P02 changes its slots so that slot 1 is one sector larger than slot 0
+(`zephyr/app/partitions/nucleo_g0b1re.overlay`). The tables show the partitions P02 is built with, and the
+room P02 has in its slot; offsets are from the start of the flash. Printed by `tools/flash_layout.py` from a
+build of 10342b2; what the terms mean: [Boards → Memory layout](boards.md#memory-layout).
+
+| Column | Set by |
+|---|---|
+| Memory, Size, Sector | The hardware |
+| Partition, Offset, Size | The devicetree: change it to move, resize, add or remove partitions |
 
 | Memory | Size | Sector | Partition | Offset | Size |
 |---|---|---|---|---|---|

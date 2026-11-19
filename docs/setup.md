@@ -40,8 +40,8 @@ git clone --recursive git@github.com:guszahrma/yrgo_hwc-_p02.git
 cd yrgo_hwc-_p02
 ```
 
-`--recursive` also fetches GoogleTest (`tests/googletest`). In an existing clone without it:
-`git submodule update --init`.
+`--recursive` also fetches GoogleTest (`tests/googletest`) and the firmware update module
+(`modules/fw_update`). In an existing clone without it: `git submodule update --init`.
 
 ### Fixed port names
 

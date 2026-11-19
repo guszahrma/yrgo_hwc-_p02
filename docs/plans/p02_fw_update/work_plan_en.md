@@ -2,8 +2,6 @@
 
 How the [P02 firmware update flow](flow_en.md) is built. Obsolete once step E is done.
 
-Svenska: [work_plan_sv.md](work_plan_sv.md)
-
 The work is split into small steps, one step per branch and PR. Two tracks can run in parallel after step 0:
 **track A** is the P02 side (`Logic` and `boot::Zephyr`), tested mostly on the host with the stub, and
 **track B** is the module and the Zephyr side, tested on boards. Whoever did not write a step reviews it and
@@ -62,7 +60,7 @@ flowchart LR
 | Step | What | Depends on | Reviewer tests |
 |---|---|---|---|
 | B1 Swap using offset | `zephyr/app/Kconfig.sysbuild`, the rows in AGENTS.md (no partition changes were needed). Done in #104, which answered the open question *Swap using offset on the Nano* in [the flow](flow_en.md) | – | The update demo (test, then revert), Nucleo and Nano |
-| B2 Module and mcumgr | `modules/fw_update/` with `zephyr/module.yml` and Kconfig; the module's functions on top of MCUboot's API (version, confirmed, second slot, `fw_update_selftest_done()` with confirm or `sys_reboot()`); mcumgr enabled in `prj.conf`; CI builds it. Measure the flash on the Nucleo (200 KB slot) | – | CI green; the size in `report/material.md` |
+| B2 Module and mcumgr | In the module's own repository ([zephyr-fw-update](https://github.com/sigmundrulle/zephyr-fw-update), `modules/fw_update` here; its skeleton, `zephyr/module.yml` and Kconfig exist): the module's functions on top of MCUboot's API (version, confirmed, second slot, `fw_update_selftest_done()` with confirm or `sys_reboot()`); mcumgr enabled in `prj.conf`; CI builds it. Measure the flash on the Nucleo (200 KB slot) | – | CI green; the size in `report/material.md` |
 | B3 SMP transport | `serial::Zephyr` passes SMP frames to the module; `smp_transport_init()` and the hooks are registered in the module's `SYS_INIT`, and `fw_update_init(tx)` only gives the write function; the ring buffer or sorting in the interrupt; the output buffer for the responses (`fw_update_init(tx)`); SMP frames are not echoed | B2 | `smpmgr image state-read` responds and `p02_test.py` passes on the same port, Nucleo and Nano; an upload with blinking on gives no broken frames, and `smpmgr` skips text between frames; the largest response fits in the output buffer (measure) |
 | B4 Upload | `smpmgr image upload` to slot 1, progressive erase, mcumgr's checks (size, SHA-256) | B1, B3 | A whole upload with blinking and the watchdog measured, Nano; an image that is too large is rejected |
 | B5 Reset hook | The hook and the handshake in the module, with the time limit: the flag (`atomic_t`) and the semaphore (`k_sem`), both proposals; `boot::Zephyr` is connected to it. The hook `MGMT_EVT_OP_CMD_RECV` that rejects `image state write` while the image is not confirmed | 0, B3 | `smpmgr os reset` restarts after the shutdown; an app that does not respond gives `busy`; `image confirm` during the self-test is rejected |

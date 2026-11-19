@@ -18,6 +18,9 @@
 !*_defconfig
 !VERSION
 
+# Don't ignore the firmware update module (a git submodule, which git stores like a file).
+!/modules/fw_update
+
 # Ignore .txt files.
 *.txt
 

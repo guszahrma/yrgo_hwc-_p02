@@ -13,7 +13,7 @@ every board needs: [Boards](boards.md).
 | What | On the Nucleo-G0B1RE |
 |---|---|
 | Board target | `nucleo_g0b1re` (Zephyr's own board definition) |
-| Flash | MCUboot (~26 KB) at the start of the internal flash starts P02 (~48 KB) in the 200 KB `slot0_partition` |
+| Flash | MCUboot (~26 KB) at the start of the internal flash starts P02 (~48 KB) in the 198 KB `slot0_partition` |
 | RAM | ~11 KB of the 144 KB |
 | Settings (`store`) | The `storage` partition, the last 64 KB of the internal flash |
 | Console | The ST-Link's serial port (USART2) on the ST-Link USB port, `/dev/tty_nucleo_g0b1re` |

@@ -1,0 +1,31 @@
+/*
+ * Partitions for MCUboot's swap using offset on the Nucleo-G0B1RE, given to both MCUboot and P02
+ * (zephyr/app/sysbuild.cmake). Changes Zephyr's board layout (boards/st/nucleo_g0b1re), whose slots are
+ * equal (200 KB each).
+ *
+ * Swap using offset writes an update one sector into slot 1, so slot 1 is one 2 KB sector larger than
+ * slot 0: the most space-efficient layout in MCUboot's docs/design.md. The sector is taken from slot 0,
+ * so boot_partition and storage_partition stay where they are (stored settings are kept).
+ *
+ *   boot_partition     0x00000   48 KB   (unchanged)
+ *   slot0_partition    0x0C000  198 KB   (was 200 KB)
+ *   slot1_partition    0x3D800  202 KB   (was 200 KB at 0x3E000)
+ *   storage_partition  0x70000   64 KB   (unchanged)
+ */
+
+#include <mem.h>
+
+&slot0_partition {
+	reg = <0x0000c000 DT_SIZE_K(198)>;
+};
+
+/delete-node/ &slot1_partition;
+
+&flash0 {
+	partitions {
+		slot1_partition: partition@3d800 {
+			label = "image-1";
+			reg = <0x0003d800 DT_SIZE_K(202)>;
+		};
+	};
+};

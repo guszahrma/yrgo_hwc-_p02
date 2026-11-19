@@ -68,7 +68,7 @@ What the board definition provides:
 | LED | `led0` = user LED (PC7) |
 | Watchdog | `watchdog0` = the independent watchdog (IWDG1) |
 | Pin header | `daisy_seed_header`: Daisy pin names D0–D30 and A0–A11 (constants in `<dt-bindings/gpio/daisy-seed-header.h>`) |
-| QSPI flash | `ext_flash`, partitions `slot0` (1 MB) and `slot1` (1 MB) for app images, `storage` (64 KB) for settings |
+| QSPI flash | `ext_flash`, partitions `slot0` (512 KB) and `slot1` (512 KB) for app images, `storage` (64 KB) for settings |
 | Bootloader | MCUboot, built automatically with `--sysbuild` for `ram_load` |
 
 App overlays describe wiring with Daisy pin names. Give all three names in a comment: only the physical pin
@@ -89,11 +89,11 @@ gpios = <&daisy_seed_header DAISY_SEED_HEADER_D26 GPIO_ACTIVE_HIGH>; /* D26 = pi
 ## How an app starts: MCUboot and RAM load
 
 ```
-Internal flash (128 KB)     QSPI flash (8 MB)                        AXI SRAM (512 KB)
-┌──────────────────┐        ┌───────────┬───────────┬─────────┐      ┌──────────────┐
-│ MCUboot (~61 KB) │──────▶ │ slot0 1MB │ slot1 1MB │ storage │ ───▶ │ app runs here│
-└──────────────────┘ reads  │ app image │ (unused)  │ 64 KB   │ copy └──────────────┘
-                            └───────────┴───────────┴─────────┘
+Internal flash (128 KB)     QSPI flash (8 MB)                              AXI SRAM (512 KB)
+┌──────────────────┐        ┌──────────────┬──────────────┬─────────┐      ┌──────────────┐
+│ MCUboot (~61 KB) │──────▶ │ slot0 512 KB │ slot1 512 KB │ storage │ ───▶ │ app runs here│
+└──────────────────┘ reads  │ app image    │ (unused)     │ 64 KB   │ copy └──────────────┘
+                            └──────────────┴──────────────┴─────────┘
 ```
 
 At every start MCUboot checks the image in slot0, copies it into RAM and starts it. The app runs from RAM,
@@ -253,6 +253,7 @@ The short version; the reasons and how each was tested are in [`AGENTS.md`](../A
 | Apps run from RAM (`ram_load`), not from the QSPI flash | The QSPI flash cannot be read as memory while it is written, so an app running from it could not save settings |
 | A RESET press enters recovery mode; power-on and software resets start the app | MCUboot cannot read any button on the Daisy. `mcuboot_hooks.c` tells RESET apart from other resets by the reset flags |
 | MCUboot switches USB on only in recovery mode | Switched on at every start, the PC lost the board half-way through connecting when MCUboot started the app |
+| Slots of 512 KB, `storage` right after them | MCUboot cannot load a larger image into the 512 KB AXI SRAM, so larger slots would never be filled |
 | QSPI writes with `PP_1_1_4` | Zephyr's default command corrupts writes on this flash chip |
 | `dfu-util` without `leave` | With it, every flash ended with an error, although the program was written |
 | Daisy pin names (`daisy_seed_header`) | Wiring is written with the names printed in the Daisy's pinout, not STM32 names |

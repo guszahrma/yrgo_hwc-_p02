@@ -86,7 +86,8 @@ Shows what MCUboot does with a new version, on the **Nucleo-G0B1RE and the Nano*
 test, and since v2 does not confirm itself, it goes back to v1 at the next reset. On these boards MCUboot
 runs in **swap using offset** (`zephyr/app/Kconfig.sysbuild`): the new image is written **one sector into**
 `slot1_partition`, and the first sector of slot 1 is the free one that MCUboot moves the sectors into during
-the swap. The old version is kept in slot 1 and can come back. The Daisy keeps RAM load, which has no
+the swap. Slot 1 is therefore one sector larger than slot 0 (`zephyr/app/partitions/<board>.overlay`), so an
+update can be as large as slot 0. The old version is kept in slot 1 and can come back. The Daisy keeps RAM load, which has no
 rollback here.
 
 The steps are done by hand for now: v2 is marked "test me" with `west sign --pad` and written to slot 1 with
@@ -98,13 +99,13 @@ P02's version is in `zephyr/app/VERSION` (1.0.0) and goes into the image header 
 
 | Board | `slot0_partition` | `slot1_partition` | Sector | v2 written to | `--slot-size` for `--pad` |
 |---|---|---|---|---|---|
-| Nucleo-G0B1RE | 0x0800C000 | 0x0803E000 | 2 KB | **0x0803E800** | **0x31800** |
-| Nano ESP32 | 0x20000 | 0x170000 | 4 KB | **0x171000** | **0x14F000** |
+| Nucleo-G0B1RE | 0x0800C000 | 0x0803D800 | 2 KB | **0x0803E000** | **0x32000** |
+| Nano ESP32 | 0x20000 | 0x16F000 | 4 KB | **0x170000** | **0x150000** |
 
 The addresses are the `reg` of the partitions in `zephyr/app/build/<board>/app/zephyr/zephyr.dts` (on the
 Nucleo plus the flash's start, 0x08000000), and the sector is the flash's `erase-block-size` in the same file.
-v2 is written at slot 1 plus one sector, and is padded to the slot minus one sector, so that its trailer ends
-exactly at the end of slot 1. Padded to the whole slot, the trailer would land one sector after slot 1 (on the
+v2 is written at slot 1 plus one sector, and is padded to the slot minus one sector (the size of slot 0), so
+that its trailer ends exactly at the end of slot 1. Padded to the whole slot, the trailer would land one sector after slot 1 (on the
 Nucleo in `storage_partition`, where the settings are).
 
 **1. Erase the slots and flash v1.** Erase once if MCUboot ran in another mode before (swap using move,
@@ -145,7 +146,7 @@ stat -c %s <v2>/app/zephyr/zephyr.signed.bin
 python3 deps/bootloader/mcuboot/scripts/imgtool.py dumpinfo <v2>/app/zephyr/zephyr.signed.bin
 ```
 
-`stat` must give `<size>` (202752 on the Nucleo, 1372160 on the Nano); with the whole slot, `--slot-size`
+`stat` must give `<size>` (204800 on the Nucleo, 1376256 on the Nano); with the whole slot, `--slot-size`
 did not take effect. `dumpinfo` should show `version: 2.0.0+0` in the header and the bytes of `boot magic`
 in the trailer.
 
@@ -155,7 +156,7 @@ in the trailer.
 $OPENOCD/bin/openocd -s deps/zephyr/boards/st/nucleo_g0b1re/support -s $OPENOCD/share/openocd/scripts \
   -f deps/zephyr/boards/st/nucleo_g0b1re/support/openocd.cfg \
   -c "init" -c "reset halt" \
-  -c "flash write_image erase zephyr/app/build/nucleo_g0b1re_v2/app/zephyr/zephyr.signed.bin 0x0803E800" \
+  -c "flash write_image erase zephyr/app/build/nucleo_g0b1re_v2/app/zephyr/zephyr.signed.bin 0x0803E000" \
   -c "reset run" -c "shutdown"
 ```
 
@@ -165,7 +166,7 @@ Nucleo stays on USB through a reset and is flashed over SWD, so `tio` can stay o
 Nano:
 
 ```bash
-esptool --chip esp32s3 -p /dev/tty_arduino_nano_esp32 --after no-reset write-flash 0x171000 zephyr/app/build/arduino_nano_esp32_v2/app/zephyr/zephyr.signed.bin
+esptool --chip esp32s3 -p /dev/tty_arduino_nano_esp32 --after no-reset write-flash 0x170000 zephyr/app/build/arduino_nano_esp32_v2/app/zephyr/zephyr.signed.bin
 ```
 
 `--after no-reset` on every esptool command: esptool otherwise resets the chip when it is done, and every
@@ -181,11 +182,11 @@ slot 1 plus one sector holds no image header, only v1's code.
 `Image version: v1.0.0`. The settings in `storage_partition` are kept.
 
 **On the Nano,** MCUboot's output is not seen (see above), so read the image headers with esptool before
-step 5, after step 5 and after step 6: slot 0 (0x20000), the start of slot 1 (0x170000) and slot 1 plus one
-sector (0x171000):
+step 5, after step 5 and after step 6: slot 0 (0x20000), the start of slot 1 (0x16F000) and slot 1 plus one
+sector (0x170000):
 
 ```bash
-for a in 0x20000 0x170000 0x171000; do
+for a in 0x20000 0x16F000 0x170000; do
   esptool --chip esp32s3 -p /dev/tty_arduino_nano_esp32 --after no-reset read-flash $a 32 /tmp/hdr.bin > /dev/null &&
   python3 -c 'import struct,sys; d=open("/tmp/hdr.bin","rb").read(); m=struct.unpack_from("<I",d,0)[0]; print(sys.argv[1], hex(m), ("v%d.%d.%d" % struct.unpack_from("<BBH",d,20)) if m==0x96f3b83d else "(no image)")' $a
 done

@@ -6,8 +6,8 @@
 # sourced files.
 
 # The MCUboot mode: one that can roll an update back. Swap using offset: an update is written one sector
-# into slot 1, whose first sector is the free one during the swap; it works with equal slots, as on these
-# boards. The Daisy Seed is not listed: its board keeps RAM load (zephyr/boards/electrosmith/daisy_seed/
+# into slot 1, whose first sector is the free one during the swap. Slot 1 is one sector larger than slot 0
+# for that (zephyr/app/partitions/<board>.overlay, given to MCUboot and P02 by sysbuild.cmake). The Daisy Seed is not listed: its board keeps RAM load (zephyr/boards/electrosmith/daisy_seed/
 # Kconfig.sysbuild).
 choice MCUBOOT_MODE
 	default MCUBOOT_MODE_SWAP_USING_OFFSET if BOARD_NUCLEO_G0B1RE

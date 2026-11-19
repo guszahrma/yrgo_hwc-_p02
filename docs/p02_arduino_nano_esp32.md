@@ -21,18 +21,34 @@ Zephyr board definition – is described in its board document,
 
 ## Memory layout
 
-The flash's partitions are in the board document's
-[Memory layout](../zephyr/boards/arduino/nano_esp32/doc/index.md#memory-layout). The room P02 has in its slot
-on Zephyr, printed by `tools/flash_layout.py` from a build of 35bdfe8; what the terms mean:
-[Boards → Memory layout](boards.md#memory-layout).
+The partitions P02 is built with on Zephyr, and the room P02 has in its slot. P02 changes the board's slots
+(the board's own layout is in the board document's
+[Memory layout](../zephyr/boards/arduino/nano_esp32/doc/index.md#memory-layout)): slot 1 is one sector larger
+than slot 0 (`zephyr/app/partitions/arduino_nano_esp32.overlay`). Printed by `tools/flash_layout.py` from a
+build of 10342b2; what the terms mean: [Boards → Memory layout](boards.md#memory-layout).
+
+| Memory | Size | Sector | Partition | Offset | Size |
+|---|---|---|---|---|---|
+| `flash0` | 16 MB | 4 KB | `boot_partition` | 0x0 | 64 KB |
+|  |  |  | `sys_partition` | 0x10000 | 64 KB |
+|  |  |  | `slot0_partition` | 0x20000 | 1340 KB |
+|  |  |  | `slot1_partition` | 0x16F000 | 1348 KB |
+|  |  |  | `slot0_appcpu_partition` | 0x2C0000 | 448 KB |
+|  |  |  | `slot1_appcpu_partition` | 0x330000 | 448 KB |
+|  |  |  | `slot0_lpcore_partition` | 0x3A0000 | 32 KB |
+|  |  |  | `slot1_lpcore_partition` | 0x3A8000 | 32 KB |
+|  |  |  | `storage_partition` | 0x3B0000 | 192 KB |
+|  |  |  | `scratch_partition` | 0x3E0000 | 124 KB |
+|  |  |  | `coredump_partition` | 0x3FF000 | 4 KB |
+|  |  |  | *unused* | 0x400000 | 12 MB |
 
 | P02 in `slot0_partition` | Value |
 |---|---|
 | Board target | `arduino_nano_esp32/esp32s3/procpu` |
-| MCUboot mode | swap using move |
-| Slot size | 1344 KB (0x150000) |
+| MCUboot mode | swap using offset |
+| Slot size | 1340 KB (0x14F000) |
 | Header (`ROM_START_OFFSET`) | 0x20 (32 B) |
-| End of the slot reserved for MCUboot (`ROM_END_OFFSET`) | 0x2028 (8.0 KB) |
+| End of the slot reserved for MCUboot (`ROM_END_OFFSET`) | 0x1028 (4.0 KB) |
 | Maximum header + code | 1336.0 KB (0x14DFD8) |
 | P02 today: header + code | 138.4 KB (0x22994) |
 | Margin in the slot | 1197.6 KB |

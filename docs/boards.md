@@ -87,15 +87,15 @@ slot0_partition
 | Header (`CONFIG_ROM_START_OFFSET`) | MCUboot's image header (version, sizes), written by `imgtool` when it signs the image |
 | Trailer | MCUboot's update state at the end of the slot: magic, `image_ok`, `copy_done`, swap progress |
 | `CONFIG_ROM_END_OFFSET` | What the build keeps free at the end of the slot: the trailer, room for the image's TLVs (hash, signature) and, depending on the mode, one sector |
-| Maximum header + code | Slot size − `ROM_END_OFFSET` (− one sector for swap using offset, see below) |
+| Maximum header + code | Slot size − `ROM_END_OFFSET` (for swap using offset with equal slots, also − one sector, see below) |
 | Margin | Maximum − what P02 uses today |
 
 What is kept free at the end of the slot depends on the MCUboot mode:
 
 | MCUboot mode | Kept free | Boards |
 |---|---|---|
-| Swap using move | Trailer + one sector, which the swap moves the image into. Both are in `ROM_END_OFFSET` | Nucleo, Nano |
-| Swap using offset | Trailer + one sector, the free one during the swap. MCUboot's build leaves the sector out of `ROM_END_OFFSET`, so only `tools/flash_layout.py` counts it | None yet |
+| Swap using move | Trailer + one sector, which the swap moves the image into. Both are in `ROM_END_OFFSET` | None |
+| Swap using offset | Trailer; an update is written one sector into slot 1. With slot 1 one sector larger than slot 0 (MCUboot's recommendation), nothing more. With equal slots, also one sector, which MCUboot's build leaves out of `ROM_END_OFFSET`, so only `tools/flash_layout.py` counts it | Nucleo, Nano (slot 1 one sector larger) |
 | RAM load | Trailer only. MCUboot copies header + code into RAM, where P02's data and stacks are too, so the RAM is the real limit | Daisy |
 
 Who stops an image that is too large:

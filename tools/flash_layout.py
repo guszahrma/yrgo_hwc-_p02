@@ -145,11 +145,15 @@ def p02_table(build: Path, partitions: dict) -> list[str]:
     # the image's TLVs and, for swap using move, one sector.
     limit = slot_size - end
     end_text = f"0x{end:X} ({size_text(end)})"
-    if mode == "swap using offset":
-        # MCUboot's sysbuild code leaves this sector out of ROM_END_OFFSET (a #todo in
-        # mcuboot/boot/zephyr/CMakeLists.txt), but an update needs it in slot 1.
-        limit -= sector
-        end_text += f" + one sector, {size_text(sector)} (not in `ROM_END_OFFSET`)"
+    if mode == "swap using offset" and "slot1_partition" in partitions:
+        # An update is written one sector into slot 1, so it must also fit in slot 1 minus one sector.
+        # MCUboot's sysbuild code leaves that sector out of ROM_END_OFFSET (a #todo in
+        # mcuboot/boot/zephyr/CMakeLists.txt), so it only limits P02 when slot 1 is not one sector larger.
+        slot1_size = partitions["slot1_partition"][2]
+        slot1_limit = slot1_size - sector - end
+        if slot1_limit < limit:
+            limit = slot1_limit
+            end_text += f" + one sector, {size_text(sector)} (slot 1 is not one sector larger)"
 
     lines = [
         "| P02 in `slot0_partition` | Value |",

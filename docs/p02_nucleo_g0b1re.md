@@ -22,26 +22,27 @@ every board needs: [Boards](boards.md).
 
 ## Memory layout
 
-The partitions in the 512 KB internal flash, and the room P02 has in its slot. Printed by
-`tools/flash_layout.py` from a build of 35bdfe8; what the terms mean: [Boards → Memory layout](boards.md#memory-layout).
+The partitions in the 512 KB internal flash, and the room P02 has in its slot. P02 changes the board's
+slots: slot 1 is one sector larger than slot 0 (`zephyr/app/partitions/nucleo_g0b1re.overlay`). Printed by
+`tools/flash_layout.py` from a build of 10342b2; what the terms mean: [Boards → Memory layout](boards.md#memory-layout).
 
 | Memory | Size | Sector | Partition | Offset | Size |
 |---|---|---|---|---|---|
 | `flash0` | 512 KB | 2 KB | `boot_partition` | 0x0 | 48 KB |
-|  |  |  | `slot0_partition` | 0xC000 | 200 KB |
-|  |  |  | `slot1_partition` | 0x3E000 | 200 KB |
+|  |  |  | `slot0_partition` | 0xC000 | 198 KB |
+|  |  |  | `slot1_partition` | 0x3D800 | 202 KB |
 |  |  |  | `storage_partition` | 0x70000 | 64 KB |
 
 | P02 in `slot0_partition` | Value |
 |---|---|
 | Board target | `nucleo_g0b1re/stm32g0b1xx` |
-| MCUboot mode | swap using move |
-| Slot size | 200 KB (0x32000) |
+| MCUboot mode | swap using offset |
+| Slot size | 198 KB (0x31800) |
 | Header (`ROM_START_OFFSET`) | 0x200 (512 B) |
-| End of the slot reserved for MCUboot (`ROM_END_OFFSET`) | 0x1828 (6.0 KB) |
-| Maximum header + code | 194.0 KB (0x307D8) |
-| P02 today: header + code | 48.9 KB (0xC388) |
-| Margin in the slot | 145.1 KB |
+| End of the slot reserved for MCUboot (`ROM_END_OFFSET`) | 0x828 (2.0 KB) |
+| Maximum header + code | 196.0 KB (0x30FD8) |
+| P02 today: header + code | 48.9 KB (0xC380) |
+| Margin in the slot | 147.1 KB |
 
 The flash is fully used: more storage would have to come from the slots, which means building and flashing
 MCUboot again with a cable.

@@ -275,6 +275,9 @@ jobs:
         run: |
           cmake -S tests -B tests/build
           cmake --build tests/build
+      # Tests of our Python build tools (tools/test_*.py): standard library only, no Zephyr needed
+      - name: Run the tests of the Python tools
+        run: python3 -m unittest discover -s tools -p "test_*.py" -v
 
   # Flashes the ESP-IDF firmware from esp-idf-build-nano on a Nano ESP32 and tests P02 over USB serial.
   # Runs on a self-hosted runner with the label arduino_nano_esp32 (the board attached through usbipd, port

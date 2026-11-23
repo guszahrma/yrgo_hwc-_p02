@@ -24,6 +24,9 @@ The firmware update function is meant to be usable by more products than P02. A 
 built. P02's firmware update will be demonstrated to its developers, and their feedback decides what becomes
 shared. That is why everything that is not specific to P02 is built as a Zephyr module: Kconfig options and a
 small C API on top of mcumgr and MCUboot, which a product can use fully, partly or not at all.
+The module's function names here follow its C API, `include/fuz/fuz.h` in
+[firmware-update-for-zephyr](https://github.com/sigmundrulle/firmware-update-for-zephyr) (being
+written); where they differ, the header is right.
 
 | In the module (shared) | In P02 |
 |---|---|
@@ -59,7 +62,7 @@ sequenceDiagram
     Note over S,M: Phase 2 Transfer to slot 1 (repeated for each chunk)
     S->>Ser: new image v2, one chunk per SMP packet, as frames (smpmgr)
     rect rgba(45, 98, 179, 0.14)
-        Ser->>Mod: fuz_smp_rx(frame), frames separated from text
+        Ser->>Mod: fuz_receive_smp_frame(frame), frames separated from text
         Mod->>Mod: mcumgr_serial_process_frag(): SMP packet assembled, CRC16
         Mod->>Mg: smp_rx_req(SMP packet), queued
     end
@@ -90,7 +93,7 @@ sequenceDiagram
         end
         S->>Ser: image test (SMP packet as frames)
         rect rgba(45, 98, 179, 0.14)
-            Ser->>Mod: fuz_smp_rx(frame)
+            Ser->>Mod: fuz_receive_smp_frame(frame)
             Mod->>Mg: smp_rx_req(SMP packet)
         end
         rect rgba(161, 96, 10, 0.18)
@@ -105,7 +108,7 @@ sequenceDiagram
     Note over S,M: Phase 4 Update request
     S->>Ser: image test (SMP packet as frames)
     rect rgba(45, 98, 179, 0.14)
-        Ser->>Mod: fuz_smp_rx(frame)
+        Ser->>Mod: fuz_receive_smp_frame(frame)
         Mod->>Mg: smp_rx_req(SMP packet)
     end
     rect rgba(161, 96, 10, 0.18)
@@ -113,7 +116,7 @@ sequenceDiagram
     end
     S->>Ser: os reset (SMP packet as frames)
     rect rgba(45, 98, 179, 0.14)
-        Ser->>Mod: fuz_smp_rx(frame)
+        Ser->>Mod: fuz_receive_smp_frame(frame)
         Mod->>Mg: smp_rx_req(SMP packet)
     end
     rect rgba(161, 96, 10, 0.18)
@@ -121,10 +124,10 @@ sequenceDiagram
         Mod->>Mod: sets the flag, waits on the semaphore (at most 2 s)
     end
     rect rgba(45, 98, 179, 0.14)
-        P->>Mod: boot: restartRequested() → fuz_restart_requested(), asked every iteration
+        P->>Mod: boot: restartRequested() → fuz_is_restart_requested(), asked every iteration
         Mod-->>P: true
         P->>P: Logic shuts down in order
-        P->>Mod: boot: readyForRestart() → fuz_ready_for_restart(), gives the semaphore
+        P->>Mod: boot: readyForRestart() → fuz_set_ready_for_restart(), gives the semaphore
     end
     rect rgba(161, 96, 10, 0.18)
         Mod->>Mod: the hook wakes from waiting (semaphore), when main sleeps
@@ -148,7 +151,7 @@ sequenceDiagram
     alt C: self-test fails
         rect rgba(45, 98, 179, 0.14)
             P->>Ser: print("Self-test failed: restarting, the previous version comes back")
-            P->>Mod: boot: selfTestDone(false) → fuz_selftest_done(false)
+            P->>Mod: boot: selfTestDone(false) → fuz_revert()
         end
         Mod-)M: reset: sys_reboot() without confirm
         M->>M: revert: v1 back to slot 0
@@ -157,7 +160,7 @@ sequenceDiagram
         M->>M: starts after the watchdog reset, revert: v1 back to slot 0
     else E: self-test OK
         rect rgba(45, 98, 179, 0.14)
-            P->>Mod: boot: selfTestDone(true) → fuz_selftest_done(true)
+            P->>Mod: boot: selfTestDone(true) → fuz_confirm()
             Mod->>S0: boot_write_img_confirmed(), image ok in the trailer
         end
         Note over P: v2 confirmed, stays after reset
@@ -178,7 +181,7 @@ The only thing P02 gives the module is the write function for the responses: `se
 `fuz_init(tx)` in its constructor. The module needs it because the responses go out through
 `serial::Zephyr` (only main writes to the serial port), and the module does not know P02 and cannot find
 `serial::Zephyr` by itself. The responses come later and from mcumgr's thread, not as a return value from
-`fuz_smp_rx()`, so the module must have the write function from the start.
+`fuz_receive_smp_frame()`, so the module must have the write function from the start.
 
 ### 2. Transfer to slot 1 (Agreed; Open: verify on the Nano)
 
@@ -199,7 +202,7 @@ as usual.
 * Time per chunk: an SMP packet is at most 384 bytes, as base64 about 5 frames of at most 127 bytes. On the
   Nucleo (UART 115200 baud) that takes about 45 ms on the serial port; on the Nano (USB) it is governed by the
   10 ms loop.
-* Receiving does not block `Logic`: the interrupt puts bytes in the ring buffer, and `fuz_smp_rx()` only
+* Receiving does not block `Logic`: the interrupt puts bytes in the ring buffer, and `fuz_receive_smp_frame()` only
   copies and decodes, which takes microseconds. The flash writes happen in mcumgr's thread, at a lower
   priority.
 * With swap using offset, mcumgr writes the image from the **second sector** of slot 1. The first sector is
@@ -302,10 +305,10 @@ created and the ADC reports `isInitialized()`, NVS can be reached (missing or co
 and count as passed), and `Logic`'s loop has run for a certain time (for example 10 s) without the watchdog
 firing.
 
-* **Passed:** P02 reports the result (`boot::Interface::selfTestDone(true)` → `fuz_selftest_done(true)`),
+* **Passed:** P02 reports the result (`boot::Interface::selfTestDone(true)` → `fuz_confirm()`),
   and the module confirms with `boot_write_img_confirmed()`. v2 stays after the next reset.
 * **Failed:** P02 writes a line (`Self-test failed: restarting, the previous version comes back`) and reports
-  the result (`selfTestDone(false)`). The module restarts with `sys_reboot()` without confirm, and MCUboot
+  the result (`selfTestDone(false)` → `fuz_revert()`). The module restarts with `sys_reboot()` without confirm, and MCUboot
   reverts to v1. P02 writes the line itself before the report, since the module's `tx()` only puts it in the
   output buffer, which main does not have time to empty before the restart.
 * **Hangs:** `Logic` does not kick the watchdog, which resets the chip after 3 s (Nano ~6 s). MCUboot reverts
@@ -343,7 +346,7 @@ code runs in the thread that calls it. Only main writes to the serial port. Expl
 
 | Thread | Priority | What runs there |
 |---|---|---|
-| main (`Logic`) | 0 | The loop every 10 ms. Asks every iteration whether a restart for an update has been requested (`restartRequested()`). mcumgr only runs when main sleeps, so a loop that never sleeps starves the upload. `readLine()` receives, separates SMP frames from text and calls `fuz_smp_rx()`, echoes text and empties the output buffer. Also `print()`, the drivers' `printk()`, the shutdown and the self-test |
+| main (`Logic`) | 0 | The loop every 10 ms. Asks every iteration whether a restart for an update has been requested (`restartRequested()`). mcumgr only runs when main sleeps, so a loop that never sleeps starves the upload. `readLine()` receives, separates SMP frames from text and calls `fuz_receive_smp_frame()`, echoes text and empties the output buffer. Also `print()`, the drivers' `printk()`, the shutdown and the self-test |
 | mcumgr's work queue | 3 | Handles the SMP packets, writes the chunks to flash, calls `output()` and thus `tx()`, and the callbacks (the reset hook, `DFU_PENDING` with the board check) |
 | UART interrupt (no thread) | – | Puts received bytes in the ring buffer (Nucleo). The Nano polls from main |
 
@@ -417,7 +420,7 @@ firmware update. Proposal for later: `PROJECT_VER` from the same `VERSION` file 
 | Checks of the image | mcumgr's built-in ones (header, size with `TOO_LARGE_SYSBUILD`, `upgrade`, SHA-256 with `IMG_ENABLE_IMAGE_CHECK`) plus one of our own: the right board, the board target in a TLV of its own, checked when the image has been received. Rejected: the chip's type ID (chip-specific code per platform, misses boards with the same chip), board revision (our boards have no ID), our own check of the whole slot 1 with the result in `image state-read` | Agreed |
 | Image for the wrong board | The module erases the sector with the header in slot 1 at once (with swap using offset, the second sector) and writes a line on the serial port. Rejected: decline `os reset` and keep the image (the test mark stays, the next restart starts it), the reason in `image state-read` (more code, the line already shows in `tio`), reject `image test` with the hook `MGMT_EVT_OP_CMD_RECV` (does not see the content, so it also rejects `image confirm`) | Agreed |
 | `boot::Zephyr` and the module | `boot::Zephyr` is a thin adapter: each method in `boot::Interface` calls a function in the module, and all reading and writing of MCUboot's state in P02 goes through the module. Rejected: `boot::Zephyr` directly against MCUboot's API (two ways to the same state), one and the same code (the module is C and does not know P02; `boot::Interface` is P02's C++ interface, with a stub for the host tests) | Agreed |
-| Who confirms after the swap | The module, based on the self-test result P02 reports (`selfTestDone()`): passed gives confirm, failed gives a reset without confirm (revert). If the self-test hangs, the watchdog resets the chip. A client that does not want to keep v2 does a rollback with `image test` on the previous version in slot 1. Rejected: two steps, where the client confirms after P02's self-test (if the client never comes back, there is an unexpected revert at the next restart, for example a power cut), only the client without a self-test (a broken v2 runs until someone notices) | Agreed |
+| Who confirms after the swap | The module, based on the self-test result P02 reports (`selfTestDone()`, which calls `fuz_confirm()` or `fuz_revert()`): passed gives confirm, failed gives a reset without confirm (revert). If the self-test hangs, the watchdog resets the chip. A client that does not want to keep v2 does a rollback with `image test` on the previous version in slot 1. Rejected: two steps, where the client confirms after P02's self-test (if the client never comes back, there is an unexpected revert at the next restart, for example a power cut), only the client without a self-test (a broken v2 runs until someone notices) | Agreed |
 | Confirm during the self-test | The module rejects `image state write` with the hook `MGMT_EVT_OP_CMD_RECV` while the running image is not confirmed, and reads that itself with `boot_is_img_confirmed()`. To verify: that `west flash` gives a confirmed image. Rejected: allow it (the client can skip the self-test with `image confirm`) | Agreed |
 | Older version in slot 1 | May be test-run; it is the client's choice (`upgrade` on upload, `image test` on the previous version as a rollback). With swap using offset, the previous version ends up at the start of slot 1 (#104); that mcumgr finds it there is still to verify (see phase 5). Rejected: P02 always rejects lower versions (the previous version in slot 1 can still be test-run), erase slot 1 on confirm (no way back) | Agreed |
 | What the self-test checks | "Came up and runs", with what already exists: the drivers created and the ADC `isInitialized()`, NVS can be reached (missing or corrupt settings give defaults and count as passed), and `Logic`'s loop has run for a certain time (for example 10 s) without the watchdog. No changes to the interfaces. Rejected: corrupt NVS as a failure (a data problem that v1 also has would stop all updates, even a v2 that fixes it), `selfTest()` in every driver (changes all drivers and stubs), only that the loop started (catches nothing the watchdog does not already catch). For the demo, the field `selftest` in NVS can force a failure, without a Kconfig option since P02 is a demo. Rejected for the demo: a build flag (one build per outcome) | Agreed |

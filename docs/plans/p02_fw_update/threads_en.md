@@ -125,7 +125,7 @@ sequenceDiagram
     S->>Ser: frames with one chunk
     rect rgba(45, 98, 179, 0.16)
         Note over Ser,Mg: main thread, in readLine()
-        Ser->>Mod: fuz_smp_rx(frame)
+        Ser->>Mod: fuz_receive_smp_frame(frame)
         Mod->>Mg: smp_rx_req(SMP packet), queued
         Mg-->>Ser: returns at once
     end

@@ -41,7 +41,7 @@ cd yrgo_hwc-_p02
 ```
 
 `--recursive` also fetches GoogleTest (`tests/googletest`) and the firmware update module
-(`modules/fw_update`). In an existing clone without it: `git submodule update --init`.
+(`modules/fuz`). In an existing clone without it: `git submodule update --init`.
 
 ### Fixed port names
 

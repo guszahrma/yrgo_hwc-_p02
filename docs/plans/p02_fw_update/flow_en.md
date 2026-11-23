@@ -53,13 +53,13 @@ sequenceDiagram
     Note over S,M: Phase 1 Starting point
     rect rgba(45, 98, 179, 0.14)
         Note over Ser,Mod: at startup
-        Ser->>Mod: fw_update_init(tx): gives the module the write function for responses
+        Ser->>Mod: fuz_init(tx): gives the module the write function for responses
     end
     Note over P: v1 running, confirmed
     Note over S,M: Phase 2 Transfer to slot 1 (repeated for each chunk)
     S->>Ser: new image v2, one chunk per SMP packet, as frames (smpmgr)
     rect rgba(45, 98, 179, 0.14)
-        Ser->>Mod: fw_update_smp_rx(frame), frames separated from text
+        Ser->>Mod: fuz_smp_rx(frame), frames separated from text
         Mod->>Mod: mcumgr_serial_process_frag(): SMP packet assembled, CRC16
         Mod->>Mg: smp_rx_req(SMP packet), queued
     end
@@ -90,7 +90,7 @@ sequenceDiagram
         end
         S->>Ser: image test (SMP packet as frames)
         rect rgba(45, 98, 179, 0.14)
-            Ser->>Mod: fw_update_smp_rx(frame)
+            Ser->>Mod: fuz_smp_rx(frame)
             Mod->>Mg: smp_rx_req(SMP packet)
         end
         rect rgba(161, 96, 10, 0.18)
@@ -105,7 +105,7 @@ sequenceDiagram
     Note over S,M: Phase 4 Update request
     S->>Ser: image test (SMP packet as frames)
     rect rgba(45, 98, 179, 0.14)
-        Ser->>Mod: fw_update_smp_rx(frame)
+        Ser->>Mod: fuz_smp_rx(frame)
         Mod->>Mg: smp_rx_req(SMP packet)
     end
     rect rgba(161, 96, 10, 0.18)
@@ -113,7 +113,7 @@ sequenceDiagram
     end
     S->>Ser: os reset (SMP packet as frames)
     rect rgba(45, 98, 179, 0.14)
-        Ser->>Mod: fw_update_smp_rx(frame)
+        Ser->>Mod: fuz_smp_rx(frame)
         Mod->>Mg: smp_rx_req(SMP packet)
     end
     rect rgba(161, 96, 10, 0.18)
@@ -121,10 +121,10 @@ sequenceDiagram
         Mod->>Mod: sets the flag, waits on the semaphore (at most 2 s)
     end
     rect rgba(45, 98, 179, 0.14)
-        P->>Mod: boot: restartRequested() → fw_update_restart_requested(), asked every iteration
+        P->>Mod: boot: restartRequested() → fuz_restart_requested(), asked every iteration
         Mod-->>P: true
         P->>P: Logic shuts down in order
-        P->>Mod: boot: readyForRestart() → fw_update_ready_for_restart(), gives the semaphore
+        P->>Mod: boot: readyForRestart() → fuz_ready_for_restart(), gives the semaphore
     end
     rect rgba(161, 96, 10, 0.18)
         Mod->>Mod: the hook wakes from waiting (semaphore), when main sleeps
@@ -141,14 +141,14 @@ sequenceDiagram
     M->>P: starts v2 as a test
     Note over S,M: Phase 6 Self-test and confirm
     rect rgba(45, 98, 179, 0.14)
-        P->>Mod: boot: isConfirmed() → fw_update_is_confirmed(): false
+        P->>Mod: boot: isConfirmed() → fuz_is_confirmed(): false
         P->>P: self-test (demo field selftest in NVS)
     end
     Note over Mod,Mg: while v2 is not confirmed, the module rejects image state write (MGMT_EVT_OP_CMD_RECV)
     alt C: self-test fails
         rect rgba(45, 98, 179, 0.14)
             P->>Ser: print("Self-test failed: restarting, the previous version comes back")
-            P->>Mod: boot: selfTestDone(false) → fw_update_selftest_done(false)
+            P->>Mod: boot: selfTestDone(false) → fuz_selftest_done(false)
         end
         Mod-)M: reset: sys_reboot() without confirm
         M->>M: revert: v1 back to slot 0
@@ -157,7 +157,7 @@ sequenceDiagram
         M->>M: starts after the watchdog reset, revert: v1 back to slot 0
     else E: self-test OK
         rect rgba(45, 98, 179, 0.14)
-            P->>Mod: boot: selfTestDone(true) → fw_update_selftest_done(true)
+            P->>Mod: boot: selfTestDone(true) → fuz_selftest_done(true)
             Mod->>S0: boot_write_img_confirmed(), image ok in the trailer
         end
         Note over P: v2 confirmed, stays after reset
@@ -175,10 +175,10 @@ The module is always ready to receive an update. It registers the SMP transport 
 `SYS_INIT`, before `main` runs. It needs nothing from P02 for that.
 
 The only thing P02 gives the module is the write function for the responses: `serial::Zephyr` calls
-`fw_update_init(tx)` in its constructor. The module needs it because the responses go out through
+`fuz_init(tx)` in its constructor. The module needs it because the responses go out through
 `serial::Zephyr` (only main writes to the serial port), and the module does not know P02 and cannot find
 `serial::Zephyr` by itself. The responses come later and from mcumgr's thread, not as a return value from
-`fw_update_smp_rx()`, so the module must have the write function from the start.
+`fuz_smp_rx()`, so the module must have the write function from the start.
 
 ### 2. Transfer to slot 1 (Agreed; Open: verify on the Nano)
 
@@ -199,7 +199,7 @@ as usual.
 * Time per chunk: an SMP packet is at most 384 bytes, as base64 about 5 frames of at most 127 bytes. On the
   Nucleo (UART 115200 baud) that takes about 45 ms on the serial port; on the Nano (USB) it is governed by the
   10 ms loop.
-* Receiving does not block `Logic`: the interrupt puts bytes in the ring buffer, and `fw_update_smp_rx()` only
+* Receiving does not block `Logic`: the interrupt puts bytes in the ring buffer, and `fuz_smp_rx()` only
   copies and decodes, which takes microseconds. The flash writes happen in mcumgr's thread, at a lower
   priority.
 * With swap using offset, mcumgr writes the image from the **second sector** of slot 1. The first sector is
@@ -302,7 +302,7 @@ created and the ADC reports `isInitialized()`, NVS can be reached (missing or co
 and count as passed), and `Logic`'s loop has run for a certain time (for example 10 s) without the watchdog
 firing.
 
-* **Passed:** P02 reports the result (`boot::Interface::selfTestDone(true)` → `fw_update_selftest_done(true)`),
+* **Passed:** P02 reports the result (`boot::Interface::selfTestDone(true)` → `fuz_selftest_done(true)`),
   and the module confirms with `boot_write_img_confirmed()`. v2 stays after the next reset.
 * **Failed:** P02 writes a line (`Self-test failed: restarting, the previous version comes back`) and reports
   the result (`selfTestDone(false)`). The module restarts with `sys_reboot()` without confirm, and MCUboot
@@ -343,7 +343,7 @@ code runs in the thread that calls it. Only main writes to the serial port. Expl
 
 | Thread | Priority | What runs there |
 |---|---|---|
-| main (`Logic`) | 0 | The loop every 10 ms. Asks every iteration whether a restart for an update has been requested (`restartRequested()`). mcumgr only runs when main sleeps, so a loop that never sleeps starves the upload. `readLine()` receives, separates SMP frames from text and calls `fw_update_smp_rx()`, echoes text and empties the output buffer. Also `print()`, the drivers' `printk()`, the shutdown and the self-test |
+| main (`Logic`) | 0 | The loop every 10 ms. Asks every iteration whether a restart for an update has been requested (`restartRequested()`). mcumgr only runs when main sleeps, so a loop that never sleeps starves the upload. `readLine()` receives, separates SMP frames from text and calls `fuz_smp_rx()`, echoes text and empties the output buffer. Also `print()`, the drivers' `printk()`, the shutdown and the self-test |
 | mcumgr's work queue | 3 | Handles the SMP packets, writes the chunks to flash, calls `output()` and thus `tx()`, and the callbacks (the reset hook, `DFU_PENDING` with the board check) |
 | UART interrupt (no thread) | – | Puts received bytes in the ring buffer (Nucleo). The Nano polls from main |
 
@@ -401,11 +401,11 @@ firmware update. Proposal for later: `PROJECT_VER` from the same `VERSION` file 
 | Scope | Commands in `Logic` and a real `boot::Zephyr` (confirm and versions), not only the stub | Agreed |
 | The overall flow | Phases 1–6 above | Agreed |
 | Swap technique | Swap using offset (`MCUBOOT_MODE_SWAP_USING_OFFSET`): mcumgr writes the new image one sector into slot 1, and MCUboot swaps without first moving the image in slot 0. About a third fewer flash writes per update, a faster swap, and Zephyr's default on the Nucleo. Replaces swap using move, which the update demo (#91) and `zephyr/app/Kconfig.sysbuild` use today. The change in the code, AGENTS.md (the row *Bootloader* and the glossary row *Swap variant*) and a new run of the update demo on both boards are done as a step of their own. To verify: support on the Nano (see Open questions), and where v1 ends up in slot 1 after the swap. Rejected: swap using move (first moves slot 0 one sector, more writes), swap using scratch (the scratch area is written for every sector and wears the most), overwrite only (no revert) | Agreed; Open: verify on the Nano |
-| Zephyr module | The shared part is a Zephyr module in its own repository, [zephyr-fw-update](https://github.com/sigmundrulle/zephyr-fw-update), with its own `zephyr/module.yml`, Kconfig, C API, tests and documentation, which does not know P02. P02 has it as a git submodule in `modules/fw_update`. In its own repository from the start, so that it can be delivered to other products. Cost: a change to the module and its use in P02 are two pull requests while the API changes. Rejected: in this repository first, moved out when the second product uses it (the module could not be delivered on its own until then), building it in P02 and splitting it out later (P02 details leak in) | Agreed |
+| Zephyr module | The shared part is a Zephyr module in its own repository, [firmware-update-for-zephyr](https://github.com/sigmundrulle/firmware-update-for-zephyr) (the module `fuz`, Firmware Update for Zephyr; its C functions are `fuz_*`), with its own `zephyr/module.yml`, Kconfig, C API, tests and documentation, which does not know P02. P02 has it as a git submodule in `modules/fuz`. In its own repository from the start, so that it can be delivered to other products. Cost: a change to the module and its use in P02 are two pull requests while the API changes. Rejected: in this repository first, moved out when the second product uses it (the module could not be delivered on its own until then), building it in P02 and splitting it out later (P02 details leak in) | Agreed |
 | Where the SMP transport lives | In the module, with a C API. `serial::Zephyr` passes frames starting with `0x06 0x09` or `0x04 0x14` to the module, and everything else to `Logic`. Follows from the module decision. To verify: Zephyr's helper functions for frames (`serial_util.c`) are only compiled with `MCUMGR_TRANSPORT_SERIAL_HAS_SMP_OVER_CONSOLE`. Rejected: the transport in P02 (each product writes it itself), the module owns the UART (clashes with the interrupt-driven `serial::Zephyr` and the DTR handling) | Agreed |
-| Writing to the serial port | Only main writes. The module gets a write function from `serial::Zephyr` at startup (`fw_update_init(tx)`), and `tx()` puts the responses in an output buffer that main empties in `readLine()`. `Logic` does not change. Cost: at most 10 ms per response (about 4 s for 200 KB). To verify: the output buffer's size, and that `smpmgr` skips text between frames. Rejected: mcumgr's thread writes itself, with a lock in `serial::Zephyr` (the drivers' `printk()` bypasses the lock and can end up in the middle of a frame) | Agreed |
+| Writing to the serial port | Only main writes. The module gets a write function from `serial::Zephyr` at startup (`fuz_init(tx)`), and `tx()` puts the responses in an output buffer that main empties in `readLine()`. `Logic` does not change. Cost: at most 10 ms per response (about 4 s for 200 KB). To verify: the output buffer's size, and that `smpmgr` skips text between frames. Rejected: mcumgr's thread writes itself, with a lock in `serial::Zephyr` (the drivers' `printk()` bypasses the lock and can end up in the middle of a frame) | Agreed |
 | Shutdown before restart | `Logic` decides when the shutdown is done and signals it to `boot`. `boot` (through the module's reset hook) then approves the restart with mcumgr | Agreed |
-| Time limit for the shutdown | If the app has not signalled "ready" within the time limit, the hook declines the restart with `busy`, and the client can try again. The time limit is a Kconfig option in the module (for example `CONFIG_FW_UPDATE_RESET_READY_TIMEOUT_MS`, default 2 s, shorter than `smpmgr`'s timeout). If the app hangs, the watchdog restarts the board. Rejected: approve anyway (overrides the app's decision), no time limit (SMP hangs with the app, and the client gets a timeout instead of a response) | Agreed |
+| Time limit for the shutdown | If the app has not signalled "ready" within the time limit, the hook declines the restart with `busy`, and the client can try again. The time limit is a Kconfig option in the module (for example `CONFIG_FUZ_RESET_READY_TIMEOUT_MS`, default 2 s, shorter than `smpmgr`'s timeout). If the app hangs, the watchdog restarts the board. Rejected: approve anyway (overrides the app's decision), no time limit (SMP hangs with the app, and the client gets a timeout instead of a response) | Agreed |
 | What the shutdown does | `Logic` writes a line (`Restarting for firmware update`), turns off the LED, stops blinking and signals "ready", and the loop keeps running until the restart so that the response to `os reset` gets out. Nothing is saved, as with every reset: only `store` saves. The client runs `store` before `os reset` if the settings are to be kept. Rejected: automatic `store` (breaks the rule, a flash write can clash with the time limit, especially on the Nano), save only changed settings (a "changed" flag, and the rule is broken anyway) | Agreed |
 | Boards in the first version | The swap variant: Nucleo and Nano, where test, confirm and revert have already been shown by hand (#91 with swap using move, #104 with swap using offset). The module is not enabled for the Daisy (RAM load) or ESP-IDF (no MCUboot). Rejected: the Daisy as well (the question of test/confirm/revert in RAM load is open, and the USB fault after a software reset can make a successful update look failed), all Zephyr boards with a RAM-load flow of their own (the most work before the demo) | Agreed |
 | Boards without firmware update | `boot::Interface` gets a method (for example `isUpdateSupported()`). Where it is false (Daisy, ESP-IDF), `confirm` answers `firmware update not supported on this board`, and `status` writes `Firmware update: not supported` instead of confirmed and the second slot. Rejected: the stub answers as today (`already confirmed` is misleading), remove `confirm` on those boards (`unknown command` does not explain why) | Agreed |

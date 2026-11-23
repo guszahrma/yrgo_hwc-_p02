@@ -100,7 +100,7 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v7
-        # The firmware update module in modules/fw_update is a submodule
+        # The firmware update module in modules/fuz is a submodule
         with:
           submodules: recursive
       - name: Install host tools
@@ -147,7 +147,7 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v7
-        # The firmware update module in modules/fw_update is a submodule
+        # The firmware update module in modules/fuz is a submodule
         with:
           submodules: recursive
       - name: Install host tools
@@ -194,7 +194,7 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v7
-        # The firmware update module in modules/fw_update is a submodule
+        # The firmware update module in modules/fuz is a submodule
         with:
           submodules: recursive
       - name: Install host tools

@@ -1,6 +1,6 @@
 [submodule "tests/googletest"]
 	path = tests/googletest
 	url = https://github.com/google/googletest.git
-[submodule "modules/fw_update"]
-	path = modules/fw_update
-	url = https://github.com/sigmundrulle/zephyr-fw-update.git
+[submodule "modules/fuz"]
+	path = modules/fuz
+	url = https://github.com/sigmundrulle/firmware-update-for-zephyr.git

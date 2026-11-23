@@ -6,11 +6,11 @@ cmake_minimum_required(VERSION 3.20.0)
 list(APPEND BOARD_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/..)
 
 # The firmware update module, a git submodule: Zephyr only finds west projects by itself.
-set(FW_UPDATE_MODULE ${CMAKE_CURRENT_SOURCE_DIR}/../../modules/fw_update)
-if(NOT EXISTS ${FW_UPDATE_MODULE}/zephyr/module.yml)
-  message(FATAL_ERROR "modules/fw_update is empty: run 'git submodule update --init modules/fw_update'")
+set(FUZ_MODULE ${CMAKE_CURRENT_SOURCE_DIR}/../../modules/fuz)
+if(NOT EXISTS ${FUZ_MODULE}/zephyr/module.yml)
+  message(FATAL_ERROR "modules/fuz is empty: run 'git submodule update --init modules/fuz'")
 endif()
-list(APPEND ZEPHYR_EXTRA_MODULES ${FW_UPDATE_MODULE})
+list(APPEND ZEPHYR_EXTRA_MODULES ${FUZ_MODULE})
 
 find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
 project(p02_zephyr)

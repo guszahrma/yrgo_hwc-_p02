@@ -5,7 +5,7 @@
 #   .venv/          Python environment with west and Zephyr's Python tools.
 #   .west/config    Makes the repository the west workspace, with west.yml as its manifest.
 #   deps/           The Zephyr release and modules that west.yml pins.
-#   modules/fw_update  The firmware update module (a git submodule), if it has not been fetched.
+#   modules/fuz  The firmware update module (a git submodule), if it has not been fetched.
 #
 # The Zephyr SDK (compilers) is installed once per user in ~/zephyr-sdk-<version>; each toolchain is
 # installed only if it is not found there already.
@@ -46,9 +46,9 @@ check_host_tools
 
 # The firmware update module, only if it is empty: on a fetched submodule, `git submodule update`
 # would move it back to the pinned commit.
-if [ ! -f modules/fw_update/zephyr/module.yml ]; then
-    echo "==== Fetching the firmware update module (modules/fw_update)"
-    git submodule update --init modules/fw_update
+if [ ! -f modules/fuz/zephyr/module.yml ]; then
+    echo "==== Fetching the firmware update module (modules/fuz)"
+    git submodule update --init modules/fuz
 fi
 
 # The Python environment, with west, ninja and smpmgr (sends apps to MCUboot over USB, Daisy Seed).

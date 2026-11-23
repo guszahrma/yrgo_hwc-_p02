@@ -98,7 +98,9 @@ tools/clang-format/check.sh
 * Do not edit generated or fetched files: `deps/`, `.west/`, `.venv/`, `managed_components/`, `build/`,
   `zephyr/*/build/`, `tests/googletest/` (submodule).
 * Do not edit `modules/fuz/`: it is the firmware update module's own repository (a submodule).
-  Change it there, in a pull request of its own, then move the submodule here to the new commit.
+  Change it there, in a pull request of its own, then move the submodule here to the new commit
+  on the module's `main`: `git -C modules/fuz fetch`, `git -C modules/fuz checkout <commit>`,
+  `git add modules/fuz`.
 * Never commit `main/include/communication/wifi/esp32s3_local_config.h` (Wi-Fi credentials) or `sdkconfig`.
 
 ---

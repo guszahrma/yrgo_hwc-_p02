@@ -43,6 +43,10 @@ cd yrgo_hwc-_p02
 `--recursive` also fetches GoogleTest (`tests/googletest`) and the firmware update module
 (`modules/fuz`). In an existing clone without it: `git submodule update --init`.
 
+Each submodule is pinned to a commit. When a pull moves one (`git status` shows
+`modules/fuz (new commits)`), check out the new commit with `git submodule update`, or pull with
+`git pull --recurse-submodules` from the start.
+
 ### Fixed port names
 
 A board's serial port is `/dev/ttyACM0`, `/dev/ttyACM1`, ... depending on the order things were attached,

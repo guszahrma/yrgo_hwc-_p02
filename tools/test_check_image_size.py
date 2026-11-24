@@ -60,17 +60,14 @@ class CheckImageSizeTest(unittest.TestCase):
         return code, stdout.getvalue(), stderr.getvalue()
 
     def test_fits(self):
+        # Small image, large slots: passes.
         self.make_build(0x1000)
         code, out, _ = self.run_check(fake_edt(0x8000, 0x8000))
         self.assertEqual(code, 0)
         self.assertIn("P02 fits", out)
 
-    def test_exactly_at_the_limit_fits(self):
-        self.make_build(0x8000 - 0x100, end=0x100)
-        code, _, _ = self.run_check(fake_edt(0x8000, 0x8000))
-        self.assertEqual(code, 0)
-
     def test_slot0_one_byte_too_many(self):
+        # Image 1 B too large for slot 0: fails, Error message names slot 0.
         self.make_build(0x8000 - 0x100 + 1, end=0x100)
         code, _, err = self.run_check(fake_edt(0x8000, 0x9000))
         self.assertEqual(code, 1)
@@ -78,32 +75,72 @@ class CheckImageSizeTest(unittest.TestCase):
         self.assertIn("1 B too many", err)
 
     def test_slot1_one_byte_too_many(self):
+        # Slot 1 smaller than slot 0, image 1 B too large for slot 1: fails, Error message names slot 1.
         self.make_build(0x7000 - 0x100 + 1, end=0x100)
         code, _, err = self.run_check(fake_edt(0x8000, 0x7000))
         self.assertEqual(code, 1)
         self.assertIn("slot1_partition allows", err)
         self.assertIn("1 B too many", err)
 
-    def test_swap_using_offset_leaves_one_sector_of_slot1(self):
-        # Equal slots: the update is written one sector into slot 1, so slot 1 is the limit
-        self.make_build(0x8000 - SECTOR - 0x100 + 1, end=0x100, offset=True)
-        code, _, err = self.run_check(fake_edt(0x8000, 0x8000))
+    def test_swap_using_offset_slot1_one_sector_larger_fits(self):
+        # Our Nucleo/Nano layout, image exactly at the limit: passes.
+        self.make_build(0x8000 - 0x100, end=0x100, offset=True)
+        code, out, _ = self.run_check(fake_edt(0x8000, 0x8000 + SECTOR))
+        self.assertEqual(code, 0)
+        self.assertIn("P02 fits", out)
+
+    def test_swap_using_offset_slot1_one_sector_larger_one_byte_too_many(self):
+        # Our Nucleo/Nano layout, image 1 B too large: fails.
+        self.make_build(0x8000 - 0x100 + 1, end=0x100, offset=True)
+        code, _, err = self.run_check(fake_edt(0x8000, 0x8000 + SECTOR))
         self.assertEqual(code, 1)
-        self.assertIn("slot1_partition, written one sector in allows", err)
         self.assertIn("1 B too many", err)
 
-    def test_swap_using_offset_with_slot1_one_sector_larger(self):
-        # The layout MCUboot recommends: both slots then give the same limit
-        self.make_build(0x8000 - 0x100, end=0x100, offset=True)
-        code, _, _ = self.run_check(fake_edt(0x8000, 0x8000 + SECTOR))
+    def test_swap_using_offset_equal_slots(self):
+        # Swap using offset, equal slots: fails (not our layout).
+        self.make_build(0x1000, offset=True)
+        code, _, err = self.run_check(fake_edt(0x8000, 0x8000))
+        self.assertEqual(code, 1)
+        self.assertIn("slot0_partition 16 sectors, slot1_partition 16", err)
+
+    def test_swap_using_offset_two_sectors_more_in_slot1(self):
+        # Swap using offset, slot 1 two sectors larger: fails (not our layout).
+        self.make_build(0x1000, offset=True)
+        code, _, err = self.run_check(fake_edt(0x8000 - SECTOR, 0x8000 + SECTOR))
+        self.assertEqual(code, 1)
+        self.assertIn("slot0_partition 15 sectors, slot1_partition 17", err)
+
+    def test_swap_using_offset_one_sector_less_in_slot1(self):
+        # Swap using offset, slot 1 one sector smaller: fails (not our layout).
+        self.make_build(0x1000, offset=True)
+        code, _, err = self.run_check(fake_edt(0x8000, 0x8000 - SECTOR))
+        self.assertEqual(code, 1)
+        self.assertIn("slot0_partition 16 sectors, slot1_partition 15", err)
+
+    def test_swap_using_offset_different_sector_sizes(self):
+        # Swap using offset, different sector sizes: fails (not our layout).
+        self.make_build(0x1000, offset=True)
+        edt = fake_edt(0x8000, 0x8000 + SECTOR)
+        edt.label2node["slot1_partition"].parent = SimpleNamespace(
+            parent=SimpleNamespace(props={"erase-block-size": SimpleNamespace(val=2 * SECTOR)}))
+        code, _, err = self.run_check(edt)
+        self.assertEqual(code, 1)
+        self.assertIn("different sectors", err)
+
+    def test_without_swap_using_offset_sectors_not_compared(self):
+        # Other mode, slot 1 two sectors larger: passes (sectors only checked for swap using offset).
+        self.make_build(0x1000)
+        code, _, _ = self.run_check(fake_edt(0x8000 - SECTOR, 0x8000 + SECTOR))
         self.assertEqual(code, 0)
 
     def test_without_swap_using_offset_slot1_is_whole(self):
+        # Other mode, equal slots, image exactly at the limit: passes (all of slot 1 counts).
         self.make_build(0x8000 - 0x100, end=0x100)
         code, _, _ = self.run_check(fake_edt(0x8000, 0x8000))
         self.assertEqual(code, 0)
 
     def test_ram_load_one_byte_too_many(self):
+        # RAM load (Daisy), image 1 B too large for the RAM: fails, Error message names the RAM.
         self.make_build(0x4000 + 1, ram_load=0x4000)
         code, _, err = self.run_check(fake_edt(0x8000, 0x8000))
         self.assertEqual(code, 1)
@@ -111,19 +148,21 @@ class CheckImageSizeTest(unittest.TestCase):
         self.assertIn("1 B too many", err)
 
     def test_smallest_limit_wins(self):
-        # slot 0: 0x8000, slot 1: 0x6000, RAM: 0x7000 -> slot 1
+        # Slot 1 smallest of slot 0, slot 1 and RAM: fails, Error message names slot 1.
         self.make_build(0x7000, ram_load=0x7000)
         code, _, err = self.run_check(fake_edt(0x8000, 0x6000))
         self.assertEqual(code, 1)
         self.assertIn("slot1_partition allows 24576 B", err)
 
     def test_no_slot1(self):
+        # No slot 1: only slot 0 is checked.
         self.make_build(0x8000)
         code, out, _ = self.run_check(fake_edt(0x8000, None))
         self.assertEqual(code, 0)
         self.assertIn("(slot0_partition)", out)
 
     def test_no_slot0(self):
+        # No slot 0: fails with an error.
         self.make_build(0x1000)
         edt = fake_edt(0x8000, 0x8000)
         del edt.label2node["slot0_partition"]
@@ -132,6 +171,7 @@ class CheckImageSizeTest(unittest.TestCase):
         self.assertIn("no slot0_partition", err)
 
     def test_not_an_mcuboot_image(self):
+        # Not an MCUboot image: fails with an error.
         self.make_build(0x1000, magic=0x12345678)
         code, _, err = self.run_check(fake_edt(0x8000, 0x8000))
         self.assertEqual(code, 1)

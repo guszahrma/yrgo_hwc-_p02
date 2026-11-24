@@ -14,6 +14,9 @@ Header + code must fit in:
 * for RAM load, the RAM MCUboot copies the image into.
 
 The linker checks the first one on Cortex-M, but not on the ESP32-S3, and none of them checks slot 1.
+
+For swap using offset, slot 1 must also have the same sector size and exactly one sector more than slot 0,
+the layout in zephyr/app/partitions/<board>.overlay.
 """
 
 import argparse
@@ -59,6 +62,23 @@ def partition(edt, label: str):
     return node.regs[0].size, sector.val if sector else 0
 
 
+def slots_incompatible_for_offset(slot0, slot1):
+    """Why these slots are not our layout for swap using offset, or None.
+
+    Our layout: the same sector size, and slot 1 exactly one sector more than slot 0, so an update can fill
+    slot 0. MCUboot also accepts equal slots (boot_slots_compatible() in swap_offset.c), but then slot 0's
+    last sector is never used; any other count, and MCUboot refuses every update.
+    """
+    (size0, sector0), (size1, sector1) = slot0, slot1
+    if sector0 != sector1:
+        return f"slot0_partition and slot1_partition have different sectors ({sector0} B and {sector1} B)"
+    sectors0, sectors1 = size0 // sector0, size1 // sector1
+    if sectors1 != sectors0 + 1:
+        return (f"slots for swap using offset: slot0_partition {sectors0} sectors, slot1_partition "
+                f"{sectors1}; slot 1 must have exactly one sector more than slot 0")
+    return None
+
+
 def kb(size: int) -> str:
     return f"{size / 1024:.1f} KB"
 
@@ -94,6 +114,10 @@ def main() -> int:
     if slot1 is not None:
         size, sector = slot1
         if sysbuild.get("SB_CONFIG_MCUBOOT_MODE_SWAP_USING_OFFSET") == "y":
+            error = slots_incompatible_for_offset(slot0, slot1)
+            if error:
+                print(f"error: {error}", file=sys.stderr)
+                return 1
             limits.append(("slot1_partition, written one sector in", size - sector - end))
         else:
             limits.append(("slot1_partition", size - end))

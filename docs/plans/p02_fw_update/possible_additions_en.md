@@ -2,8 +2,6 @@
 
 Appendix to [P02 firmware update flow](flow_en.md). Status **Option**: possible addition, if the need arises. Not planned. Taken on if stakeholders see a need.
 
-Svenska: [possible_additions_sv.md](possible_additions_sv.md)
-
 ## The RAM-load variant: firmware that does not fit in the internal flash (Option)
 
 Extend the module with RAM load, for products whose firmware does not fit in the chip's internal flash. The
@@ -48,7 +46,7 @@ started on the cabin heater. Do we also want to check that it is the right produ
 
 * One way: a product ID in a TLV of its own, like the board target, compared with the product ID in the
   running firmware. Each product sets the ID (for example a Kconfig option in the module,
-  `CONFIG_FW_UPDATE_PRODUCT_ID`), and the check is done in the same hook as the board check, with the same
+  `CONFIG_FUZ_PRODUCT_ID`), and the check is done in the same hook as the board check, with the same
   erase and line on the serial port.
 * Another way: one signing key per product, once *Signed images* exists. MCUboot then refuses to start an
   image for another product, but only at the restart, not when it is received.

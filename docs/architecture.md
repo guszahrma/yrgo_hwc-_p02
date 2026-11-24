@@ -83,6 +83,7 @@ The current wiring is listed in [Usage](usage.md#hardware-and-wiring).
 │   │   ├── logic/            # Application logic (command parser)
 │   │   └── ml/               # Linear regression
 │   └── source/               # Implementations, same layout as include/
+├── modules/fuz/              # Firmware update module fuz (git submodule, its own repository)
 ├── zephyr/
 │   ├── app/                  # P02 on Zephyr: logic::Logic with factory::Zephyr
 │   │   └── boards/           # The wiring: one devicetree overlay per board

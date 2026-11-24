@@ -1,0 +1,21 @@
+name: Submodule check
+
+# Pull requests to main only, the one exception to CI running on push (see AGENTS.md: When CI runs).
+# Fails if modules/fuz is not on the module's main. Skipped for drafts, so a branch can point to a
+# module branch while a change spans both repositories; marking the pull request ready runs it.
+# Runs on the pull request's merge result, as main would be after the merge.
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened, ready_for_review]
+
+jobs:
+  submodule-check:
+    name: Check that modules/fuz is on the module's main
+    if: ${{ !github.event.pull_request.draft }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+      - name: Check modules/fuz
+        run: tools/check_fuz_submodule.sh

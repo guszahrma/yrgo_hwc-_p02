@@ -95,11 +95,15 @@ What is kept free at the end of the slot depends on the MCUboot mode:
 | MCUboot mode | Kept free | Boards |
 |---|---|---|
 | Swap using move | Trailer + one sector, which the swap moves the image into. Both are in `ROM_END_OFFSET` | None |
-| Swap using offset | Trailer; an update is written one sector into slot 1. With slot 1 one sector larger than slot 0 (MCUboot's recommendation), nothing more. With equal slots, also one sector, which MCUboot's build leaves out of `ROM_END_OFFSET`, so only `tools/flash_layout.py` counts it | Nucleo, Nano (slot 1 one sector larger) |
+| Swap using offset | Trailer; an update is written one sector into slot 1. With slot 1 one sector larger than slot 0 (MCUboot's recommendation), nothing more. With equal slots, also one sector, which MCUboot's build leaves out of `ROM_END_OFFSET`; P02's build stops with equal slots (see below) | Nucleo, Nano (slot 1 one sector larger) |
 | RAM load | Trailer only. MCUboot copies header + code into RAM, where P02's data and stacks are too, so the RAM is the real limit | Daisy |
 
 Who stops an image that is too large:
 
+* **P02's build**, on every board: after every build with `--sysbuild`, `tools/check_image_size.py` checks
+  that the signed image fits in both slots (and for RAM load in MCUboot's RAM), and otherwise stops with
+  `P02 does not fit`, the limit and the bytes over. For swap using offset it also stops when slot 1 is not
+  exactly one sector larger than slot 0.
 * **The linker**, with `region 'FLASH' overflowed`, on Cortex-M (Nucleo, Daisy): its FLASH region ends at
   `ROM_END_OFFSET`. Not on the Nano: the ESP32-S3's linker script does not use `ROM_END_OFFSET`.
 * **`imgtool`**, when it signs the image (every board), but against the whole slot and with its own
@@ -107,7 +111,7 @@ Who stops an image that is too large:
 * **MCUboot**, at the update: it keeps the old version if the new one leaves no room for the trailer (from
   MCUboot's code, not tested).
 
-So check the margin with `tools/flash_layout.py` after a build, in the Zephyr environment:
+To see how much room is left, run `tools/flash_layout.py` after a build, in the Zephyr environment:
 
 ```bash
 tools/flash_layout.py zephyr/app/build/nucleo_g0b1re
@@ -120,8 +124,9 @@ Paste them into the board's documents when the layout, the MCUboot mode or P02's
 
 1. If Zephyr has no definition for the board, add one in `zephyr/boards/<vendor>/<board>/`. Copy a board
    with the same chip, and change **every** board-specific value.
-2. Make sure the board has a console and a `storage_partition`, and slots that P02 fits in: build, then run
-   `tools/flash_layout.py` and add its tables to the board's documents (see [Memory layout](#memory-layout)).
+2. Make sure the board has a console and a `storage_partition`, and slots that P02 fits in (the build
+   checks it): build, then run `tools/flash_layout.py` and add its tables to the board's documents (see
+   [Memory layout](#memory-layout)).
 3. Add the app overlay `zephyr/app/boards/<board>.overlay` with `p02-led` and `zephyr,user` (see
    [Architecture](architecture.md#adding-or-changing-hardware)), and check the `Found devicetree overlay:`
    line in the build output.

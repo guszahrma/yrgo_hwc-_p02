@@ -25,10 +25,10 @@ every board needs: [Boards](boards.md).
 The hardware gives one 512 KB flash, the chip's internal flash (`flash0`), with 2 KB sectors (the smallest
 block the flash can erase). How it is divided into partitions is the devicetree's choice, not the
 hardware's: Zephyr's board (`boards/st/nucleo_g0b1re/nucleo_g0b1re.dts` in Zephyr) defines the partitions,
-and P02 changes its slots so that slot 1 is one sector larger than slot 0
+and P02 makes slot 0 one sector smaller than slot 1, leaving that sector unused
 (`zephyr/app/partitions/nucleo_g0b1re.overlay`). The tables show the partitions P02 is built with, and the
 room P02 has in its slot; offsets are from the start of the flash. Printed by `tools/flash_layout.py` from a
-build of 10342b2; what the terms mean: [Boards → Memory layout](boards.md#memory-layout).
+build of fe7cd2b; what the terms mean: [Boards → Memory layout](boards.md#memory-layout).
 
 | Column | Set by |
 |---|---|
@@ -39,7 +39,8 @@ build of 10342b2; what the terms mean: [Boards → Memory layout](boards.md#memo
 |---|---|---|---|---|---|
 | `flash0` | 512 KB | 2 KB | `boot_partition` | 0x0 | 48 KB |
 |  |  |  | `slot0_partition` | 0xC000 | 198 KB |
-|  |  |  | `slot1_partition` | 0x3D800 | 202 KB |
+|  |  |  | *unused* | 0x3D800 | 2 KB |
+|  |  |  | `slot1_partition` | 0x3E000 | 200 KB |
 |  |  |  | `storage_partition` | 0x70000 | 64 KB |
 
 | P02 in `slot0_partition` | Value |

@@ -23,16 +23,17 @@ Zephyr board definition – is described in its board document,
 
 The partitions P02 is built with on Zephyr, and the room P02 has in its slot. P02 changes the board's slots
 (the board's own layout is in the board document's
-[Memory layout](../zephyr/boards/arduino/nano_esp32/doc/index.md#memory-layout)): slot 1 is one sector larger
-than slot 0 (`zephyr/app/partitions/arduino_nano_esp32.overlay`). Printed by `tools/flash_layout.py` from a
-build of 10342b2; what the terms mean: [Boards → Memory layout](boards.md#memory-layout).
+[Memory layout](../zephyr/boards/arduino/nano_esp32/doc/index.md#memory-layout)): slot 0 is one sector smaller
+than slot 1, and that sector is unused (`zephyr/app/partitions/arduino_nano_esp32.overlay`). Printed by
+`tools/flash_layout.py` from a build of fe7cd2b; what the terms mean: [Boards → Memory layout](boards.md#memory-layout).
 
 | Memory | Size | Sector | Partition | Offset | Size |
 |---|---|---|---|---|---|
 | `flash0` | 16 MB | 4 KB | `boot_partition` | 0x0 | 64 KB |
 |  |  |  | `sys_partition` | 0x10000 | 64 KB |
 |  |  |  | `slot0_partition` | 0x20000 | 1340 KB |
-|  |  |  | `slot1_partition` | 0x16F000 | 1348 KB |
+|  |  |  | *unused* | 0x16F000 | 4 KB |
+|  |  |  | `slot1_partition` | 0x170000 | 1344 KB |
 |  |  |  | `slot0_appcpu_partition` | 0x2C0000 | 448 KB |
 |  |  |  | `slot1_appcpu_partition` | 0x330000 | 448 KB |
 |  |  |  | `slot0_lpcore_partition` | 0x3A0000 | 32 KB |

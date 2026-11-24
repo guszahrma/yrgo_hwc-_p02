@@ -1,5 +1,6 @@
 /**
- * @file Boot interface: the versions of the images, and confirming the running one after an update
+ * @file Boot interface: the versions of the images, the restart for an update, and confirming or
+ *       reverting the running image after it
  */
 #pragma once
 
@@ -70,5 +71,56 @@ public:
      * @return True if the image is confirmed, false if confirming it failed
      */
     virtual bool confirm() noexcept = 0;
+
+    /**
+     * @brief Check if this board can be updated
+     *
+     * Without firmware update, only version() means anything: the running image is the only one.
+     *
+     * @return True if the board can receive, test, confirm and revert a new image, false otherwise
+     */
+    virtual bool isUpdateSupported() const noexcept = 0;
+
+    /**
+     * @brief Check if the image in the second slot will be started as a test at the next reset
+     *
+     * @return True if the image in the second slot is marked for test, false if it is not or if
+     *         this cannot be read
+     */
+    virtual bool isSecondaryPending() const noexcept = 0;
+
+    /**
+     * @brief Check if a restart has been requested for a firmware update
+     *
+     * Ask this in every pass of the main loop. When it is true, shut down in an orderly way and
+     * then call readyForRestart().
+     *
+     * @return True if a restart has been requested, false otherwise
+     */
+    virtual bool restartRequested() const noexcept = 0;
+
+    /**
+     * @brief Report that the shutdown is done, so the restart may go ahead
+     *
+     * Keep the main loop running after this call until the restart, so that the reply to the
+     * restart request is sent.
+     *
+     * @return True if the restart goes ahead, false if none was requested or it is too late
+     */
+    virtual bool readyForRestart() noexcept = 0;
+
+    /**
+     * @brief Report the result of the self-test after an update
+     *
+     * If the self-test passed, the running image is confirmed. If it failed, the board restarts
+     * without confirming it, and the bootloader goes back to the previous image; shut down in an
+     * orderly way first, as before readyForRestart().
+     *
+     * @param[in] passed True if the self-test passed, false if it failed
+     *
+     * @return True if the image is confirmed, false if the self-test failed and the restart did
+     *         not happen, or if confirming the image failed
+     */
+    virtual bool selfTestDone(bool passed) noexcept = 0;
 };
 } // namespace driver::boot

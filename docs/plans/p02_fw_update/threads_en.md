@@ -3,8 +3,6 @@
 Appendix to [P02 firmware update flow](flow_en.md). Explains why I propose that only the
 main thread writes to the serial port, and what follows from that.
 
-Svenska: [threads_sv.md](threads_sv.md)
-
 Colours in the diagrams: blue is main (P02's thread, `Logic`'s loop), yellow is mcumgr's thread.
 
 ## 1. Today: one thread
@@ -127,7 +125,7 @@ sequenceDiagram
     S->>Ser: frames with one chunk
     rect rgba(45, 98, 179, 0.16)
         Note over Ser,Mg: main thread, in readLine()
-        Ser->>Mod: fw_update_smp_rx(frame)
+        Ser->>Mod: fuz_receive_smp_frame(frame)
         Mod->>Mg: smp_rx_req(SMP packet), queued
         Mg-->>Ser: returns at once
     end

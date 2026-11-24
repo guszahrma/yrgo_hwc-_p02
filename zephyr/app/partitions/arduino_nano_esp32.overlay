@@ -3,27 +3,18 @@
  * (zephyr/app/sysbuild.cmake). Changes Espressif's 4 MB layout (dts/vendor/espressif/
  * partitions_0x0_amp_4M.dtsi, included by the board), whose slots are equal (1344 KB each).
  *
- * Swap using offset writes an update one sector into slot 1, so slot 1 is one 4 KB sector larger than
- * slot 0: the most space-efficient layout in MCUboot's docs/design.md. The sector is taken from slot 0,
- * so P02 still starts at 0x20000 and every other partition stays where it is.
+ * Swap using offset writes an update one sector into slot 1, so slot 1 has one 4 KB sector more than
+ * slot 0: the most space-efficient layout in MCUboot's docs/design.md. MCUboot accepts only equal slots
+ * or exactly one sector more in slot 1 (boot_slots_compatible()), so only slot 0 is made smaller; the
+ * sector after it is not used, P02 still starts at 0x20000, and every other partition stays where it is.
  *
  *   slot0_partition  0x020000  1340 KB   (was 1344 KB)
- *   slot1_partition  0x16F000  1348 KB   (was 1344 KB at 0x170000)
+ *   (not used)       0x16F000     4 KB
+ *   slot1_partition  0x170000  1344 KB   (unchanged)
  */
 
 #include <mem.h>
 
 &slot0_partition {
 	reg = <0x20000 DT_SIZE_K(1340)>;
-};
-
-/delete-node/ &slot1_partition;
-
-&flash0 {
-	partitions {
-		slot1_partition: partition@16f000 {
-			label = "image-1";
-			reg = <0x16f000 DT_SIZE_K(1348)>;
-		};
-	};
 };

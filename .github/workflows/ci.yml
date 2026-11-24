@@ -17,6 +17,17 @@ jobs:
       - name: Check code formatting
         run: tools/clang-format/check.sh
 
+  # Only warns: a branch may point to a module branch while a change spans both repositories.
+  # submodule-check.yml fails in pull requests to main.
+  submodule-check:
+    name: Check modules/fuz (warning only)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+      - name: Check modules/fuz
+        run: tools/check_fuz_submodule.sh --warn
+
   windows-format-check:
     name: Check code formatting on Windows
     runs-on: windows-latest
@@ -100,6 +111,9 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v7
+        # The firmware update module in modules/fuz is a submodule
+        with:
+          submodules: recursive
       - name: Install host tools
         run: |
           sudo apt-get update
@@ -144,6 +158,9 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v7
+        # The firmware update module in modules/fuz is a submodule
+        with:
+          submodules: recursive
       - name: Install host tools
         run: |
           sudo apt-get update
@@ -188,6 +205,9 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v7
+        # The firmware update module in modules/fuz is a submodule
+        with:
+          submodules: recursive
       - name: Install host tools
         run: |
           sudo apt-get update
@@ -275,6 +295,9 @@ jobs:
         run: |
           cmake -S tests -B tests/build
           cmake --build tests/build
+      # Tests of our Python build tools (tools/test_*.py): standard library only, no Zephyr needed
+      - name: Run the tests of the Python tools
+        run: python3 -m unittest discover -s tools -p "test_*.py" -v
 
   # Flashes the ESP-IDF firmware from esp-idf-build-nano on a Nano ESP32 and tests P02 over USB serial.
   # Runs on a self-hosted runner with the label arduino_nano_esp32 (the board attached through usbipd, port

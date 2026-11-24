@@ -29,6 +29,7 @@ import pickle
 import re
 import struct
 import sys
+from dataclasses import dataclass
 from pathlib import Path
 
 IMAGE_MAGIC = 0x96F3B83D  # MCUboot's image header magic
@@ -122,42 +123,66 @@ def kb(size: int) -> str:
     return f"{size / 1024:.1f} KB"
 
 
-def main() -> int:
-    parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    parser.add_argument("build", type=Path, help="sysbuild build directory, e.g. zephyr/app/build/nucleo_g0b1re")
-    parser.add_argument("--image", default="app", help="the app's image name in sysbuild (default: app)")
-    args = parser.parse_args()
+class SizeError(Exception):
+    """The build cannot be measured: a file or partition is missing, or the image is not what MCUboot reads."""
 
-    image_dir = args.build / args.image
-    sysbuild = read_kconfig(args.build / "zephyr" / ".config")
+
+@dataclass
+class Measurement:
+    hdr_size: int  # MCUboot's image header
+    code: int  # code and data after the header
+    tlvs: int  # the TLV areas after the code, protected ones included
+    rom_end_offset: int  # what the build keeps free at the end of the slot (CONFIG_ROM_END_OFFSET)
+    tlv_estimate: int  # MCUboot's estimate for the TLVs in ROM_END_OFFSET
+    limits: list  # (where, maximum header + code + TLVs), one per place the image must fit
+
+    @property
+    def used(self) -> int:
+        """Header + code + TLVs: the image as MCUboot reads it."""
+        return self.hdr_size + self.code + self.tlvs
+
+    @property
+    def trailer(self) -> int:
+        """MCUboot's trailer: ROM_END_OFFSET minus its estimate for the TLVs, which `used` counts for real."""
+        return self.rom_end_offset - self.tlv_estimate
+
+    @property
+    def limit(self) -> tuple:
+        """The smallest limit: (where, maximum header + code + TLVs)."""
+        return min(self.limits, key=lambda item: item[1])
+
+
+def measure(build: Path, image_name: str = "app", edt=None) -> Measurement:
+    """Reads a sysbuild build directory: the signed image's size and every limit it must fit in.
+
+    Raises SizeError. Used by tools/flash_layout.py too, so the docs show the limits the build checks.
+    """
+    image_dir = build / image_name
+    sysbuild = read_kconfig(build / "zephyr" / ".config")
     config = read_kconfig(image_dir / "zephyr" / ".config")
-    mcuboot = read_kconfig(args.build / "mcuboot" / "zephyr" / ".config")
-    edt = load_edt(image_dir)
+    mcuboot = read_kconfig(build / "mcuboot" / "zephyr" / ".config")
+    if edt is None:
+        edt = load_edt(image_dir)
 
     signed = image_dir / "zephyr" / "zephyr.signed.bin"
     image = signed.read_bytes()
     magic, _load_addr, hdr_size, protect_tlv_size, img_size = struct.unpack_from("<IIHHI", image)
     if magic != IMAGE_MAGIC:
-        print(f"error: {signed} is not an MCUboot image", file=sys.stderr)
-        return 1
+        raise SizeError(f"{signed} is not an MCUboot image")
     tlvs, error = tlv_size(image, hdr_size, img_size, protect_tlv_size)
     if error:
-        print(f"error: {signed}: {error}", file=sys.stderr)
-        return 1
-    used = hdr_size + img_size + tlvs
-    # MCUboot's trailer: ROM_END_OFFSET minus its estimate for the TLVs, which `used` counts for real
+        raise SizeError(f"{signed}: {error}")
     rom_end_offset = int(config.get("CONFIG_ROM_END_OFFSET", "0"), 0)
-    trailer = rom_end_offset - tlv_estimate(mcuboot)
+    estimate = tlv_estimate(mcuboot)
+    trailer = rom_end_offset - estimate
     if trailer < 0:
-        print(f"error: ROM_END_OFFSET ({rom_end_offset} B) is smaller than MCUboot's estimate for the TLVs "
-              f"({tlv_estimate(mcuboot)} B): tlv_estimate() no longer matches MCUboot", file=sys.stderr)
-        return 1
+        raise SizeError(f"ROM_END_OFFSET ({rom_end_offset} B) is smaller than MCUboot's estimate for the TLVs "
+                        f"({estimate} B): tlv_estimate() no longer matches MCUboot")
 
-    limits = []  # (where, maximum header + code + TLVs)
+    limits = []
     slot0 = partition(edt, "slot0_partition")
     if slot0 is None:
-        print("error: no slot0_partition in the app's devicetree", file=sys.stderr)
-        return 1
+        raise SizeError("no slot0_partition in the app's devicetree")
     limits.append(("slot0_partition", slot0[0] - trailer))
     slot1 = partition(edt, "slot1_partition")
     if slot1 is not None:
@@ -165,15 +190,28 @@ def main() -> int:
         if sysbuild.get("SB_CONFIG_MCUBOOT_MODE_SWAP_USING_OFFSET") == "y":
             error = slots_incompatible_for_offset(slot0, slot1)
             if error:
-                print(f"error: {error}", file=sys.stderr)
-                return 1
+                raise SizeError(error)
             limits.append(("slot1_partition, written one sector in", size - sector - trailer))
         else:
             limits.append(("slot1_partition", size - trailer))
     if mcuboot.get("CONFIG_BOOT_RAM_LOAD") == "y":
         limits.append(("MCUboot's RAM for the image", int(mcuboot["CONFIG_BOOT_IMAGE_EXECUTABLE_RAM_SIZE"], 0)))
+    return Measurement(hdr_size, img_size, tlvs, rom_end_offset, estimate, limits)
 
-    where, limit = min(limits, key=lambda item: item[1])
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    parser.add_argument("build", type=Path, help="sysbuild build directory, e.g. zephyr/app/build/nucleo_g0b1re")
+    parser.add_argument("--image", default="app", help="the app's image name in sysbuild (default: app)")
+    args = parser.parse_args()
+
+    try:
+        result = measure(args.build, args.image)
+    except SizeError as error:
+        print(f"error: {error}", file=sys.stderr)
+        return 1
+    used = result.used
+    where, limit = result.limit
     if used > limit:
         print(f"error: P02 does not fit: header + code + TLVs {used} B ({kb(used)}), but {where} allows "
               f"{limit} B ({kb(limit)}), {used - limit} B too many",
@@ -181,6 +219,7 @@ def main() -> int:
         return 1
     print(f"P02 fits: header + code + TLVs {kb(used)} of {kb(limit)} ({where}), margin {kb(limit - used)}")
     return 0
+
 
 if __name__ == "__main__":
     sys.exit(main())

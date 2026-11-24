@@ -22,7 +22,7 @@ board targets, how an app starts, troubleshooting – is described in its board 
 
 The flashes' partitions are in the board document's
 [Memory layout](../zephyr/boards/electrosmith/daisy_seed/doc/index.md#memory-layout). The room P02 has,
-printed by `tools/flash_layout.py` from a build of 10342b2; what the terms mean:
+printed by `tools/flash_layout.py` from a build of 5d52fd9; what the terms mean:
 [Boards → Memory layout](boards.md#memory-layout).
 
 | P02 in `slot0_partition` | Value |
@@ -31,10 +31,10 @@ printed by `tools/flash_layout.py` from a build of 10342b2; what the terms mean:
 | MCUboot mode | RAM load |
 | Slot size | 512 KB (0x80000) |
 | Header (`ROM_START_OFFSET`) | 0x400 (1 KB) |
-| End of the slot reserved for MCUboot (`ROM_END_OFFSET`) | 0x58 (88 B) |
-| Maximum header + code | 511.9 KB (0x7FFA8) |
-| P02 today: header + code | 129.9 KB (0x20794) |
-| Margin in the slot | 382.0 KB |
+| End of the slot kept free (`ROM_END_OFFSET`) | 0x58 (88 B): MCUboot's trailer 48 B + its estimate for the TLVs 40 B |
+| Maximum header + code + TLVs | 512.0 KB (0x7FFD0), set by slot0_partition |
+| P02 today: header + code + TLVs | 129.9 KB (0x207BC), of which TLVs 40 B |
+| Margin | 382.0 KB |
 | RAM MCUboot loads P02 into | 512 KB at 0x24000000 |
 | P02 today in RAM: code, data, stacks | 149.4 KB |
 | RAM margin | 362.6 KB |

@@ -2,8 +2,8 @@
 """Prints a board's memory layout and how much room P02 has in its slot, as Markdown tables.
 
 Reads a sysbuild build directory (MCUboot and P02 built together with --sysbuild), so the numbers are the
-ones the build used: partitions from the app's devicetree, the MCUboot mode from sysbuild's Kconfig, the
-header and end reservation from the app's Kconfig, and the signed image's header.
+ones the build used: partitions from the app's devicetree, the MCUboot mode from sysbuild's Kconfig, and
+P02's size and limits from check_image_size.measure(), the same the build checks.
 
 Run in the Zephyr environment (source tools/zephyr_env.sh), after a build:
     tools/flash_layout.py zephyr/app/build/nucleo_g0b1re
@@ -12,13 +12,10 @@ The tables go into the board documents and the P02 board documents (see docs/boa
 """
 
 import argparse
-import pickle
-import re
-import struct
 import sys
 from pathlib import Path
 
-IMAGE_MAGIC = 0x96F3B83D  # MCUboot's image header magic
+from check_image_size import SizeError, load_edt, measure, read_kconfig
 
 MODES = {
     "SB_CONFIG_MCUBOOT_MODE_SINGLE_APP": "single app",
@@ -35,20 +32,8 @@ MODES = {
 }
 
 
-def read_kconfig(path: Path) -> dict:
-    values = {}
-    for line in path.read_text().splitlines():
-        match = re.match(r"^(\w+)=(.*)$", line)
-        if match:
-            values[match.group(1)] = match.group(2).strip('"')
-    return values
 
 
-def read_cmake_cache(path: Path, name: str) -> str:
-    for line in path.read_text().splitlines():
-        if line.startswith(name + ":"):
-            return line.split("=", 1)[1]
-    sys.exit(f"{name} not found in {path}")
 
 
 def size_text(size: int) -> str:
@@ -62,11 +47,6 @@ def size_text(size: int) -> str:
     return f"{size / 1024:.1f} KB"
 
 
-def load_edt(app_dir: Path):
-    zephyr_base = read_cmake_cache(app_dir / "CMakeCache.txt", "ZEPHYR_BASE")
-    sys.path.insert(0, str(Path(zephyr_base) / "scripts" / "dts" / "python-devicetree" / "src"))
-    with open(app_dir / "zephyr" / "edt.pickle", "rb") as file:
-        return pickle.load(file)
 
 
 def flash_of(partitions_node):
@@ -79,13 +59,12 @@ def erase_block_size(flash) -> int | None:
     return prop.val if prop else None
 
 
-def memory_table(edt) -> tuple[list[str], dict]:
+def memory_table(edt) -> list[str]:
     """One row per partition, with unused ranges in between, grouped by flash device."""
     lines = [
         "| Memory | Size | Sector | Partition | Offset | Size |",
         "|---|---|---|---|---|---|",
     ]
-    partitions = {}
     for node in edt.compat2nodes.get("fixed-partitions", []):
         flash = flash_of(node)
         flash_size = flash.regs[0].size if flash.regs else None
@@ -101,8 +80,6 @@ def memory_table(edt) -> tuple[list[str], dict]:
             name = f"`{child.labels[0]}`" if child.labels else f"`{child.name}`"
             rows.append((name, offset, size))
             position = offset + size
-            if child.labels:
-                partitions[child.labels[0]] = (flash, offset, size)
         if flash_size is not None and position < flash_size:
             rows.append(("*unused*", position, flash_size - position))
         for name, offset, size in rows:
@@ -115,72 +92,51 @@ def memory_table(edt) -> tuple[list[str], dict]:
             else:
                 memory = total = sector_text = ""
             lines.append(f"| {memory} | {total} | {sector_text} | {name} | 0x{offset:X} | {size_text(size)} |")
-    return lines, partitions
+    return lines
 
 
-def image_size(signed_bin: Path) -> tuple[int, int]:
-    """Header size and header + code size from an MCUboot image header."""
-    data = signed_bin.read_bytes()[:16]
-    magic, _load_addr, hdr_size, _protect, img_size = struct.unpack("<IIHHI", data)
-    if magic != IMAGE_MAGIC:
-        sys.exit(f"{signed_bin} is not an MCUboot image")
-    return hdr_size, hdr_size + img_size
 
 
-def p02_table(build: Path, partitions: dict) -> list[str]:
+def p02_table(build: Path, edt) -> list[str]:
+    """P02 in its slot: the limits are the ones the build checks (check_image_size.measure())."""
     app = build / "app"
     sysbuild = read_kconfig(build / "zephyr" / ".config")
     config = read_kconfig(app / "zephyr" / ".config")
     mcuboot = read_kconfig(build / "mcuboot" / "zephyr" / ".config")
-
     mode = next((text for key, text in MODES.items() if sysbuild.get(key) == "y"), "unknown")
-    if "slot0_partition" not in partitions:
-        sys.exit("No slot0_partition in the app's devicetree")
-    flash, _offset, slot_size = partitions["slot0_partition"]
-    sector = erase_block_size(flash) or 0
+    try:
+        result = measure(build, edt=edt)
+    except SizeError as error:
+        sys.exit(f"error: {error}")
+    slot = edt.label2node["slot0_partition"].regs[0].size
     start = int(config.get("CONFIG_ROM_START_OFFSET", "0"), 0)
-    end = int(config.get("CONFIG_ROM_END_OFFSET", "0"), 0)
-
-    # The space for header + code: the slot minus ROM_END_OFFSET, which holds MCUboot's trailer, room for
-    # the image's TLVs and, for swap using move, one sector.
-    limit = slot_size - end
-    end_text = f"0x{end:X} ({size_text(end)})"
-    if mode == "swap using offset" and "slot1_partition" in partitions:
-        # An update is written one sector into slot 1, so it must also fit in slot 1 minus one sector.
-        # MCUboot's sysbuild code leaves that sector out of ROM_END_OFFSET (a #todo in
-        # mcuboot/boot/zephyr/CMakeLists.txt), so it only limits P02 when slot 1 is not one sector larger.
-        slot1_size = partitions["slot1_partition"][2]
-        slot1_limit = slot1_size - sector - end
-        if slot1_limit < limit:
-            limit = slot1_limit
-            end_text += f" + one sector, {size_text(sector)} (slot 1 is not one sector larger)"
+    end = result.rom_end_offset
+    where, limit = result.limit
+    used = result.used
 
     lines = [
         "| P02 in `slot0_partition` | Value |",
         "|---|---|",
         f"| Board target | `{config.get('CONFIG_BOARD_TARGET', '?')}` |",
         f"| MCUboot mode | {mode} |",
-        f"| Slot size | {size_text(slot_size)} (0x{slot_size:X}) |",
+        f"| Slot size | {size_text(slot)} (0x{slot:X}) |",
         f"| Header (`ROM_START_OFFSET`) | 0x{start:X} ({size_text(start)}) |",
-        f"| End of the slot reserved for MCUboot (`ROM_END_OFFSET`) | {end_text} |",
-        f"| Maximum header + code | {size_text(limit)} (0x{limit:X}) |",
+        f"| End of the slot kept free (`ROM_END_OFFSET`) | 0x{end:X} ({size_text(end)}): MCUboot's trailer "
+        f"{size_text(result.trailer)} + its estimate for the TLVs {size_text(result.tlv_estimate)} |",
+        f"| Maximum header + code + TLVs | {size_text(limit)} (0x{limit:X}), set by {where} |",
+        f"| P02 today: header + code + TLVs | {size_text(used)} (0x{used:X}), of which TLVs "
+        f"{size_text(result.tlvs)} |",
+        f"| Margin | {size_text(limit - used)} |",
     ]
 
-    signed = app / "zephyr" / "zephyr.signed.bin"
-    if signed.exists():
-        _hdr, used = image_size(signed)
-        lines.append(f"| P02 today: header + code | {size_text(used)} (0x{used:X}) |")
-        lines.append(f"| Margin in the slot | {size_text(limit - used)} |")
-
     if mcuboot.get("CONFIG_BOOT_RAM_LOAD") == "y":
-        # RAM load: MCUboot copies header + code into this RAM, and P02's data and stacks are in it too,
-        # so the RAM, not the slot, is the limit.
+        # RAM load: MCUboot copies the image into this RAM, and P02's data and stacks are in it too.
         ram_start = int(mcuboot["CONFIG_BOOT_IMAGE_EXECUTABLE_RAM_START"], 0)
         ram_size = int(mcuboot["CONFIG_BOOT_IMAGE_EXECUTABLE_RAM_SIZE"], 0)
         lines.append(f"| RAM MCUboot loads P02 into | {size_text(ram_size)} at 0x{ram_start:08X} |")
-        used = ram_used(app / "zephyr" / "zephyr.elf", ram_start, ram_size)
-        lines.append(f"| P02 today in RAM: code, data, stacks | {size_text(used)} |")
-        lines.append(f"| RAM margin | {size_text(ram_size - used)} |")
+        ram = ram_used(app / "zephyr" / "zephyr.elf", ram_start, ram_size)
+        lines.append(f"| P02 today in RAM: code, data, stacks | {size_text(ram)} |")
+        lines.append(f"| RAM margin | {size_text(ram_size - ram)} |")
     return lines
 
 
@@ -204,10 +160,10 @@ def main() -> None:
     args = parser.parse_args()
 
     edt = load_edt(args.build / "app")
-    memory, partitions = memory_table(edt)
+    memory = memory_table(edt)
     print("\n".join(memory))
     print()
-    print("\n".join(p02_table(args.build, partitions)))
+    print("\n".join(p02_table(args.build, edt)))
 
 
 if __name__ == "__main__":

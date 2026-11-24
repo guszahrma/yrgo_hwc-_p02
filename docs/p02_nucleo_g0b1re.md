@@ -28,7 +28,7 @@ hardware's: Zephyr's board (`boards/st/nucleo_g0b1re/nucleo_g0b1re.dts` in Zephy
 and P02 makes slot 0 one sector smaller than slot 1, leaving that sector unused
 (`zephyr/app/partitions/nucleo_g0b1re.overlay`). The tables show the partitions P02 is built with, and the
 room P02 has in its slot; offsets are from the start of the flash. Printed by `tools/flash_layout.py` from a
-build of fe7cd2b; what the terms mean: [Boards → Memory layout](boards.md#memory-layout).
+build of 5d52fd9; what the terms mean: [Boards → Memory layout](boards.md#memory-layout).
 
 | Column | Set by |
 |---|---|
@@ -49,10 +49,10 @@ build of fe7cd2b; what the terms mean: [Boards → Memory layout](boards.md#memo
 | MCUboot mode | swap using offset |
 | Slot size | 198 KB (0x31800) |
 | Header (`ROM_START_OFFSET`) | 0x200 (512 B) |
-| End of the slot reserved for MCUboot (`ROM_END_OFFSET`) | 0x828 (2.0 KB) |
-| Maximum header + code | 196.0 KB (0x30FD8) |
-| P02 today: header + code | 48.9 KB (0xC380) |
-| Margin in the slot | 147.1 KB |
+| End of the slot kept free (`ROM_END_OFFSET`) | 0x828 (2.0 KB): MCUboot's trailer 2 KB + its estimate for the TLVs 40 B |
+| Maximum header + code + TLVs | 196 KB (0x31000), set by slot0_partition |
+| P02 today: header + code + TLVs | 48.9 KB (0xC3A8), of which TLVs 40 B |
+| Margin | 147.1 KB |
 
 The flash is fully used: more storage would have to come from the slots, which means building and flashing
 MCUboot again with a cable.

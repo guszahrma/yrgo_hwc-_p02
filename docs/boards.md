@@ -74,20 +74,20 @@ whole slot:
 
 ```
 slot0_partition
-┌────────┬───────────────────────────┬────────┬──────────────────────────────────┐
-│ header │ P02's code                │ free   │ reserved for MCUboot             │
-└────────┴───────────────────────────┴────────┴──────────────────────────────────┘
- ROM_START_OFFSET                               ROM_END_OFFSET
- ◄──────── maximum header + code ─────────────►
+┌────────┬───────────────────────────┬──────┬────────────────┬──────────────────┐
+│ header │ P02's code                │ TLVs │ free           │ trailer          │
+└────────┴───────────────────────────┴──────┴────────────────┴──────────────────┘
+ ◄──────── maximum header + code + TLVs ───────────────────►
 ```
 
 | Term | Meaning |
 |---|---|
 | Sector | The smallest block the flash can erase. MCUboot erases and moves whole sectors |
 | Header (`CONFIG_ROM_START_OFFSET`) | MCUboot's image header (version, sizes), written by `imgtool` when it signs the image |
+| TLVs | The hash and (later) the signature right after the code, written by `imgtool`; MCUboot checks them before it starts the image |
 | Trailer | MCUboot's update state at the end of the slot: magic, `image_ok`, `copy_done`, swap progress |
-| `CONFIG_ROM_END_OFFSET` | What the build keeps free at the end of the slot: the trailer, room for the image's TLVs (hash, signature) and, depending on the mode, one sector |
-| Maximum header + code | Slot size − `ROM_END_OFFSET` (for swap using offset with equal slots, also − one sector, see below) |
+| `CONFIG_ROM_END_OFFSET` | What the build keeps free at the end of the slot: the trailer, MCUboot's estimate for the TLVs and, depending on the mode, one sector |
+| Maximum header + code + TLVs | Slot size − trailer, in every place the image must fit: slot 0, slot 1 (for swap using offset one sector in), and for RAM load MCUboot's RAM. The smallest counts, and the build checks the same limit |
 | Margin | Maximum − what P02 uses today |
 
 What is kept free at the end of the slot depends on the MCUboot mode:

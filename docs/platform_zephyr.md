@@ -86,8 +86,9 @@ Shows what MCUboot does with a new version, on the **Nucleo-G0B1RE and the Nano*
 test, and since v2 does not confirm itself, it goes back to v1 at the next reset. On these boards MCUboot
 runs in **swap using offset** (`zephyr/app/Kconfig.sysbuild`): the new image is written **one sector into**
 `slot1_partition`, and the first sector of slot 1 is the free one that MCUboot moves the sectors into during
-the swap. The old version is kept in slot 1 and can come back. The Daisy keeps RAM load, which has no
-rollback here.
+the swap. Slot 0 is therefore one sector smaller than slot 1 (`zephyr/app/partitions/<board>.overlay`), so an
+update can be as large as slot 0. The old version is kept in slot 1 and can come back. The Daisy keeps RAM
+load, which has no rollback here.
 
 The steps are done by hand for now: v2 is marked "test me" with `west sign --pad` and written to slot 1 with
 OpenOCD or esptool. With signing and updates over MCUmgr/SMP, the build signs the image, and P02 itself
@@ -103,8 +104,8 @@ P02's version is in `zephyr/app/VERSION` (1.0.0) and goes into the image header 
 
 The addresses are the `reg` of the partitions in `zephyr/app/build/<board>/app/zephyr/zephyr.dts` (on the
 Nucleo plus the flash's start, 0x08000000), and the sector is the flash's `erase-block-size` in the same file.
-v2 is written at slot 1 plus one sector, and is padded to the slot minus one sector, so that its trailer ends
-exactly at the end of slot 1. Padded to the whole slot, the trailer would land one sector after slot 1 (on the
+v2 is written at slot 1 plus one sector, and is padded to the slot minus one sector (the size of slot 0), so
+that its trailer ends exactly at the end of slot 1. Padded to the whole slot, the trailer would land one sector after slot 1 (on the
 Nucleo in `storage_partition`, where the settings are).
 
 **1. Erase the slots and flash v1.** Erase once if MCUboot ran in another mode before (swap using move,

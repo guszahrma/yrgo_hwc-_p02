@@ -17,22 +17,16 @@ jobs:
       - name: Check code formatting
         run: tools/clang-format/check.sh
 
+  # Only warns: a branch may point to a module branch while a change spans both repositories.
+  # submodule-check.yml fails in pull requests to main.
   submodule-check:
-    name: Check that modules/fuz is on the module's main
+    name: Check modules/fuz (warning only)
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
         uses: actions/checkout@v7
       - name: Check modules/fuz
-        run: |
-          pin=$(git ls-tree HEAD modules/fuz | awk '{print $3}')
-          url=$(git config -f .gitmodules submodule.modules/fuz.url)
-          git clone --quiet --bare --filter=blob:none --single-branch --branch main "$url" "$RUNNER_TEMP/fuz"
-          if ! git -C "$RUNNER_TEMP/fuz" merge-base --is-ancestor "$pin" main 2>/dev/null; then
-            echo "::error file=.gitmodules::modules/fuz points to $pin, which is not on the module's main. Merge the module's pull request first, then move the submodule to the merged commit."
-            exit 1
-          fi
-          echo "modules/fuz at $pin, on the module's main"
+        run: tools/check_fuz_submodule.sh --warn
 
   windows-format-check:
     name: Check code formatting on Windows

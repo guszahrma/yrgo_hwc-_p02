@@ -104,7 +104,6 @@ def p02_table(build: Path, edt) -> list[str]:
     app = build / "app"
     sysbuild = read_kconfig(build / "zephyr" / ".config")
     config = read_kconfig(app / "zephyr" / ".config")
-    mcuboot = read_kconfig(build / "mcuboot" / "zephyr" / ".config")
     mode = next((text for key, text in MODES.items() if sysbuild.get(key) == "y"), "unknown")
     try:
         result = measure(build, edt=edt)
@@ -132,29 +131,13 @@ def p02_table(build: Path, edt) -> list[str]:
         f"| Margin | {size_text(limit - used)} |",
     ]
 
-    if mcuboot.get("CONFIG_BOOT_RAM_LOAD") == "y":
+    if result.ram is not None:
         # RAM load: MCUboot copies the image into this RAM, and P02's data and stacks are in it too.
-        ram_start = int(mcuboot["CONFIG_BOOT_IMAGE_EXECUTABLE_RAM_START"], 0)
-        ram_size = int(mcuboot["CONFIG_BOOT_IMAGE_EXECUTABLE_RAM_SIZE"], 0)
-        lines.append(f"| RAM MCUboot loads P02 into | {size_text(ram_size)} at 0x{ram_start:08X} |")
-        ram = ram_used(app / "zephyr" / "zephyr.elf", ram_start, ram_size)
-        lines.append(f"| P02 today in RAM: code, data, stacks | {exact_size_text(ram, with_hex=False)} |")
-        lines.append(f"| RAM margin | {size_text(ram_size - ram)} |")
+        ram = result.ram
+        lines.append(f"| RAM MCUboot loads P02 into | {size_text(ram.size)} at 0x{ram.start:08X} |")
+        lines.append(f"| P02 today in RAM: code, data, stacks | {exact_size_text(ram.used, with_hex=False)} |")
+        lines.append(f"| RAM margin | {size_text(ram.size - ram.used)} |")
     return lines
-
-
-def ram_used(elf_path: Path, ram_start: int, ram_size: int) -> int:
-    """Bytes from the start of the RAM to the end of the last allocated section in it."""
-    from elftools.elf.constants import SH_FLAGS
-    from elftools.elf.elffile import ELFFile
-
-    end = ram_start
-    with open(elf_path, "rb") as file:
-        for section in ELFFile(file).iter_sections():
-            address, size = section["sh_addr"], section["sh_size"]
-            if section["sh_flags"] & SH_FLAGS.SHF_ALLOC and size and ram_start <= address < ram_start + ram_size:
-                end = max(end, address + size)
-    return end - ram_start
 
 
 def main() -> None:

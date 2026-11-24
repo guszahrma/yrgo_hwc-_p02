@@ -12,7 +12,11 @@ must fit in:
 * slot 1 minus MCUboot's trailer, where an update is written; for swap using offset one sector further in,
   since MCUboot's sysbuild code leaves that sector out of ROM_END_OFFSET (a #todo in
   mcuboot/boot/zephyr/CMakeLists.txt);
-* for RAM load, the RAM MCUboot copies the image into.
+* for RAM load, the RAM MCUboot copies the image into, from the load address in the image header
+  (boot_verify_ram_load_address() in mcuboot/boot/bootutil/src/ram_load.c).
+
+For RAM load, P02's code, data and stacks (the app ELF's sections from the start of that RAM) must also fit
+in it: MCUboot's RAM is set in its own Kconfig, the app's in its devicetree, so they can differ.
 
 The trailer is ROM_END_OFFSET minus MCUboot's fixed estimate for the TLVs (tlv_estimate()), so that the
 image's real TLVs are counted, our own ones included, which the estimate leaves out.
@@ -119,12 +123,43 @@ def tlv_estimate(mcuboot: dict) -> int:
     return 40
 
 
+def app_ram_end(edt, ram_start: int, ram_size: int) -> int:
+    """Where to stop looking for P02's sections: the end of the app's RAM (zephyr,sram) if MCUboot's RAM
+    starts in it, so a section past the end of MCUboot's RAM is counted too; otherwise MCUboot's end."""
+    end = ram_start + ram_size
+    sram = getattr(edt, "chosen_nodes", {}).get("zephyr,sram")
+    if sram is not None and sram.regs and sram.regs[0].addr <= ram_start < sram.regs[0].addr + sram.regs[0].size:
+        end = max(end, sram.regs[0].addr + sram.regs[0].size)
+    return end
+
+
+def ram_used(elf_path: Path, ram_start: int, search_end: int) -> int:
+    """Bytes from ram_start to the end of the last allocated section of the ELF below search_end."""
+    from elftools.elf.constants import SH_FLAGS  # pyelftools: in the Zephyr environment, not needed by tests
+    from elftools.elf.elffile import ELFFile
+
+    end = ram_start
+    with open(elf_path, "rb") as file:
+        for section in ELFFile(file).iter_sections():
+            address, size = section["sh_addr"], section["sh_size"]
+            if section["sh_flags"] & SH_FLAGS.SHF_ALLOC and size and ram_start <= address < search_end:
+                end = max(end, address + size)
+    return end - ram_start
+
+
 def kb(size: int) -> str:
     return f"{size / 1024:.1f} KB"
 
 
 class SizeError(Exception):
     """The build cannot be measured: a file or partition is missing, or the image is not what MCUboot reads."""
+
+
+@dataclass
+class RamUse:
+    start: int  # MCUboot's RAM for the image (CONFIG_BOOT_IMAGE_EXECUTABLE_RAM_START)
+    size: int  # CONFIG_BOOT_IMAGE_EXECUTABLE_RAM_SIZE
+    used: int  # P02's code, data and stacks from start: the app ELF's sections
 
 
 @dataclass
@@ -135,6 +170,7 @@ class Measurement:
     rom_end_offset: int  # what the build keeps free at the end of the slot (CONFIG_ROM_END_OFFSET)
     tlv_estimate: int  # MCUboot's estimate for the TLVs in ROM_END_OFFSET
     limits: list  # (where, maximum header + code + TLVs), one per place the image must fit
+    ram: RamUse | None = None  # RAM load only
 
     @property
     def used(self) -> int:
@@ -166,7 +202,7 @@ def measure(build: Path, image_name: str = "app", edt=None) -> Measurement:
 
     signed = image_dir / "zephyr" / "zephyr.signed.bin"
     image = signed.read_bytes()
-    magic, _load_addr, hdr_size, protect_tlv_size, img_size = struct.unpack_from("<IIHHI", image)
+    magic, load_addr, hdr_size, protect_tlv_size, img_size = struct.unpack_from("<IIHHI", image)
     if magic != IMAGE_MAGIC:
         raise SizeError(f"{signed} is not an MCUboot image")
     tlvs, error = tlv_size(image, hdr_size, img_size, protect_tlv_size)
@@ -194,9 +230,17 @@ def measure(build: Path, image_name: str = "app", edt=None) -> Measurement:
             limits.append(("slot1_partition, written one sector in", size - sector - trailer))
         else:
             limits.append(("slot1_partition", size - trailer))
+    ram = None
     if mcuboot.get("CONFIG_BOOT_RAM_LOAD") == "y":
-        limits.append(("MCUboot's RAM for the image", int(mcuboot["CONFIG_BOOT_IMAGE_EXECUTABLE_RAM_SIZE"], 0)))
-    return Measurement(hdr_size, img_size, tlvs, rom_end_offset, estimate, limits)
+        ram_start = int(mcuboot["CONFIG_BOOT_IMAGE_EXECUTABLE_RAM_START"], 0)
+        ram_size = int(mcuboot["CONFIG_BOOT_IMAGE_EXECUTABLE_RAM_SIZE"], 0)
+        if not ram_start <= load_addr < ram_start + ram_size:
+            raise SizeError(f"the image's load address 0x{load_addr:X} is outside MCUboot's RAM for the image "
+                            f"(0x{ram_start:X}, {ram_size} B), so MCUboot refuses it")
+        limits.append(("MCUboot's RAM for the image", ram_start + ram_size - load_addr))
+        elf = image_dir / "zephyr" / "zephyr.elf"
+        ram = RamUse(ram_start, ram_size, ram_used(elf, ram_start, app_ram_end(edt, ram_start, ram_size)))
+    return Measurement(hdr_size, img_size, tlvs, rom_end_offset, estimate, limits, ram)
 
 
 def main() -> int:
@@ -217,7 +261,16 @@ def main() -> int:
               f"{limit} B ({kb(limit)}), {used - limit} B too many",
               file=sys.stderr)
         return 1
+    ram = result.ram
+    if ram is not None and ram.used > ram.size:
+        print(f"error: P02 does not fit in MCUboot's RAM: code, data and stacks {ram.used} B ({kb(ram.used)}), "
+              f"but the RAM is {ram.size} B ({kb(ram.size)}), {ram.used - ram.size} B too many",
+              file=sys.stderr)
+        return 1
     print(f"P02 fits: header + code + TLVs {kb(used)} of {kb(limit)} ({where}), margin {kb(limit - used)}")
+    if ram is not None:
+        print(f"P02 fits in MCUboot's RAM: code, data and stacks {kb(ram.used)} of {kb(ram.size)}, "
+              f"margin {kb(ram.size - ram.used)}")
     return 0
 
 

@@ -101,8 +101,8 @@ What is kept free at the end of the slot depends on the MCUboot mode:
 Who stops an image that is too large:
 
 * **P02's build**, on every board: after every build with `--sysbuild`, `tools/check_image_size.py` checks
-  that the signed image fits in both slots (and for RAM load in MCUboot's RAM), and otherwise stops with
-  `P02 does not fit`, the limit and the bytes over. For swap using offset it also stops when slot 1 is not
+  that the signed image fits in both slots (and for RAM load in MCUboot's RAM, together with P02's data and
+  stacks), and otherwise stops with `P02 does not fit`, the limit and the bytes over. For swap using offset it also stops when slot 1 is not
   exactly one sector larger than slot 0.
 * **The linker**, with `region 'FLASH' overflowed`, on Cortex-M (Nucleo, Daisy): its FLASH region ends at
   `ROM_END_OFFSET`. Not on the Nano: the ESP32-S3's linker script does not use `ROM_END_OFFSET`.

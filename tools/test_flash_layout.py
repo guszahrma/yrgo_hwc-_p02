@@ -98,9 +98,7 @@ class P02TableTest(unittest.TestCase):
 
     def test_ram_load_shows_ram_used(self):
         self.make_build(0x1000, ram_load=0x3000)
-        with open(self.build / "mcuboot" / "zephyr" / ".config", "a") as config:
-            config.write("CONFIG_BOOT_IMAGE_EXECUTABLE_RAM_START=0x24000000\n")
-        with mock.patch.object(flash_layout, "ram_used", return_value=0x2000):
+        with mock.patch.object(check_image_size, "ram_used", return_value=0x2000):
             lines = flash_layout.p02_table(self.build, fake_edt(0x8000, 0x8000))
         self.assertIn("set by MCUboot's RAM for the image", self.row(lines, "Maximum header + code + TLVs"))
         self.assertEqual(self.row(lines, "RAM MCUboot loads P02 into"),

@@ -40,8 +40,18 @@ git clone --recursive git@github.com:guszahrma/yrgo_hwc-_p02.git
 cd yrgo_hwc-_p02
 ```
 
-`--recursive` also fetches GoogleTest (`tests/googletest`). In an existing clone without it:
-`git submodule update --init`.
+`--recursive` also fetches GoogleTest (`tests/googletest`) and the firmware update module
+(`modules/fuz`). In an existing clone without it: `git submodule update --init`.
+
+Each submodule is pinned to a commit, and `git pull` does not move it by itself. Run this once
+after cloning, so that `git pull` and `git switch` also check out the commit P02 points to:
+
+```bash
+git config submodule.recurse true
+```
+
+Without it, a pull that moves a submodule only shows `modules/fuz (new commits)` in `git status`,
+and builds keep using the old commit until you run `git submodule update`.
 
 ### Fixed port names
 

@@ -32,11 +32,11 @@ printed by `tools/flash_layout.py` from a build of 5d52fd9; what the terms mean:
 | Slot size | 512 KB (0x80000) |
 | Header (`ROM_START_OFFSET`) | 0x400 (1 KB) |
 | End of the slot kept free (`ROM_END_OFFSET`) | 0x58 (88 B): MCUboot's trailer 48 B + its estimate for the TLVs 40 B |
-| Maximum header + code + TLVs | 512.0 KB (0x7FFD0), set by slot0_partition |
-| P02 today: header + code + TLVs | 129.9 KB (0x207BC), of which TLVs 40 B |
+| Maximum header + code + TLVs | 511.95 KB (524,240 B = 0x7FFD0), set by `slot0_partition` |
+| P02 today: header + code + TLVs | 129.93 KB (133,052 B = 0x207BC), of which TLVs 40 B |
 | Margin | 382.0 KB |
 | RAM MCUboot loads P02 into | 512 KB at 0x24000000 |
-| P02 today in RAM: code, data, stacks | 149.4 KB |
+| P02 today in RAM: code, data, stacks | 149.37 KB (152,956 B) |
 | RAM margin | 362.6 KB |
 
 The RAM margin is the one that counts: P02 runs out of RAM long before it runs out of slot.

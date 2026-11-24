@@ -50,11 +50,11 @@ than slot 1, and that sector is unused (`zephyr/app/partitions/arduino_nano_esp3
 | Slot size | 1340 KB (0x14F000) |
 | Header (`ROM_START_OFFSET`) | 0x20 (32 B) |
 | End of the slot kept free (`ROM_END_OFFSET`) | 0x1028 (4.0 KB): MCUboot's trailer 4 KB + its estimate for the TLVs 40 B |
-| Maximum header + code + TLVs | 1336 KB (0x14E000), set by slot0_partition |
-| P02 today: header + code + TLVs | 138.4 KB (0x229BC), of which TLVs 40 B |
+| Maximum header + code + TLVs | 1336 KB (0x14E000), set by `slot0_partition` |
+| P02 today: header + code + TLVs | 138.43 KB (141,756 B = 0x229BC), of which TLVs 40 B |
 | Margin | 1197.6 KB |
 
-The linker does not check this maximum on the ESP32-S3, so check the margin after a build.
+The ESP32-S3's linker does not check this maximum; the build's size check (`tools/check_image_size.py`) does.
 
 ## Setup, building and flashing
 

@@ -12,6 +12,7 @@ The tables go into the board documents and the P02 board documents (see docs/boa
 """
 
 import argparse
+import re
 import sys
 from pathlib import Path
 
@@ -32,10 +33,6 @@ MODES = {
 }
 
 
-
-
-
-
 def size_text(size: int) -> str:
     """Bytes as MB, KB or B, whichever divides exactly; otherwise KB with one decimal."""
     if size % (1024 * 1024) == 0:
@@ -47,6 +44,13 @@ def size_text(size: int) -> str:
     return f"{size / 1024:.1f} KB"
 
 
+def exact_size_text(size: int, with_hex: bool = True) -> str:
+    """A size to compare with the build's output: a whole size as size_text(), any other in KB with two
+    decimals and in bytes, so that 512 KB - 48 B is not shown as "512.0 KB"."""
+    hex_text = f"0x{size:X}" if with_hex else ""
+    if size % 1024 == 0 or size < 1024:
+        return f"{size_text(size)} ({hex_text})" if with_hex else size_text(size)
+    return f"{size / 1024:.2f} KB ({size:,} B" + (f" = {hex_text}" if with_hex else "") + ")"
 
 
 def flash_of(partitions_node):
@@ -95,8 +99,6 @@ def memory_table(edt) -> list[str]:
     return lines
 
 
-
-
 def p02_table(build: Path, edt) -> list[str]:
     """P02 in its slot: the limits are the ones the build checks (check_image_size.measure())."""
     app = build / "app"
@@ -113,6 +115,7 @@ def p02_table(build: Path, edt) -> list[str]:
     end = result.rom_end_offset
     where, limit = result.limit
     used = result.used
+    where_text = re.sub(r"(slot\d_partition)", r"`\1`", where)  # the partition name as code
 
     lines = [
         "| P02 in `slot0_partition` | Value |",
@@ -123,8 +126,8 @@ def p02_table(build: Path, edt) -> list[str]:
         f"| Header (`ROM_START_OFFSET`) | 0x{start:X} ({size_text(start)}) |",
         f"| End of the slot kept free (`ROM_END_OFFSET`) | 0x{end:X} ({size_text(end)}): MCUboot's trailer "
         f"{size_text(result.trailer)} + its estimate for the TLVs {size_text(result.tlv_estimate)} |",
-        f"| Maximum header + code + TLVs | {size_text(limit)} (0x{limit:X}), set by {where} |",
-        f"| P02 today: header + code + TLVs | {size_text(used)} (0x{used:X}), of which TLVs "
+        f"| Maximum header + code + TLVs | {exact_size_text(limit)}, set by {where_text} |",
+        f"| P02 today: header + code + TLVs | {exact_size_text(used)}, of which TLVs "
         f"{size_text(result.tlvs)} |",
         f"| Margin | {size_text(limit - used)} |",
     ]
@@ -135,7 +138,7 @@ def p02_table(build: Path, edt) -> list[str]:
         ram_size = int(mcuboot["CONFIG_BOOT_IMAGE_EXECUTABLE_RAM_SIZE"], 0)
         lines.append(f"| RAM MCUboot loads P02 into | {size_text(ram_size)} at 0x{ram_start:08X} |")
         ram = ram_used(app / "zephyr" / "zephyr.elf", ram_start, ram_size)
-        lines.append(f"| P02 today in RAM: code, data, stacks | {size_text(ram)} |")
+        lines.append(f"| P02 today in RAM: code, data, stacks | {exact_size_text(ram, with_hex=False)} |")
         lines.append(f"| RAM margin | {size_text(ram_size - ram)} |")
     return lines
 

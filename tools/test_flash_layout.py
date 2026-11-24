@@ -50,6 +50,19 @@ class MemoryTableTest(unittest.TestCase):
         self.assertNotIn("*unused*", "\n".join(flash_layout.memory_table(edt)))
 
 
+class ExactSizeTextTest(unittest.TestCase):
+    def test_just_under_a_whole_size_is_not_rounded_up(self):
+        # The Daisy's maximum: 512 KB slot minus a 48 B trailer.
+        self.assertEqual(flash_layout.exact_size_text(512 * 1024 - 48), "511.95 KB (524,240 B = 0x7FFD0)")
+
+    def test_whole_sizes_stay_short(self):
+        self.assertEqual(flash_layout.exact_size_text(196 * 1024), "196 KB (0x31000)")
+        self.assertEqual(flash_layout.exact_size_text(40), "40 B (0x28)")
+
+    def test_without_hex(self):
+        self.assertEqual(flash_layout.exact_size_text(152956, with_hex=False), "149.37 KB (152,956 B)")
+
+
 class P02TableTest(unittest.TestCase):
     """The P02 table must show the limits that check_image_size.py enforces."""
 
@@ -72,8 +85,8 @@ class P02TableTest(unittest.TestCase):
         lines = flash_layout.p02_table(self.build, edt)
         result = check_image_size.measure(self.build, edt=edt)
         self.assertEqual(result.limit, ("slot0_partition", 0x7800))
-        self.assertIn("(0x7800), set by slot0_partition", self.row(lines, "Maximum header + code + TLVs"))
-        self.assertIn(f"(0x{0x1000 + 0x28:X})", self.row(lines, "P02 today: header + code + TLVs"))
+        self.assertIn("(0x7800), set by `slot0_partition`", self.row(lines, "Maximum header + code + TLVs"))
+        self.assertIn("(4,136 B = 0x1028)", self.row(lines, "P02 today: header + code + TLVs"))
         self.assertEqual(self.row(lines, "Margin"), f"| Margin | {flash_layout.size_text(0x7800 - 0x1028)} |")
         self.assertIn("MCUboot's trailer 2 KB + its estimate for the TLVs 40 B",
                       self.row(lines, "End of the slot kept free (`ROM_END_OFFSET`)"))
@@ -81,7 +94,7 @@ class P02TableTest(unittest.TestCase):
     def test_smaller_slot1_sets_the_limit(self):
         self.make_build(0x1000)
         lines = flash_layout.p02_table(self.build, fake_edt(0x8000, 0x4000))
-        self.assertIn("(0x4000), set by slot1_partition", self.row(lines, "Maximum header + code + TLVs"))
+        self.assertIn("(0x4000), set by `slot1_partition`", self.row(lines, "Maximum header + code + TLVs"))
 
     def test_ram_load_shows_ram_used(self):
         self.make_build(0x1000, ram_load=0x3000)

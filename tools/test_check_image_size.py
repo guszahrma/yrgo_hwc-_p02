@@ -19,6 +19,7 @@ import check_image_size
 
 SECTOR = 0x800
 TLVS = 0x28  # a TLV area with a SHA256 hash, as in an unsigned P02 image
+RAM_START = 0x24000000  # MCUboot's RAM for the image, as on the Daisy
 ESTIMATE = 40  # MCUboot's estimate for the TLVs without a signature (check_image_size.tlv_estimate())
 
 
@@ -40,10 +41,11 @@ class CheckImageSizeTest(unittest.TestCase):
 
     def make_build(self, used: int, *, end: int = ESTIMATE, offset: bool = False, ram_load: int | None = None,
                    magic: int = check_image_size.IMAGE_MAGIC, hdr_size: int = 0x200, tlvs: int | None = TLVS,
-                   protected: int = 0):
+                   protected: int = 0, load_addr: int | None = None):
         """Writes the Kconfig files and a signed image whose header + code is `used` bytes, followed by a
         protected TLV area of `protected` bytes (none if 0) and a TLV area of `tlvs` bytes (none if None).
-        `end` is ROM_END_OFFSET: MCUboot's trailer + ESTIMATE (by default no trailer)."""
+        `end` is ROM_END_OFFSET: MCUboot's trailer + ESTIMATE (by default no trailer). `load_addr` is the
+        header's load address (by default the start of MCUboot's RAM, as on the Daisy)."""
         app = self.build / "app" / "zephyr"
         mcuboot = self.build / "mcuboot" / "zephyr"
         sysbuild = self.build / "zephyr"
@@ -52,8 +54,10 @@ class CheckImageSizeTest(unittest.TestCase):
         (sysbuild / ".config").write_text("SB_CONFIG_MCUBOOT_MODE_SWAP_USING_OFFSET=y\n" if offset else "")
         (app / ".config").write_text(f"CONFIG_ROM_END_OFFSET=0x{end:x}\n")
         (mcuboot / ".config").write_text(
-            f"CONFIG_BOOT_RAM_LOAD=y\nCONFIG_BOOT_IMAGE_EXECUTABLE_RAM_SIZE={ram_load}\n" if ram_load else "")
-        image = bytearray(struct.pack("<IIHHI", magic, 0, hdr_size, protected, used - hdr_size))
+            f"CONFIG_BOOT_RAM_LOAD=y\nCONFIG_BOOT_IMAGE_EXECUTABLE_RAM_START=0x{RAM_START:x}\n"
+            f"CONFIG_BOOT_IMAGE_EXECUTABLE_RAM_SIZE={ram_load}\n" if ram_load else "")
+        load_addr = RAM_START if load_addr is None else load_addr
+        image = bytearray(struct.pack("<IIHHI", magic, load_addr, hdr_size, protected, used - hdr_size))
         image += bytes(used - len(image))
         if protected:
             image += struct.pack("<HH", check_image_size.TLV_PROT_INFO_MAGIC, protected)
@@ -62,9 +66,12 @@ class CheckImageSizeTest(unittest.TestCase):
             image += struct.pack("<HH", check_image_size.TLV_INFO_MAGIC, tlvs) + bytes(tlvs - 4)
         (app / "zephyr.signed.bin").write_bytes(image)
 
-    def run_check(self, edt):
+    def run_check(self, edt, ram_in_use: int = 0):
+        """Runs the check; for RAM load, P02's code, data and stacks in the RAM are `ram_in_use` bytes
+        (instead of reading an ELF)."""
         stdout, stderr = io.StringIO(), io.StringIO()
         with mock.patch.object(check_image_size, "load_edt", return_value=edt), \
+                mock.patch.object(check_image_size, "ram_used", return_value=ram_in_use), \
                 mock.patch.object(sys, "argv", ["check_image_size.py", str(self.build)]), \
                 contextlib.redirect_stdout(stdout), contextlib.redirect_stderr(stderr):
             code = check_image_size.main()
@@ -177,6 +184,45 @@ class CheckImageSizeTest(unittest.TestCase):
         code, _, err = self.run_check(fake_edt(0x8000, 0x8000))
         self.assertEqual(code, 1)
         self.assertIn("16 B too many", err)
+
+    def test_ram_load_code_data_stacks_fit(self):
+        # RAM load, code, data and stacks exactly as large as the RAM: passes, and the output shows them.
+        self.make_build(0x1000, ram_load=0x4000)
+        code, out, _ = self.run_check(fake_edt(0x8000, 0x8000), ram_in_use=0x4000)
+        self.assertEqual(code, 0)
+        self.assertIn("P02 fits in MCUboot's RAM: code, data and stacks 16.0 KB of 16.0 KB", out)
+
+    def test_ram_load_code_data_stacks_one_byte_too_many(self):
+        # RAM load, a small image, but code, data and stacks 1 B larger than the RAM: fails.
+        self.make_build(0x1000, ram_load=0x4000)
+        code, _, err = self.run_check(fake_edt(0x8000, 0x8000), ram_in_use=0x4001)
+        self.assertEqual(code, 1)
+        self.assertIn("P02 does not fit in MCUboot's RAM: code, data and stacks 16385 B", err)
+        self.assertIn("1 B too many", err)
+
+    def test_ram_load_limit_from_the_load_address(self):
+        # RAM load, image loaded 0x1000 into the RAM: the image may use only the rest of it, as in MCUboot.
+        self.make_build(0x3000 - TLVS + 1, ram_load=0x4000, load_addr=RAM_START + 0x1000)
+        code, _, err = self.run_check(fake_edt(0x8000, 0x8000))
+        self.assertEqual(code, 1)
+        self.assertIn("MCUboot's RAM for the image allows 12288 B", err)
+        self.assertIn("1 B too many", err)
+
+    def test_ram_load_address_outside_the_ram(self):
+        # RAM load, load address below MCUboot's RAM: fails with an error, as MCUboot refuses the image.
+        self.make_build(0x1000, ram_load=0x4000, load_addr=RAM_START - 0x400)
+        code, _, err = self.run_check(fake_edt(0x8000, 0x8000))
+        self.assertEqual(code, 1)
+        self.assertIn("load address 0x23FFFC00 is outside MCUboot's RAM", err)
+
+    def test_app_ram_end_counts_the_apps_whole_ram(self):
+        # MCUboot's RAM inside the app's zephyr,sram: sections up to the end of the app's RAM count.
+        sram = SimpleNamespace(regs=[SimpleNamespace(addr=RAM_START, size=0x80000)])
+        edt = SimpleNamespace(chosen_nodes={"zephyr,sram": sram})
+        self.assertEqual(check_image_size.app_ram_end(edt, RAM_START, 0x40000), RAM_START + 0x80000)
+        # The app's RAM elsewhere, or no zephyr,sram: MCUboot's end.
+        self.assertEqual(check_image_size.app_ram_end(edt, 0x20000000, 0x40000), 0x20040000)
+        self.assertEqual(check_image_size.app_ram_end(SimpleNamespace(), RAM_START, 0x40000), RAM_START + 0x40000)
 
     def test_slot0_own_tlvs_counted(self):
         # Our Nucleo/Nano layout, image at the limit with MCUboot's TLV estimate, plus 16 B of our own TLVs:

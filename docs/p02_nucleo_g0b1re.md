@@ -20,6 +20,43 @@ every board needs: [Boards](boards.md).
 | Flashing | The on-board ST-Link, with OpenOCD (comes with the Zephyr SDK) |
 | App overlay | [`zephyr/app/boards/nucleo_g0b1re.overlay`](../zephyr/app/boards/nucleo_g0b1re.overlay) |
 
+## Memory layout
+
+The hardware gives one 512 KB flash, the chip's internal flash (`flash0`), with 2 KB sectors (the smallest
+block the flash can erase). How it is divided into partitions is the devicetree's choice, not the
+hardware's: Zephyr's board (`boards/st/nucleo_g0b1re/nucleo_g0b1re.dts` in Zephyr) defines the partitions,
+and P02 makes slot 0 one sector smaller than slot 1, leaving that sector unused
+(`zephyr/app/partitions/nucleo_g0b1re.overlay`). The tables show the partitions P02 is built with, and the
+room P02 has in its slot; offsets are from the start of the flash. Printed by `tools/flash_layout.py` from a
+build of 5d52fd9; what the terms mean: [Boards → Memory layout](boards.md#memory-layout).
+
+| Column | Set by |
+|---|---|
+| Memory, Size, Sector | The hardware |
+| Partition, Offset, Size | The devicetree: change it to move, resize, add or remove partitions |
+
+| Memory | Size | Sector | Partition | Offset | Size |
+|---|---|---|---|---|---|
+| `flash0` | 512 KB | 2 KB | `boot_partition` | 0x0 | 48 KB |
+|  |  |  | `slot0_partition` | 0xC000 | 198 KB |
+|  |  |  | *unused* | 0x3D800 | 2 KB |
+|  |  |  | `slot1_partition` | 0x3E000 | 200 KB |
+|  |  |  | `storage_partition` | 0x70000 | 64 KB |
+
+| P02 in `slot0_partition` | Value |
+|---|---|
+| Board target | `nucleo_g0b1re/stm32g0b1xx` |
+| MCUboot mode | swap using offset |
+| Slot size | 198 KB (0x31800) |
+| Header (`ROM_START_OFFSET`) | 0x200 (512 B) |
+| End of the slot kept free (`ROM_END_OFFSET`) | 0x828 (2.0 KB): MCUboot's trailer 2 KB + its estimate for the TLVs 40 B |
+| Maximum header + code + TLVs | 196 KB (0x31000), set by `slot0_partition` |
+| P02 today: header + code + TLVs | 48.91 KB (50,088 B = 0xC3A8), of which TLVs 40 B |
+| Margin | 147.1 KB |
+
+The flash is fully used: more storage would have to come from the slots, which means building and flashing
+MCUboot again with a cable.
+
 ## Setup (once)
 
 In addition to the [general setup](setup.md) (WSL, usbipd, packages, clone) and the

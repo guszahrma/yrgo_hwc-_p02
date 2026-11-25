@@ -75,7 +75,7 @@ What the board definition provides:
 | I2C | `i2c0` on A4 (SDA) / A5 (SCL), also named `arduino_nano_i2c` – disabled, enable in the app |
 | SPI | `spi2` on D11 (COPI) / D12 (CIPO) / D13 (SCK), also named `arduino_nano_spi` – disabled |
 | Watchdog | `wdt0` (Timer Group 0), alias `watchdog0` – enabled |
-| Flash partitions | Espressif's default layout (`partitions_0x0_amp.dtsi`), including `storage_partition` for settings |
+| Flash partitions | Espressif's default layout for 4 MB (`partitions_0x0_amp.dtsi`, which includes `partitions_0x0_amp_4M.dtsi`), including `storage_partition` for settings: see [Memory layout](#memory-layout) |
 
 App overlays describe wiring with Arduino pin names instead of ESP32-S3 GPIO numbers, for instance:
 
@@ -89,6 +89,46 @@ gpios = <&arduino_nano_header 6 GPIO_ACTIVE_HIGH>;   /* D6 (= GPIO9) */
 | `arduino_nano_esp32-pinctrl.dtsi` | Which GPIOs UART, I2C and SPI use |
 | `arduino_nano_connector.dtsi` | The Nano pin header: D0-D13, A0-A7 → GPIO |
 | `board.yml`, `Kconfig*`, `board.cmake`, `*_defconfig`, `*.yaml` | Board name, chip variant, flash runner, default Kconfig, Twister metadata |
+
+## Memory layout
+
+The hardware gives one 16 MB flash (`flash0`) with 4 KB sectors (the smallest block the flash can erase).
+How it is divided into partitions is the board definition's choice, not the hardware's:
+`arduino_nano_esp32_procpu.dts` includes Espressif's 4 MB layout (`partitions_0x0_amp.dtsi`). The table
+shows that layout as a build sees it (`build/zephyr/zephyr.dts`); offsets are from the start of the flash.
+
+| Column | Set by |
+|---|---|
+| Memory, Size, Sector | The hardware |
+| Partition, Offset, Size | The devicetree: change it to move, resize, add or remove partitions |
+
+| Memory | Size | Sector | Partition | Offset | Size |
+|---|---|---|---|---|---|
+| `flash0` | 16 MB | 4 KB | `boot_partition` | 0x0 | 64 KB |
+|  |  |  | `sys_partition` | 0x10000 | 64 KB |
+|  |  |  | `slot0_partition` | 0x20000 | 1344 KB |
+|  |  |  | `slot1_partition` | 0x170000 | 1344 KB |
+|  |  |  | `slot0_appcpu_partition` | 0x2C0000 | 448 KB |
+|  |  |  | `slot1_appcpu_partition` | 0x330000 | 448 KB |
+|  |  |  | `slot0_lpcore_partition` | 0x3A0000 | 32 KB |
+|  |  |  | `slot1_lpcore_partition` | 0x3A8000 | 32 KB |
+|  |  |  | `storage_partition` | 0x3B0000 | 192 KB |
+|  |  |  | `scratch_partition` | 0x3E0000 | 124 KB |
+|  |  |  | `coredump_partition` | 0x3FF000 | 4 KB |
+|  |  |  | *unused* | 0x400000 | 12 MB |
+
+* `boot_partition` holds MCUboot, and `slot0_partition` the app it starts; `slot1_partition` receives an
+  update. The `appcpu` and `lpcore` slots are for programs on the second core and the low-power core.
+* The layout is Espressif's for 4 MB flash, so the last 12 MB are not used. Zephyr also has larger ones
+  (`partitions_0x0_amp_16M.dtsi`), or the `.dts` can define its own `partitions` node.
+* When changing the layout: offsets and sizes in whole sectors, no overlaps, `boot_partition` at 0x0 (the
+  chip's ROM starts the bootloader from there). Change it in the board definition, so MCUboot and the app
+  are built with the same layout, then flash both again; data in a moved `storage_partition` is not found.
+* An app built for MCUboot cannot use its whole slot: MCUboot's image header comes first, and the end is
+  kept free for MCUboot's trailer (update state) and the image's TLVs (`CONFIG_ROM_END_OFFSET`). How much
+  depends on the MCUboot mode.
+* The ESP32-S3's linker script does not use `CONFIG_ROM_END_OFFSET`, so the linker does not stop an app
+  that runs into the trailer. Only `imgtool` checks the size when it signs, against the whole slot.
 
 ## Building and flashing
 

@@ -14,10 +14,10 @@ namespace driver::boot
  * @brief Simulated boot driver for factory::Stub and tests, without a bootloader.
  *
  * A test chooses the running version, whether it is confirmed and what the second slot holds, and
- * can count the calls to confirm() (confirmCount()). confirm() always succeeds. With the setters, a
- * test also chooses whether the board can be updated, whether the second slot is marked for test
- * and whether a restart has been requested, and reads back the calls to readyForRestart() and
- * selfTestDone(). Nothing restarts: a failed self-test is only recorded.
+ * can count the calls to confirm() (confirmCount()). confirm() always succeeds. With the simulate
+ * functions, a test also chooses whether the board can be updated, whether the second slot is
+ * marked for test and whether a restart has been requested, and reads back the calls to
+ * readyForRestart() and selfTestDone(). Nothing restarts: a failed self-test is only recorded.
  */
 class Stub final : public Interface
 {
@@ -102,13 +102,6 @@ public:
     }
 
     /**
-     * @brief Get the number of calls to confirm()
-     *
-     * @return The number of calls to confirm(), also those made when already confirmed
-     */
-    std::uint32_t confirmCount() const noexcept { return myConfirmCount; }
-
-    /**
      * @brief Check if this board can be updated
      *
      * @return True if the board can receive, test, confirm and revert a new image, false otherwise
@@ -159,25 +152,32 @@ public:
     }
 
     /**
+     * @brief Get the number of calls to confirm()
+     *
+     * @return The number of calls to confirm(), also those made when already confirmed
+     */
+    std::uint32_t confirmCount() const noexcept { return myConfirmCount; }
+
+    /**
      * @brief Choose whether this board can be updated
      *
      * @param[in] supported True if the board can be updated (the default), false otherwise
      */
-    void setUpdateSupported(const bool supported) noexcept { myUpdateSupported = supported; }
+    void simulateUpdateSupported(const bool supported) noexcept { myUpdateSupported = supported; }
 
     /**
      * @brief Choose whether the image in the second slot is marked for test
      *
      * @param[in] pending True if it is marked for test, false otherwise (the default)
      */
-    void setSecondaryPending(const bool pending) noexcept { mySecondaryPending = pending; }
+    void simulateSecondaryPending(const bool pending) noexcept { mySecondaryPending = pending; }
 
     /**
      * @brief Choose whether a restart has been requested, as the client's restart request would
      *
      * @param[in] requested True if a restart has been requested, false otherwise (the default)
      */
-    void setRestartRequested(const bool requested) noexcept { myRestartRequested = requested; }
+    void simulateRestartRequested(const bool requested) noexcept { myRestartRequested = requested; }
 
     /**
      * @brief Get the number of calls to readyForRestart()

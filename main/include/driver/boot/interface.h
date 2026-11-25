@@ -105,7 +105,7 @@ public:
      * @brief Check if a restart has been requested for a firmware update
      *
      * Ask this in every pass of the main loop. When it is true, shut down in an orderly way and
-     * then call readyForRestart().
+     * then call setReadyForRestart().
      *
      * @return True if a restart has been requested, false otherwise
      */
@@ -119,20 +119,18 @@ public:
      *
      * @return True if the restart goes ahead, false if none was requested or it is too late
      */
-    virtual bool readyForRestart() noexcept = 0;
+    virtual bool setReadyForRestart() noexcept = 0;
 
     /**
-     * @brief Report the result of the self-test after an update
+     * @brief Reject the running image and restart, so the bootloader goes back to the previous one
      *
-     * If the self-test passed, the running image is confirmed. If it failed, the board restarts
-     * without confirming it, and the bootloader goes back to the previous image; shut down in an
-     * orderly way first, as before readyForRestart().
+     * Call it when the self-test after an update has failed. Shut down in an orderly way first, as
+     * before setReadyForRestart().
      *
-     * @param[in] passed True if the self-test passed, false if it failed
+     * Does not return if the restart goes ahead.
      *
-     * @return True if the image is confirmed, false if the self-test failed and the restart did
-     *         not happen, or if confirming the image failed
+     * @return False if the image could not be reverted, for example because it is already confirmed
      */
-    virtual bool selfTestDone(bool passed) noexcept = 0;
+    virtual bool revert() noexcept = 0;
 };
 } // namespace driver::boot

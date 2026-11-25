@@ -40,7 +40,7 @@ public:
         , myUpdateSupported{true}
         , mySecondaryPending{false}
         , myRestartRequested{false}
-        , myReadyCount{}
+        , mySetReadyForRestartCount{}
         , myRevertCount{}
     {
         std::printf(
@@ -130,7 +130,7 @@ public:
      */
     bool setReadyForRestart() noexcept override
     {
-        ++myReadyCount;
+        ++mySetReadyForRestartCount;
         return myRestartRequested;
     }
 
@@ -180,7 +180,7 @@ public:
      *
      * @return The number of calls to setReadyForRestart()
      */
-    std::uint32_t readyForRestartCount() const noexcept { return myReadyCount; }
+    std::uint32_t setReadyForRestartCount() const noexcept { return mySetReadyForRestartCount; }
 
     /**
      * @brief Get the number of calls to revert()
@@ -220,7 +220,7 @@ private:
     bool myRestartRequested;
 
     /** Number of calls to setReadyForRestart() */
-    std::uint32_t myReadyCount;
+    std::uint32_t mySetReadyForRestartCount;
 
     /** Number of calls to revert() */
     std::uint32_t myRevertCount;

@@ -14,10 +14,10 @@ namespace driver::boot
  * @brief Simulated boot driver for factory::Stub and tests, without a bootloader.
  *
  * A test chooses the running version, whether it is confirmed and what the second slot holds, and
- * can count the calls to confirm() (confirmCount()). confirm() always succeeds. With the simulate
+ * can count the calls to confirm() (confirmCount()). confirm() never fails. With the simulate
  * functions, a test also chooses whether the board can be updated, whether the second slot is
  * marked for test and whether a restart has been requested, and reads back the calls to
- * readyForRestart() and selfTestDone(). Nothing restarts: a failed self-test is only recorded.
+ * setReadyForRestart() and revert(). Nothing restarts: revert() only counts and returns.
  */
 class Stub final : public Interface
 {
@@ -41,8 +41,7 @@ public:
         , mySecondaryPending{false}
         , myRestartRequested{false}
         , myReadyCount{}
-        , mySelfTestCount{}
-        , mySelfTestPassed{false}
+        , myRevertCount{}
     {
         std::printf(
             "Stub boot: running v%u.%u.%u+%u (%s)\n", static_cast<unsigned>(myVersion.major),
@@ -92,13 +91,14 @@ public:
      *
      * Does nothing if the image is already confirmed.
      *
-     * @return True if the image is confirmed, false if confirming it failed
+     * @return AlreadyConfirmed if the image was confirmed already, Confirmed otherwise
      */
-    bool confirm() noexcept override
+    ConfirmResult confirm() noexcept override
     {
         ++myConfirmCount;
+        if (myConfirmed) { return ConfirmResult::AlreadyConfirmed; }
         myConfirmed = true;
-        return true;
+        return ConfirmResult::Confirmed;
     }
 
     /**
@@ -121,34 +121,30 @@ public:
      *
      * @return True if a restart has been requested, false otherwise
      */
-    bool restartRequested() const noexcept override { return myRestartRequested; }
+    bool isRestartRequested() const noexcept override { return myRestartRequested; }
 
     /**
      * @brief Report that the shutdown is done, so the restart may go ahead
      *
      * @return True if a restart has been requested, false otherwise
      */
-    bool readyForRestart() noexcept override
+    bool setReadyForRestart() noexcept override
     {
         ++myReadyCount;
         return myRestartRequested;
     }
 
     /**
-     * @brief Report the result of the self-test after an update
+     * @brief Reject the running image and restart, so the bootloader goes back to the previous one
      *
-     * A passed self-test confirms the running image; a failed one is only recorded.
+     * Nothing restarts: the call is only counted.
      *
-     * @param[in] passed True if the self-test passed, false if it failed
-     *
-     * @return True if the self-test passed, false otherwise
+     * @return False if the image is already confirmed, true where the board would restart
      */
-    bool selfTestDone(const bool passed) noexcept override
+    bool revert() noexcept override
     {
-        ++mySelfTestCount;
-        mySelfTestPassed = passed;
-        if (passed) { myConfirmed = true; }
-        return passed;
+        ++myRevertCount;
+        return !myConfirmed;
     }
 
     /**
@@ -180,25 +176,18 @@ public:
     void simulateRestartRequested(const bool requested) noexcept { myRestartRequested = requested; }
 
     /**
-     * @brief Get the number of calls to readyForRestart()
+     * @brief Get the number of calls to setReadyForRestart()
      *
-     * @return The number of calls to readyForRestart()
+     * @return The number of calls to setReadyForRestart()
      */
     std::uint32_t readyForRestartCount() const noexcept { return myReadyCount; }
 
     /**
-     * @brief Get the number of calls to selfTestDone()
+     * @brief Get the number of calls to revert()
      *
-     * @return The number of calls to selfTestDone()
+     * @return The number of calls to revert(), also those made when already confirmed
      */
-    std::uint32_t selfTestCount() const noexcept { return mySelfTestCount; }
-
-    /**
-     * @brief Get the result given to the last call to selfTestDone()
-     *
-     * @return True if the last self-test passed, false if it failed or none has been reported
-     */
-    bool selfTestPassed() const noexcept { return mySelfTestPassed; }
+    std::uint32_t revertCount() const noexcept { return myRevertCount; }
 
     Stub(const Stub&)            = delete;
     Stub(Stub&&)                 = delete;
@@ -230,13 +219,10 @@ private:
     /** True if a restart has been requested */
     bool myRestartRequested;
 
-    /** Number of calls to readyForRestart() */
+    /** Number of calls to setReadyForRestart() */
     std::uint32_t myReadyCount;
 
-    /** Number of calls to selfTestDone() */
-    std::uint32_t mySelfTestCount;
-
-    /** Result given to the last call to selfTestDone() */
-    bool mySelfTestPassed;
+    /** Number of calls to revert() */
+    std::uint32_t myRevertCount;
 };
 } // namespace driver::boot

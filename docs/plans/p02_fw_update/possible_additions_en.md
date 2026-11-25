@@ -62,7 +62,7 @@ enough.
 * The module stores the relevant information so that it can be read with the command `status`.
 * No logging during the upload: `smpmgr` has the port then, so a line would end up at the client and not with
   a person.
-* An addition: rename `restartRequested()` to an explicit `poll()`, which the module can use for periodic
+* An addition: rename `isRestartRequested()` to an explicit `poll()`, which the module can use for periodic
   work. The module could then also detect a request that never gets a response, and for example clean up a
   half-finished upload. The client gets a timeout in that case anyway.
 * Also provides the measurement for the Nano verification in phase 2 of [the flow](flow_en.md): how much the flash writes stop the

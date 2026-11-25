@@ -22,6 +22,17 @@ struct Version
 };
 
 /**
+ * @brief Result of Interface::confirm()
+ */
+enum class ConfirmResult : std::uint8_t
+{
+    Confirmed,        // The image is now confirmed
+    AlreadyConfirmed, // It was confirmed already, nothing was written
+    NotAllowed,       // This board's confirm mode does not let the product confirm
+    Failed,           // The confirmation could not be written
+};
+
+/**
  * @brief Interface class for the boot driver: which image is running, and whether it is kept
  *
  * After an update, the bootloader starts the new image as a test. If the image is not confirmed
@@ -68,9 +79,10 @@ public:
      *
      * Does nothing if the image is already confirmed.
      *
-     * @return True if the image is confirmed, false if confirming it failed
+     * @return Confirmed, AlreadyConfirmed, NotAllowed if only the client may confirm on this
+     *         board, or Failed if the confirmation could not be written
      */
-    virtual bool confirm() noexcept = 0;
+    virtual ConfirmResult confirm() noexcept = 0;
 
     /**
      * @brief Check if this board can be updated
@@ -93,11 +105,11 @@ public:
      * @brief Check if a restart has been requested for a firmware update
      *
      * Ask this in every pass of the main loop. When it is true, shut down in an orderly way and
-     * then call readyForRestart().
+     * then call setReadyForRestart().
      *
      * @return True if a restart has been requested, false otherwise
      */
-    virtual bool restartRequested() const noexcept = 0;
+    virtual bool isRestartRequested() const noexcept = 0;
 
     /**
      * @brief Report that the shutdown is done, so the restart may go ahead
@@ -107,20 +119,18 @@ public:
      *
      * @return True if the restart goes ahead, false if none was requested or it is too late
      */
-    virtual bool readyForRestart() noexcept = 0;
+    virtual bool setReadyForRestart() noexcept = 0;
 
     /**
-     * @brief Report the result of the self-test after an update
+     * @brief Reject the running image and restart, so the bootloader goes back to the previous one
      *
-     * If the self-test passed, the running image is confirmed. If it failed, the board restarts
-     * without confirming it, and the bootloader goes back to the previous image; shut down in an
-     * orderly way first, as before readyForRestart().
+     * Call it when the self-test after an update has failed. Shut down in an orderly way first, as
+     * before setReadyForRestart().
      *
-     * @param[in] passed True if the self-test passed, false if it failed
+     * Does not return if the restart goes ahead.
      *
-     * @return True if the image is confirmed, false if the self-test failed and the restart did
-     *         not happen, or if confirming the image failed
+     * @return False if the image could not be reverted, for example because it is already confirmed
      */
-    virtual bool selfTestDone(bool passed) noexcept = 0;
+    virtual bool revert() noexcept = 0;
 };
 } // namespace driver::boot

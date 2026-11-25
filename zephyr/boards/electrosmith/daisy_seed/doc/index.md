@@ -86,6 +86,37 @@ gpios = <&daisy_seed_header DAISY_SEED_HEADER_D26 GPIO_ACTIVE_HIGH>; /* D26 = pi
 | `Kconfig.sysbuild`, `sysbuild.cmake`, `mcuboot.conf`, `mcuboot.overlay`, `mcuboot_hooks.c` | MCUboot for `ram_load` |
 | `board.yml`, `Kconfig*`, `board.cmake`, `*_defconfig`, `*.yaml` | Board name, chip, flash runners, default Kconfig, Twister metadata |
 
+## Memory layout
+
+The hardware gives two flashes: the chip's internal flash (`flash0`, 128 KB, one 128 KB sector) and the
+QSPI flash (`ext_flash`, 8 MB, 4 KB sectors); the sector is the smallest block a flash can erase. How they
+are divided into partitions is the board definition's choice, not the hardware's: the `partitions` nodes
+in `daisy_seed-common.dtsi`. The table shows that layout as a build sees it (`build/zephyr/zephyr.dts`);
+offsets are from the start of each flash.
+
+| Column | Set by |
+|---|---|
+| Memory, Size, Sector | The hardware |
+| Partition, Offset, Size | The devicetree: change it to move, resize, add or remove partitions |
+
+| Memory | Size | Sector | Partition | Offset | Size |
+|---|---|---|---|---|---|
+| `flash0` | 128 KB | 128 KB | `boot_partition` | 0x0 | 128 KB |
+| `ext_flash` | 8 MB | 4 KB | `slot0_partition` | 0x0 | 512 KB |
+|  |  |  | `slot1_partition` | 0x80000 | 512 KB |
+|  |  |  | `storage_partition` | 0x100000 | 64 KB |
+|  |  |  | *unused* | 0x110000 | 7104 KB |
+
+* The internal flash is one 128 KB sector, so it cannot be divided: all of it is MCUboot's.
+* The QSPI flash has ~6.9 MB unused, so the slots or `storage_partition` can grow. When changing the
+  layout: offsets and sizes in whole sectors, no overlaps. Change it in the board definition, so MCUboot
+  and the app are built with the same layout, then flash both again; data in a moved `storage_partition`
+  is not found.
+* With `ram_load`, MCUboot copies the app (image header + code) into the 512 KB AXI SRAM at 0x24000000,
+  where the app's data and stacks are too. So the slots are as large as that RAM (512 KB): a larger slot could never be used.
+* The build keeps the end of each slot free for MCUboot (`CONFIG_ROM_END_OFFSET`): 88 bytes in RAM-load
+  mode without a signature, for the trailer (update state) and the image's TLVs.
+
 ## How an app starts: MCUboot and RAM load
 
 ```

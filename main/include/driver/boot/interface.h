@@ -22,6 +22,17 @@ struct Version
 };
 
 /**
+ * @brief Result of Interface::confirm()
+ */
+enum class ConfirmResult : std::uint8_t
+{
+    Confirmed,        // The image is now confirmed
+    AlreadyConfirmed, // It was confirmed already, nothing was written
+    NotAllowed,       // This board's confirm mode does not let the product confirm
+    Failed,           // The confirmation could not be written
+};
+
+/**
  * @brief Interface class for the boot driver: which image is running, and whether it is kept
  *
  * After an update, the bootloader starts the new image as a test. If the image is not confirmed
@@ -68,9 +79,10 @@ public:
      *
      * Does nothing if the image is already confirmed.
      *
-     * @return True if the image is confirmed, false if confirming it failed
+     * @return Confirmed, AlreadyConfirmed, NotAllowed if only the client may confirm on this
+     *         board, or Failed if the confirmation could not be written
      */
-    virtual bool confirm() noexcept = 0;
+    virtual ConfirmResult confirm() noexcept = 0;
 
     /**
      * @brief Check if this board can be updated

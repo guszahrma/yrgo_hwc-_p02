@@ -14,7 +14,7 @@ namespace driver::boot
  * @brief Simulated boot driver for factory::Stub and tests, without a bootloader.
  *
  * A test chooses the running version, whether it is confirmed and what the second slot holds, and
- * can count the calls to confirm() (confirmCount()). confirm() always succeeds. With the simulate
+ * can count the calls to confirm() (confirmCount()). confirm() never fails. With the simulate
  * functions, a test also chooses whether the board can be updated, whether the second slot is
  * marked for test and whether a restart has been requested, and reads back the calls to
  * readyForRestart() and selfTestDone(). Nothing restarts: a failed self-test is only recorded.
@@ -92,13 +92,14 @@ public:
      *
      * Does nothing if the image is already confirmed.
      *
-     * @return True if the image is confirmed, false if confirming it failed
+     * @return AlreadyConfirmed if the image was confirmed already, Confirmed otherwise
      */
-    bool confirm() noexcept override
+    ConfirmResult confirm() noexcept override
     {
         ++myConfirmCount;
+        if (myConfirmed) { return ConfirmResult::AlreadyConfirmed; }
         myConfirmed = true;
-        return true;
+        return ConfirmResult::Confirmed;
     }
 
     /**

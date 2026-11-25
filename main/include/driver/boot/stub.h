@@ -121,7 +121,7 @@ public:
      *
      * @return True if a restart has been requested, false otherwise
      */
-    bool restartRequested() const noexcept override { return myRestartRequested; }
+    bool isRestartRequested() const noexcept override { return myRestartRequested; }
 
     /**
      * @brief Report that the shutdown is done, so the restart may go ahead

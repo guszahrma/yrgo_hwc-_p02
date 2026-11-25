@@ -124,7 +124,7 @@ sequenceDiagram
         Mod->>Mod: sets the flag, waits on the semaphore (at most 2 s)
     end
     rect rgba(45, 98, 179, 0.14)
-        P->>Mod: boot: restartRequested() → fuz_is_restart_requested(), asked every iteration
+        P->>Mod: boot: isRestartRequested() → fuz_is_restart_requested(), asked every iteration
         Mod-->>P: true
         P->>P: Logic shuts down in order
         P->>Mod: boot: readyForRestart() → fuz_set_ready_for_restart(), gives the semaphore
@@ -269,7 +269,7 @@ The module registers a reset hook (`CONFIG_MCUMGR_GRP_OS_RESET_HOOK`), which run
 handshake:
 
 * `boot` shows that a restart has been requested. `Logic` asks every iteration (for example
-  `restartRequested()`).
+  `isRestartRequested()`).
 * `Logic` does its shutdown, decides by itself when it is done, and signals that to `boot` (for example
   `readyForRestart()`).
 * The hook has been waiting for the signal and now approves. mcumgr responds to the client and restarts after
@@ -346,7 +346,7 @@ code runs in the thread that calls it. Only main writes to the serial port. Expl
 
 | Thread | Priority | What runs there |
 |---|---|---|
-| main (`Logic`) | 0 | The loop every 10 ms. Asks every iteration whether a restart for an update has been requested (`restartRequested()`). mcumgr only runs when main sleeps, so a loop that never sleeps starves the upload. `readLine()` receives, separates SMP frames from text and calls `fuz_receive_smp_frame()`, echoes text and empties the output buffer. Also `print()`, the drivers' `printk()`, the shutdown and the self-test |
+| main (`Logic`) | 0 | The loop every 10 ms. Asks every iteration whether a restart for an update has been requested (`isRestartRequested()`). mcumgr only runs when main sleeps, so a loop that never sleeps starves the upload. `readLine()` receives, separates SMP frames from text and calls `fuz_receive_smp_frame()`, echoes text and empties the output buffer. Also `print()`, the drivers' `printk()`, the shutdown and the self-test |
 | mcumgr's work queue | 3 | Handles the SMP packets, writes the chunks to flash, calls `output()` and thus `tx()`, and the callbacks (the reset hook, `DFU_PENDING` with the board check) |
 | UART interrupt (no thread) | – | Puts received bytes in the ring buffer (Nucleo). The Nano polls from main |
 
@@ -354,7 +354,7 @@ code runs in the thread that calls it. Only main writes to the serial port. Expl
 |---|---|---|---|
 | main → mcumgr | SMP packets | `smp_rx_req()` puts the packet in mcumgr's queue (Zephyr) | Agreed |
 | mcumgr → serial port | The responses, and the board check's line | `tx()` puts frames in an output buffer in `serial::Zephyr`, and main empties it in `readLine()`. If the buffer is full, `tx()` waits for main, never the other way round | Agreed |
-| mcumgr → main | "Restart requested" | A flag (`atomic_t`) that the reset hook sets and `restartRequested()` reads | Proposed |
+| mcumgr → main | "Restart requested" | A flag (`atomic_t`) that the reset hook sets and `isRestartRequested()` reads | Proposed |
 | main → mcumgr | "Ready" | A semaphore (`k_sem`) that `readyForRestart()` gives and the hook waits on, with the time limit | Proposed |
 | both → flash | Slot 1 (mcumgr), NVS on `store` (main) | Different partitions on the same flash. Zephyr's flash driver should have its own lock | Open: verify per board |
 

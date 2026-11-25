@@ -97,7 +97,7 @@ public:
      *
      * @return True if a restart has been requested, false otherwise
      */
-    virtual bool restartRequested() const noexcept = 0;
+    virtual bool isRestartRequested() const noexcept = 0;
 
     /**
      * @brief Report that the shutdown is done, so the restart may go ahead

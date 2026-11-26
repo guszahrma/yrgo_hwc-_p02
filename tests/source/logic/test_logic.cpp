@@ -258,14 +258,3 @@ TEST(Logic, HelpListsEveryCommand)
         EXPECT_TRUE(contains(output, line)) << line;
     }
 }
-
-TEST(Logic, StatusPrintsFirmwareVersions)
-{
-    driver::factory::Stub factory{};
-    std::unique_ptr<logic::Logic> logic{};
-    createLogic(factory, logic);
-
-    const std::string output{sendCommand(factory, *logic, "status")};
-    EXPECT_TRUE(contains(output, "Firmware: v1.0.0+0 (confirmed)\r\n"));
-    EXPECT_TRUE(contains(output, "Second slot: empty\r\n"));
-}

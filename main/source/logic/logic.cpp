@@ -24,6 +24,7 @@ Logic::Logic(driver::factory::Interface& factory) noexcept
     : myPeriodLengthMs{DefaultPeriodMs} // Until loadStoredUserSettings() reads the stored one
     , myBlinkState{false}               // Initialize blink state to off
     , myHung{false}                     // Kick the watchdog until 'hang'
+    , mySelfTestBehaviour{SelfTestBehaviour::Skip} // Until the stored one is loaded
     , myBoard{factory.board()}
     , myBoardTarget{factory.boardTarget()}
     , myPlatform{factory.platform()}
@@ -135,6 +136,10 @@ void Logic::step() noexcept
         }
         else if (cmd == "store")
             handleStore();
+        else if (cmd == "confirm")
+            handleConfirm();
+        else if (cmd == "selftest")
+            handleSelfTest(args);
         else
             handleUnknownCommand(cmd);
     }
@@ -163,8 +168,16 @@ void Logic::handleHelp() noexcept
                           "  blink off\r\n"
                           "  period <ms>\r\n"
                           "  status\r\n"
-                          "  store\r\n"
-                          "  hang  (tests the watchdog: the board restarts after a few seconds)\r\n"
+                          "  store\r\n");
+
+    // Only the commands that work on this board
+    if (myBoot->isUpdateSupported())
+    {
+        mySerialDriver->print("  confirm  (keeps the running firmware after an update)\r\n"
+                              "  selftest pass|fail|skip  (demo: how the self-test after the next "
+                              "update behaves; save with 'store')\r\n");
+    }
+    mySerialDriver->print("  hang  (tests the watchdog: the board restarts after a few seconds)\r\n"
                           "  help\r\n");
 }
 
@@ -248,28 +261,35 @@ void Logic::handleStatus() noexcept
     mySerialDriver->print(myPlatform);
     mySerialDriver->print("\r\n");
 
-    // The firmware versions: the running image, and the image in the second slot (a new image to
-    // install, or the previous one after an update)
-    const driver::boot::Version running{myBoot->version()};
-    char line[OutputLineSize]{};
-    std::snprintf(line, sizeof(line), "Firmware: v%u.%u.%u+%u (%s)\r\n",
-                  static_cast<unsigned>(running.major), static_cast<unsigned>(running.minor),
-                  static_cast<unsigned>(running.revision), static_cast<unsigned>(running.build),
-                  myBoot->isConfirmed() ? "confirmed" : "not confirmed");
-    mySerialDriver->print(line);
-
-    driver::boot::Version secondary{};
-    if (myBoot->secondaryVersion(secondary))
+    // The firmware: the running image and, with firmware update, the image in the second slot (a
+    // new image to install, or the previous one after an update) and the demo self-test
+    mySerialDriver->print("Firmware: ");
+    printVersion(myBoot->version());
+    if (!myBoot->isUpdateSupported())
     {
-        std::snprintf(
-            line, sizeof(line), "Second slot: v%u.%u.%u+%u\r\n",
-            static_cast<unsigned>(secondary.major), static_cast<unsigned>(secondary.minor),
-            static_cast<unsigned>(secondary.revision), static_cast<unsigned>(secondary.build));
-        mySerialDriver->print(line);
+        mySerialDriver->print("\r\nFirmware update: not supported\r\n");
     }
     else
     {
-        mySerialDriver->print("Second slot: empty\r\n");
+        mySerialDriver->print(myBoot->isConfirmed()
+                                  ? " (confirmed)\r\n"
+                                  : " (not confirmed: type 'confirm' to keep it, or reset to go "
+                                    "back)\r\n");
+
+        // Without an image in the second slot there is nothing to swap in, so no test mark
+        driver::boot::Version secondary{};
+        if (myBoot->secondaryVersion(secondary))
+        {
+            mySerialDriver->print("Second slot: ");
+            printVersion(secondary);
+            mySerialDriver->print(myBoot->isSecondaryPending() ? " (test at next reset)\r\n"
+                                                               : "\r\n");
+        }
+        else
+        {
+            mySerialDriver->print("Second slot: empty\r\n");
+        }
+        printSelfTestBehaviour();
     }
     mySerialDriver->print("Blink State: ");
     mySerialDriver->print(myBlinkState ? "on\r\n" : "off\r\n");
@@ -288,6 +308,7 @@ void Logic::handleStore() noexcept
 
     myNvsUserSettingsStorage->setString("blink_state", myBlinkState ? "on" : "off");
     myNvsUserSettingsStorage->setString("blink_period", std::to_string(myPeriodLengthMs));
+    myNvsUserSettingsStorage->setString("selftest", selfTestName(mySelfTestBehaviour));
 
     mySerialDriver->print("Storing current state to non-volatile memory...\r\n");
 }
@@ -307,12 +328,122 @@ void Logic::handleHang() noexcept
 }
 
 // --------------------------------------------------------------------------------
+void Logic::handleConfirm() noexcept
+{
+    mySerialDriver->print("\r\nHandling 'confirm' command...\r\n");
+
+    if (!myBoot->isUpdateSupported())
+    {
+        mySerialDriver->print("Firmware update not supported on this board\r\n");
+        return;
+    }
+
+    switch (myBoot->confirm())
+    {
+        case driver::boot::ConfirmResult::Confirmed:
+            mySerialDriver->print("Firmware ");
+            printVersion(myBoot->version());
+            mySerialDriver->print(" confirmed: kept after the next reset\r\n");
+            break;
+        case driver::boot::ConfirmResult::AlreadyConfirmed:
+            mySerialDriver->print("Firmware ");
+            printVersion(myBoot->version());
+            mySerialDriver->print(" is already confirmed\r\n");
+            break;
+        case driver::boot::ConfirmResult::NotAllowed:
+            mySerialDriver->print(
+                "Confirm not allowed: only the client confirms on this board (smpmgr image "
+                "confirm)\r\n");
+            break;
+        case driver::boot::ConfirmResult::Failed:
+            mySerialDriver->print("Confirm failed: ");
+            printVersion(myBoot->version());
+            mySerialDriver->print(
+                " is still being tested, the previous version comes back at the next reset\r\n");
+            break;
+    }
+}
+
+// --------------------------------------------------------------------------------
+void Logic::handleSelfTest(const std::string_view& args) noexcept
+{
+    mySerialDriver->print("\r\nHandling 'selftest' command...\r\n");
+
+    if (!myBoot->isUpdateSupported())
+    {
+        mySerialDriver->print("Firmware update not supported on this board\r\n");
+        return;
+    }
+
+    if (args == "pass")
+    {
+        mySelfTestBehaviour = SelfTestBehaviour::Pass;
+        mySerialDriver->print(
+            "After the next update, the self-test will pass (demo): the update is kept.");
+    }
+    else if (args == "fail")
+    {
+        mySelfTestBehaviour = SelfTestBehaviour::Fail;
+        mySerialDriver->print("After the next update, the self-test will fail (demo): the "
+                              "previous version comes back.");
+    }
+    else if (args == "skip")
+    {
+        mySelfTestBehaviour = SelfTestBehaviour::Skip;
+        mySerialDriver->print("After the next update, the self-test will not report (demo): "
+                              "confirm by hand, or the next reset reverts.");
+    }
+    else
+    {
+        mySerialDriver->print("Usage: selftest pass|fail|skip\r\n");
+        return;
+    }
+    mySerialDriver->print(" Save with 'store' to keep it after a reset\r\n");
+}
+
+// --------------------------------------------------------------------------------
+void Logic::printVersion(const driver::boot::Version& version) noexcept
+{
+    char text[OutputLineSize]{};
+    std::snprintf(text, sizeof(text), "v%u.%u.%u+%u", static_cast<unsigned>(version.major),
+                  static_cast<unsigned>(version.minor), static_cast<unsigned>(version.revision),
+                  static_cast<unsigned>(version.build));
+    mySerialDriver->print(text);
+}
+
+// --------------------------------------------------------------------------------
+void Logic::printSelfTestBehaviour() noexcept
+{
+    mySerialDriver->print("Self-test behaviour after next update: ");
+    mySerialDriver->print(selfTestName(mySelfTestBehaviour));
+    mySerialDriver->print(SelfTestBehaviour::Skip == mySelfTestBehaviour
+                              ? " (demo: confirm by hand, or the next reset reverts)\r\n"
+                              : " (demo)\r\n");
+}
+
+// --------------------------------------------------------------------------------
+const char* Logic::selfTestName(const SelfTestBehaviour behaviour) noexcept
+{
+    switch (behaviour)
+    {
+        case SelfTestBehaviour::Pass:
+            return "pass";
+        case SelfTestBehaviour::Fail:
+            return "fail";
+        case SelfTestBehaviour::Skip:
+            break;
+    }
+    return "skip";
+}
+
+// --------------------------------------------------------------------------------
 void Logic::loadStoredUserSettings() noexcept
 {
     mySerialDriver->print("\r\nLoading stored user settings...\r\n");
 
     std::string blinkState;
     std::string blinkPeriod;
+    std::string selfTest;
 
     if (!(myNvsUserSettingsStorage->getString("blink_state", blinkState)))
         blinkState = "off"; // Default to "off" if not found
@@ -320,6 +451,12 @@ void Logic::loadStoredUserSettings() noexcept
         blinkPeriod = std::to_string(DefaultPeriodMs); // Default if not found
 
     myBlinkState = (blinkState == "on");
+
+    // Missing or unknown gives skip: an update is not kept unless someone chooses it
+    if (!(myNvsUserSettingsStorage->getString("selftest", selfTest))) { selfTest = "skip"; }
+    mySelfTestBehaviour = ("pass" == selfTest)   ? SelfTestBehaviour::Pass
+                          : ("fail" == selfTest) ? SelfTestBehaviour::Fail
+                                                 : SelfTestBehaviour::Skip;
 
     // Parse the stored period without exceptions (std::stoi throws on bad data, and this function
     // is noexcept) and without silent wrap-around (a cast to uint16_t turns 70000 into 4464).
@@ -348,6 +485,7 @@ void Logic::loadStoredUserSettings() noexcept
     mySerialDriver->print("Blink Period: ");
     mySerialDriver->print(std::to_string(myPeriodLengthMs).c_str());
     mySerialDriver->print(" ms\r\n");
+    if (myBoot->isUpdateSupported()) { printSelfTestBehaviour(); }
 
     myTimerDriver->setPeriod(myPeriodLengthMs);
     if (myBlinkState)

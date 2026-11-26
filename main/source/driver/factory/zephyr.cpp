@@ -3,6 +3,7 @@
  */
 #include <zephyr/device.h>
 #include <zephyr/devicetree.h>
+#include <zephyr/sys/util.h>
 
 #include "driver/adc/zephyr.h"
 #include "driver/factory/zephyr.h"
@@ -91,8 +92,11 @@ Zephyr::createWatchdog(std::uint32_t timeoutMs) noexcept
 // -----------------------------------------------------------------------------
 std::unique_ptr<driver::boot::Interface> Zephyr::createBoot() noexcept
 {
-    // Stub until boot::Zephyr is written
-    return std::make_unique<driver::boot::Stub>();
+    // Stub until boot::Zephyr is written (step A2). Firmware update only where the module is built
+    // in: not on the Daisy (RAM load).
+    constexpr bool updateSupported{IS_ENABLED(CONFIG_FUZ)};
+    return std::make_unique<driver::boot::Stub>(driver::boot::Version{1U, 0U, 0U, 0U}, true, false,
+                                                driver::boot::Version{}, updateSupported);
 }
 
 // -----------------------------------------------------------------------------

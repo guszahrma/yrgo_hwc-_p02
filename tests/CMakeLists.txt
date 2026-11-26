@@ -35,6 +35,7 @@ set(TST_FILES
     source/logic/test_logic.cpp
     source/logic/test_logic_settings.cpp
     source/logic/test_logic_fw_update.cpp
+    source/logic/test_logic_restart.cpp
 )
 
 # Source files.

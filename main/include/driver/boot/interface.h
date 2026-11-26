@@ -105,7 +105,8 @@ public:
      * @brief Check if a restart has been requested for a firmware update
      *
      * Ask this in every pass of the main loop. When it is true, shut down in an orderly way and
-     * then call setReadyForRestart().
+     * then call setReadyForRestart(). It goes false again when setReadyForRestart() is called, or
+     * when the time limit for the shutdown has passed, so each true is one new request.
      *
      * @return True if a restart has been requested, false otherwise
      */
@@ -120,6 +121,15 @@ public:
      * @return True if the restart goes ahead, false if none was requested or it is too late
      */
     virtual bool setReadyForRestart() noexcept = 0;
+
+    /**
+     * @brief Get how long after setReadyForRestart() the restart comes
+     *
+     * The reply to the restart request is sent in this time.
+     *
+     * @return The time from setReadyForRestart() to the restart in milliseconds
+     */
+    virtual std::uint32_t restartDelayMs() const noexcept = 0;
 
     /**
      * @brief Reject the running image and restart, so the bootloader goes back to the previous one

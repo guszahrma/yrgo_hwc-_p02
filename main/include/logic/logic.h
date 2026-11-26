@@ -28,6 +28,9 @@
  *           period_length_ms (ms)
  *           current temperature (°C)
  * - hang → stops kicking the watchdog, as a hung program would, to test it: the system restarts
+ *
+ * When the client requests a restart for a firmware update, Logic shuts down (LED off, blinking
+ * stopped) and reports that it is ready; until the restart, commands are rejected.
  */
 
 namespace logic
@@ -84,6 +87,9 @@ private:
     void printVersion(const driver::boot::Version& version) noexcept;
     void printSelfTestBehaviour() noexcept;
     void loadStoredUserSettings() noexcept;
+    void prepareForRestart() noexcept;
+    void waitForRestart() noexcept;
+    void shutDown() noexcept;
 
     /**
      * How the self-test after the next update behaves (demo, the command 'selftest'): it passes and
@@ -130,13 +136,25 @@ private:
     /** Blink period at start, and when no valid period is stored. */
     static constexpr std::uint16_t DefaultPeriodMs{1000U};
 
+    /**
+     * How long Logic waits for the restart after setReadyForRestart(), on top of the board's
+     * restartDelayMs(), before it stops kicking the watchdog so that it restarts the board.
+     */
+    static constexpr std::uint32_t RestartWaitMs{5000U};
+
+    /** Shortest time of one pass of the main loop: each pass without input sleeps this long. */
+    static constexpr std::uint32_t LoopPassMs{10U};
+
     /** Valid range for the blink period; other values are rejected. */
     static constexpr std::uint16_t MinPeriodMs{50U};
     static constexpr std::uint16_t MaxPeriodMs{10000U};
 
-    std::uint16_t myPeriodLengthMs;        // Blinking period in milliseconds
-    bool myBlinkState;                     // false for off, true for on
-    bool myHung;                           // true after 'hang': the watchdog is no longer kicked
+    std::uint16_t myPeriodLengthMs; // Blinking period in milliseconds
+    bool myBlinkState;              // false for off, true for on
+    bool myHung;                    // true after 'hang': the watchdog is no longer kicked
+    bool myRestarting; // true after setReadyForRestart() went ahead: commands are rejected
+    std::uint32_t myRestartWaitPasses; // Passes of the main loop since setReadyForRestart()
+    std::uint32_t myRestartWaitLimit;  // Passes to wait for the restart before stopping the kicks
     SelfTestBehaviour mySelfTestBehaviour; // The self-test after the next update ('selftest')
     const char* myBoard;                   // Board, from the factory (printed by 'status')
     const char* myBoardTarget;             // Board target, from the factory (printed by 'status')

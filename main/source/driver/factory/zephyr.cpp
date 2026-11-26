@@ -95,8 +95,16 @@ std::unique_ptr<driver::boot::Interface> Zephyr::createBoot() noexcept
     // Stub until boot::Zephyr is written (step A2). Firmware update only where the module is built
     // in: not on the Daisy (RAM load).
     constexpr bool updateSupported{IS_ENABLED(CONFIG_FUZ)};
+
+    // mcumgr restarts this long after the reply to 'os reset'; not defined until mcumgr is built in
+#ifdef CONFIG_MCUMGR_GRP_OS_RESET_MS
+    constexpr std::uint32_t restartDelayMs{CONFIG_MCUMGR_GRP_OS_RESET_MS};
+#else
+    constexpr std::uint32_t restartDelayMs{0U};
+#endif
     return std::make_unique<driver::boot::Stub>(driver::boot::Version{1U, 0U, 0U, 0U}, true, false,
-                                                driver::boot::Version{}, updateSupported);
+                                                driver::boot::Version{}, updateSupported,
+                                                restartDelayMs);
 }
 
 // -----------------------------------------------------------------------------

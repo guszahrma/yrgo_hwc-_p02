@@ -24,6 +24,9 @@ Logic::Logic(driver::factory::Interface& factory) noexcept
     : myPeriodLengthMs{DefaultPeriodMs} // Until loadStoredUserSettings() reads the stored one
     , myBlinkState{false}               // Initialize blink state to off
     , myHung{false}                     // Kick the watchdog until 'hang'
+    , myRestarting{false}               // Until a restart for a firmware update goes ahead
+    , myRestartWaitPasses{}
+    , myRestartWaitLimit{}
     , mySelfTestBehaviour{SelfTestBehaviour::Skip} // Until the stored one is loaded
     , myBoard{factory.board()}
     , myBoardTarget{factory.boardTarget()}
@@ -77,13 +80,17 @@ void Logic::step() noexcept
 {
     // Must be at least one FreeRTOS tick (10 ms with CONFIG_FREERTOS_HZ=100): shorter sleeps
     // busy-wait in ESP-IDF, so the idle task never runs and the task watchdog fires
-    constexpr std::uint8_t sleepDuration_ms{10};
+    constexpr std::uint32_t sleepDuration_ms{LoopPassMs};
 
     char buffer[InputLineSize]{};
 
     // Tell the watchdog that the loop is still running. After 'hang' (see handleHang()) the
     // kicks stop, and the watchdog restarts the system as if the loop had hung.
     if (!myHung) { myWatchdog->kick(); }
+
+    // A restart for a firmware update: shut down once per request, then wait for it
+    if (myRestarting) { waitForRestart(); }
+    else if (myBoot->isRestartRequested()) { prepareForRestart(); }
 
     // Handle a command if a whole line has arrived; otherwise sleep briefly so the loop does not
     // busy-wait.
@@ -92,6 +99,13 @@ void Logic::step() noexcept
         mySerialDriver->print("\r\n\r\nReading line...");
         mySerialDriver->print(buffer);
         mySerialDriver->print("\r\n");
+
+        // The restart may come at any moment: a command such as 'store' could be cut off
+        if (myRestarting)
+        {
+            mySerialDriver->print("Preparing for restart: command rejected\r\n");
+            return;
+        }
 
         std::string_view input{buffer, std::strlen(buffer)};
 
@@ -490,5 +504,64 @@ void Logic::loadStoredUserSettings() noexcept
     myTimerDriver->setPeriod(myPeriodLengthMs);
     if (myBlinkState)
         myTimerDriver->start(); // Start the timer for blinking if it was previously on
+}
+void Logic::prepareForRestart() noexcept
+{
+    // Say what the restart is meant to do; the outcome is not known yet
+    driver::boot::Version secondary{};
+    if (myBoot->isSecondaryPending() && myBoot->secondaryVersion(secondary))
+    {
+        mySerialDriver->print("\r\nPreparing for restart: ");
+        printVersion(secondary);
+        mySerialDriver->print(" will be started as a test\r\n");
+    }
+    else
+    {
+        mySerialDriver->print("\r\nPreparing for restart: firmware not changed\r\n");
+    }
+
+    shutDown();
+    mySerialDriver->print("Ready for restart\r\n");
+
+    if (myBoot->setReadyForRestart())
+    {
+        // Keep the loop running, so the reply to the restart request is sent
+        myRestarting        = true;
+        myRestartWaitPasses = 0U;
+        myRestartWaitLimit  = (RestartWaitMs + myBoot->restartDelayMs()) / LoopPassMs;
+    }
+    else
+    {
+        // The client has already been answered busy: continue as after a reset
+        mySerialDriver->print("Restart declined (too late): firmware not changed, continuing with "
+                              "the stored settings\r\n");
+        loadStoredUserSettings();
+    }
+}
+
+void Logic::waitForRestart() noexcept
+{
+    if (myRestartWaitLimit <= myRestartWaitPasses) { return; }
+
+    ++myRestartWaitPasses;
+    if (myRestartWaitLimit == myRestartWaitPasses)
+    {
+        // The restart was promised to the client: let the watchdog do it, as after 'hang'. The line
+        // is longer than OutputLineSize with the largest time (10 digits).
+        char line[OutputLineSize + 16U]{};
+        std::snprintf(line, sizeof(line),
+                      "\r\nRestart did not happen within %lu ms: stopping the watchdog kicks, the "
+                      "board restarts\r\n",
+                      static_cast<unsigned long>(RestartWaitMs + myBoot->restartDelayMs()));
+        mySerialDriver->print(line);
+        myHung = true;
+    }
+}
+
+void Logic::shutDown() noexcept
+{
+    myTimerDriver->stop();
+    myBlinkState = false;
+    myStatusLed->write(false);
 }
 } // namespace logic

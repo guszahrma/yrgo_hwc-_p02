@@ -328,8 +328,10 @@ or resets based on the result P02 reports, but cannot check that a self-test act
 If the client does not want to keep v2 after confirm, it does a rollback: `image test` on the previous
 version, which remains in slot 1.
 
-> For the demo: the field `selftest` in NVS decides whether the self-test passes or fails. The text command
-> `selftest fail` or `selftest pass` sets it, and `store` saves it. NVS is outside the slots, so v2 reads what
+> For the demo: the field `selftest` in NVS decides whether the self-test passes, fails or is skipped. The
+> text command `selftest pass`, `selftest fail` or `selftest skip` sets it (`skip` by default: the image stays
+> not confirmed until `confirm`, or the next reset reverts), and `store` saves it. NVS is outside the
+> slots, so v2 reads what
 > v1 saved. Demo: in v1 `selftest fail` and `store`, then upload, `image test` and `os reset`: v2's self-test
 > fails and it reverts to v1. Then `selftest pass`, `store` and the same again: v2 is confirmed. The field
 > stays until someone changes it, so `status` shows it. No Kconfig option: P02 is a demo, and the self-test is

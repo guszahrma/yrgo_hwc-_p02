@@ -25,7 +25,7 @@ The partitions P02 is built with on Zephyr, and the room P02 has in its slot. P0
 (the board's own layout is in the board document's
 [Memory layout](../zephyr/boards/arduino/nano_esp32/doc/index.md#memory-layout)): slot 0 is one sector smaller
 than slot 1, and that sector is unused (`zephyr/app/partitions/arduino_nano_esp32.overlay`). Printed by
-`tools/flash_layout.py` from a build of 5d52fd9; what the terms mean: [Boards → Memory layout](boards.md#memory-layout).
+`tools/flash_layout.py` from a build of 7cb6387; what the terms mean: [Boards → Memory layout](boards.md#memory-layout).
 
 | Memory | Size | Sector | Partition | Offset | Size |
 |---|---|---|---|---|---|
@@ -51,8 +51,8 @@ than slot 1, and that sector is unused (`zephyr/app/partitions/arduino_nano_esp3
 | Header (`ROM_START_OFFSET`) | 0x20 (32 B) |
 | End of the slot kept free (`ROM_END_OFFSET`) | 0x1028 (4.0 KB): MCUboot's trailer 4 KB + its estimate for the TLVs 40 B |
 | Maximum header + code + TLVs | 1336 KB (0x14E000), set by `slot0_partition` |
-| P02 today: header + code + TLVs | 138.43 KB (141,756 B = 0x229BC), of which TLVs 40 B |
-| Margin | 1197.6 KB |
+| P02 today: header + code + TLVs | 139.56 KB (142,908 B = 0x22E3C), of which TLVs 40 B |
+| Margin | 1196.4 KB |
 
 The ESP32-S3's linker does not check this maximum; the build's size check (`tools/check_image_size.py`) does.
 

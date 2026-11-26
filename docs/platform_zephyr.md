@@ -197,6 +197,11 @@ slot 0, v2 at slot 1 plus one sector. After step 5: v2 in slot 0, v1 at the star
 v1 in slot 0. On the Nucleo, OpenOCD's `mdw` reads the same words (the magic at the start of a header, the
 version at `+0x14`) while P02 runs: `-c "halt" -c "mdw 0x0800C000" -c "mdw 0x0800C014" ... -c "resume"`.
 
+**7. After the demo, erase the slots again** with the command in step 1, before flashing an ordinary
+build. The demo leaves MCUboot's trailer at the end of slot 0, and `west flash` erases only the sectors it
+writes: at the next start MCUboot acts on the old trailer and can put an old image back in slot 0, so
+`status` shows the old P02.
+
 ### Our samples (`zephyr/samples/`)
 
 Our apps find the board through `list(APPEND BOARD_ROOT ...)` in their own `CMakeLists.txt` and set

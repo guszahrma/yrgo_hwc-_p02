@@ -28,7 +28,7 @@ hardware's: Zephyr's board (`boards/st/nucleo_g0b1re/nucleo_g0b1re.dts` in Zephy
 and P02 makes slot 0 one sector smaller than slot 1, leaving that sector unused
 (`zephyr/app/partitions/nucleo_g0b1re.overlay`). The tables show the partitions P02 is built with, and the
 room P02 has in its slot; offsets are from the start of the flash. Printed by `tools/flash_layout.py` from a
-build of 5d52fd9; what the terms mean: [Boards → Memory layout](boards.md#memory-layout).
+build of 7cb6387; what the terms mean: [Boards → Memory layout](boards.md#memory-layout).
 
 | Column | Set by |
 |---|---|
@@ -51,8 +51,8 @@ build of 5d52fd9; what the terms mean: [Boards → Memory layout](boards.md#memo
 | Header (`ROM_START_OFFSET`) | 0x200 (512 B) |
 | End of the slot kept free (`ROM_END_OFFSET`) | 0x828 (2.0 KB): MCUboot's trailer 2 KB + its estimate for the TLVs 40 B |
 | Maximum header + code + TLVs | 196 KB (0x31000), set by `slot0_partition` |
-| P02 today: header + code + TLVs | 48.91 KB (50,088 B = 0xC3A8), of which TLVs 40 B |
-| Margin | 147.1 KB |
+| P02 today: header + code + TLVs | 50.88 KB (52,096 B = 0xCB80), of which TLVs 40 B |
+| Margin | 145.1 KB |
 
 The flash is fully used: more storage would have to come from the slots, which means building and flashing
 MCUboot again with a cable.
@@ -106,3 +106,4 @@ The green LED LD4 on the board (PA5 = D13) is not used by P02.
 |---|---|
 | `west flash`: `libusb_open() failed with LIBUSB_ERROR_ACCESS` | The udev rules are not installed, or were installed before the Nucleo's rule was added. Install them again (see Setup) |
 | `west flash` fails looking for STM32CubeProgrammer | The default runner was used. Add `--runner openocd` |
+| After `west flash`, `status` shows the old P02 | The [update demo](platform_zephyr.md#update-demo) left MCUboot's trailer at the end of slot 0, and MCUboot put an old image back. Erase the slots (the demo's step 7), then flash again |

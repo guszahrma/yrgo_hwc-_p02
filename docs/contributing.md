@@ -196,7 +196,18 @@ Linux user, which cannot read your files:
 While a job runs:
 
 * The board must be attached to WSL (`usbipd attach`) and its port free: quit `tio` first, or the job fails.
+  To use the port yourself, open `tio` with the board's runner paused (see below).
 * The job flashes the board, so whatever was on it (another platform, a test build) is replaced.
+
+To use a board with a runner yourself, open the monitor through the runner:
+
+```bash
+tools/hil/runner_tio.sh nucleo      # nano, daisy or nucleo; without a board it lists them
+```
+
+It waits for a running job to finish, takes the runner offline, and opens `tio`. When you quit `tio`
+(`Ctrl+T`, `q`), the runner comes back online; jobs queued in the meantime wait until then. It asks for
+your `sudo` password, as starting and stopping a runner needs root.
 
 The test can also be run by hand after flashing:
 

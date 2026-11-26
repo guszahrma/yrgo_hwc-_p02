@@ -22,6 +22,14 @@ while read -r port dir service _; do
         continue
     fi
     missing="$STATE_DIR/$(basename "$dir").missing_since"
+    paused="$STATE_DIR/$(basename "$dir").paused"
+
+    # Paused by tools/hil/runner_tio.sh: leave the runner alone while that script (its PID) runs
+    if [[ -f "$paused" ]]; then
+        kill -0 "$(<"$paused")" 2>/dev/null && continue
+        echo "pause of $service ended without cleanup: resuming"
+        rm -f "$paused"
+    fi
 
     if [[ -e "$port" ]]; then
         rm -f "$missing"

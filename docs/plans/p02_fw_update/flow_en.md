@@ -34,7 +34,7 @@ written); where they differ, the header is right.
 | The reset hook and the handshake "restart requested" / "app ready" | `boot::Zephyr` calls the module's C API, and `Logic` does its shutdown |
 | The check of the board target TLV and the erase on the wrong board | – |
 | Kconfig defaults (progressive erase, hash, size) | – |
-| Rejecting `image state write` while the running image is not confirmed (during the self-test), and confirm or reset based on the self-test result the product reports | The self-test and reporting its result (`selfTestDone()`), and the demo field `selftest` in NVS |
+| Rejecting `image state write` while the running image is not confirmed (during the self-test), and confirm or reset based on the self-test result the product reports | The self-test, and acting on its result (`confirm()` or `revert()`), and the demo field `selftest` in NVS |
 | Reading and writing MCUboot's state: version, confirmed, second slot, confirm | `boot::Zephyr` is an adapter: each method calls a function in the module |
 
 ## The flow at a glance
@@ -124,10 +124,10 @@ sequenceDiagram
         Mod->>Mod: sets the flag, waits on the semaphore (at most 2 s)
     end
     rect rgba(45, 98, 179, 0.14)
-        P->>Mod: boot: restartRequested() → fuz_is_restart_requested(), asked every iteration
+        P->>Mod: boot: isRestartRequested() → fuz_is_restart_requested(), asked every iteration
         Mod-->>P: true
         P->>P: Logic shuts down in order
-        P->>Mod: boot: readyForRestart() → fuz_set_ready_for_restart(), gives the semaphore
+        P->>Mod: boot: setReadyForRestart() → fuz_set_ready_for_restart(), gives the semaphore
     end
     rect rgba(161, 96, 10, 0.18)
         Mod->>Mod: the hook wakes from waiting (semaphore), when main sleeps
@@ -151,7 +151,7 @@ sequenceDiagram
     alt C: self-test fails
         rect rgba(45, 98, 179, 0.14)
             P->>Ser: print("Self-test failed: restarting, the previous version comes back")
-            P->>Mod: boot: selfTestDone(false) → fuz_revert()
+            P->>Mod: boot: revert() → fuz_revert()
         end
         Mod-)M: reset: sys_reboot() without confirm
         M->>M: revert: v1 back to slot 0
@@ -160,7 +160,7 @@ sequenceDiagram
         M->>M: starts after the watchdog reset, revert: v1 back to slot 0
     else E: self-test OK
         rect rgba(45, 98, 179, 0.14)
-            P->>Mod: boot: selfTestDone(true) → fuz_confirm()
+            P->>Mod: boot: confirm() → fuz_confirm()
             Mod->>S0: boot_write_img_confirmed(), image ok in the trailer
         end
         Note over P: v2 confirmed, stays after reset
@@ -269,9 +269,9 @@ The module registers a reset hook (`CONFIG_MCUMGR_GRP_OS_RESET_HOOK`), which run
 handshake:
 
 * `boot` shows that a restart has been requested. `Logic` asks every iteration (for example
-  `restartRequested()`).
+  `isRestartRequested()`).
 * `Logic` does its shutdown, decides by itself when it is done, and signals that to `boot` (for example
-  `readyForRestart()`).
+  `setReadyForRestart()`).
 * The hook has been waiting for the signal and now approves. mcumgr responds to the client and restarts after
   `CONFIG_MCUMGR_GRP_OS_RESET_MS` (250 ms).
 
@@ -305,11 +305,11 @@ created and the ADC reports `isInitialized()`, NVS can be reached (missing or co
 and count as passed), and `Logic`'s loop has run for a certain time (for example 10 s) without the watchdog
 firing.
 
-* **Passed:** P02 reports the result (`boot::Interface::selfTestDone(true)` → `fuz_confirm()`),
+* **Passed:** P02 confirms (`boot::Interface::confirm()` → `fuz_confirm()`),
   and the module confirms with `boot_write_img_confirmed()`. v2 stays after the next reset.
-* **Failed:** P02 writes a line (`Self-test failed: restarting, the previous version comes back`) and reports
-  the result (`selfTestDone(false)` → `fuz_revert()`). The module restarts with `sys_reboot()` without confirm, and MCUboot
-  reverts to v1. P02 writes the line itself before the report, since the module's `tx()` only puts it in the
+* **Failed:** P02 writes a line (`Self-test failed: restarting, the previous version comes back`) and reverts
+  (`boot::Interface::revert()` → `fuz_revert()`). The module restarts with `sys_reboot()` without confirm, and MCUboot
+  reverts to v1. P02 writes the line itself before `revert()`, since the module's `tx()` only puts it in the
   output buffer, which main does not have time to empty before the restart.
 * **Hangs:** `Logic` does not kick the watchdog, which resets the chip after 3 s (Nano ~6 s). MCUboot reverts
   to v1.
@@ -346,7 +346,7 @@ code runs in the thread that calls it. Only main writes to the serial port. Expl
 
 | Thread | Priority | What runs there |
 |---|---|---|
-| main (`Logic`) | 0 | The loop every 10 ms. Asks every iteration whether a restart for an update has been requested (`restartRequested()`). mcumgr only runs when main sleeps, so a loop that never sleeps starves the upload. `readLine()` receives, separates SMP frames from text and calls `fuz_receive_smp_frame()`, echoes text and empties the output buffer. Also `print()`, the drivers' `printk()`, the shutdown and the self-test |
+| main (`Logic`) | 0 | The loop every 10 ms. Asks every iteration whether a restart for an update has been requested (`isRestartRequested()`). mcumgr only runs when main sleeps, so a loop that never sleeps starves the upload. `readLine()` receives, separates SMP frames from text and calls `fuz_receive_smp_frame()`, echoes text and empties the output buffer. Also `print()`, the drivers' `printk()`, the shutdown and the self-test |
 | mcumgr's work queue | 3 | Handles the SMP packets, writes the chunks to flash, calls `output()` and thus `tx()`, and the callbacks (the reset hook, `DFU_PENDING` with the board check) |
 | UART interrupt (no thread) | – | Puts received bytes in the ring buffer (Nucleo). The Nano polls from main |
 
@@ -354,8 +354,8 @@ code runs in the thread that calls it. Only main writes to the serial port. Expl
 |---|---|---|---|
 | main → mcumgr | SMP packets | `smp_rx_req()` puts the packet in mcumgr's queue (Zephyr) | Agreed |
 | mcumgr → serial port | The responses, and the board check's line | `tx()` puts frames in an output buffer in `serial::Zephyr`, and main empties it in `readLine()`. If the buffer is full, `tx()` waits for main, never the other way round | Agreed |
-| mcumgr → main | "Restart requested" | A flag (`atomic_t`) that the reset hook sets and `restartRequested()` reads | Proposed |
-| main → mcumgr | "Ready" | A semaphore (`k_sem`) that `readyForRestart()` gives and the hook waits on, with the time limit | Proposed |
+| mcumgr → main | "Restart requested" | A flag (`atomic_t`) that the reset hook sets and `isRestartRequested()` reads | Proposed |
+| main → mcumgr | "Ready" | A semaphore (`k_sem`) that `setReadyForRestart()` gives and the hook waits on, with the time limit | Proposed |
 | both → flash | Slot 1 (mcumgr), NVS on `store` (main) | Different partitions on the same flash. Zephyr's flash driver should have its own lock | Open: verify per board |
 
 ## State of the images
@@ -420,11 +420,13 @@ firmware update. Proposal for later: `PROJECT_VER` from the same `VERSION` file 
 | Checks of the image | mcumgr's built-in ones (header, size with `TOO_LARGE_SYSBUILD`, `upgrade`, SHA-256 with `IMG_ENABLE_IMAGE_CHECK`) plus one of our own: the right board, the board target in a TLV of its own, checked when the image has been received. Rejected: the chip's type ID (chip-specific code per platform, misses boards with the same chip), board revision (our boards have no ID), our own check of the whole slot 1 with the result in `image state-read` | Agreed |
 | Image for the wrong board | The module erases the sector with the header in slot 1 at once (with swap using offset, the second sector) and writes a line on the serial port. Rejected: decline `os reset` and keep the image (the test mark stays, the next restart starts it), the reason in `image state-read` (more code, the line already shows in `tio`), reject `image test` with the hook `MGMT_EVT_OP_CMD_RECV` (does not see the content, so it also rejects `image confirm`) | Agreed |
 | `boot::Zephyr` and the module | `boot::Zephyr` is a thin adapter: each method in `boot::Interface` calls a function in the module, and all reading and writing of MCUboot's state in P02 goes through the module. Rejected: `boot::Zephyr` directly against MCUboot's API (two ways to the same state), one and the same code (the module is C and does not know P02; `boot::Interface` is P02's C++ interface, with a stub for the host tests) | Agreed |
-| Who confirms after the swap | The module, based on the self-test result P02 reports (`selfTestDone()`, which calls `fuz_confirm()` or `fuz_revert()`): passed gives confirm, failed gives a reset without confirm (revert). If the self-test hangs, the watchdog resets the chip. A client that does not want to keep v2 does a rollback with `image test` on the previous version in slot 1. Rejected: two steps, where the client confirms after P02's self-test (if the client never comes back, there is an unexpected revert at the next restart, for example a power cut), only the client without a self-test (a broken v2 runs until someone notices) | Agreed |
+| Who confirms after the swap | The module, when P02 asks after its self-test: passed gives `boot::Interface::confirm()` → `fuz_confirm()`, failed gives `revert()` → `fuz_revert()`, a reset without confirm. `boot` mirrors the module, one method per outcome, and does not know that there is a self-test; `Logic` chooses. If the self-test hangs, the watchdog resets the chip. A client that does not want to keep v2 does a rollback with `image test` on the previous version in slot 1. Rejected: two steps, where the client confirms after P02's self-test (if the client never comes back, there is an unexpected revert at the next restart, for example a power cut), only the client without a self-test (a broken v2 runs until someone notices), one method `selfTestDone(bool)` for both outcomes (a second way to confirm besides `confirm()`, and `boot` would know about the self-test; PR #114 review) | Agreed |
 | Confirm during the self-test | The module rejects `image state write` with the hook `MGMT_EVT_OP_CMD_RECV` while the running image is not confirmed, and reads that itself with `boot_is_img_confirmed()`. To verify: that `west flash` gives a confirmed image. Rejected: allow it (the client can skip the self-test with `image confirm`) | Agreed |
 | Older version in slot 1 | May be test-run; it is the client's choice (`upgrade` on upload, `image test` on the previous version as a rollback). With swap using offset, the previous version ends up at the start of slot 1 (#104); that mcumgr finds it there is still to verify (see phase 5). Rejected: P02 always rejects lower versions (the previous version in slot 1 can still be test-run), erase slot 1 on confirm (no way back) | Agreed |
 | What the self-test checks | "Came up and runs", with what already exists: the drivers created and the ADC `isInitialized()`, NVS can be reached (missing or corrupt settings give defaults and count as passed), and `Logic`'s loop has run for a certain time (for example 10 s) without the watchdog. No changes to the interfaces. Rejected: corrupt NVS as a failure (a data problem that v1 also has would stop all updates, even a v2 that fixes it), `selfTest()` in every driver (changes all drivers and stubs), only that the loop started (catches nothing the watchdog does not already catch). For the demo, the field `selftest` in NVS can force a failure, without a Kconfig option since P02 is a demo. Rejected for the demo: a build flag (one build per outcome) | Agreed |
-| The text command `confirm` | Exists in `Logic` besides `smpmgr image confirm` and calls `boot::Interface::confirm()`. Answers `already confirmed` if the image is already confirmed. Now that the module confirms after the self-test it is hardly needed, and if kept, the module needs a function of its own for it: to decide whether it is kept for manual tests in `tio` or removed. The warning at startup is no longer needed, since no image is left unconfirmed after the self-test | Open |
+| The text command `confirm` | Kept, for manual tests in `tio`, besides `smpmgr image confirm`. `Logic` calls `boot::Interface::confirm()`, which in `boot::Zephyr` calls `fuz_confirm()` and returns its result as a `ConfirmResult`: 0 → `Confirmed`, `-EALREADY` → `AlreadyConfirmed`, `-EPERM` → `NotAllowed` (`FUZ_CONFIRM_BY_CLIENT`), any other error → `Failed`; `Logic` answers each one. Rejected: `bool` (`already confirmed`, not allowed and a failed write would all be `false`). The module needs no function of its own for it: in `FUZ_CONFIRM_BY_PRODUCT` (the default), the product may confirm, and the module cannot tell who in the product asked. The warning at startup is no longer needed, since no image is left unconfirmed after the self-test. Rejected: removing it (no way to confirm by hand in `tio`) | Agreed |
+| The self-test and the text command `confirm` | How they work together: the text command goes past the module's block on the client's `image confirm` during the self-test, so it can skip it. P02 is a demo, so the plan is to offer both ways, with the allowed cases stored in NVS. Decided later, not in step 0 | Open |
+| Who reads the header in slot 1 | The module (`fuz_get_secondary_version()`, and its board check), which handles both places of the header with swap using offset. P02 reads it only through `boot::Zephyr`. Follows from *`boot::Zephyr` and the module*. Rejected: `boot::Zephyr` reading it itself (two ways to the same header, each of which must handle both places) | Agreed |
 | Who requests the test and the restart | The client over SMP (`image test`, `os reset`). `Logic` gets to shut down in order through mcumgr's reset hook, which can also decline. Rejected: a text command `update` in `Logic`, and both ways equal (two ways to test) | Agreed |
 
 ## Terms

@@ -44,7 +44,7 @@ flowchart LR
 
 | Step | What | Depends on | Reviewer tests |
 |---|---|---|---|
-| 0 Interfaces | New methods in `boot::Interface` and the stub (`isUpdateSupported()`, `isSecondaryPending()`, `restartRequested()`, `readyForRestart()`, `selfTestDone()`), and the module's C API as a header without code: one function per method in `boot::Interface`, plus `fuz_init(tx)` and `fuz_receive_smp_frame(frame)` for `serial::Zephyr`. Whether `confirm()` stays in `boot::Interface` depends on the decision about the text command `confirm`. A small PR both read carefully: everything else builds on it. Also decide here who owns reading the header in slot 1 (A2 and B6 need it, and it must account for swap using offset) | – | The host tests pass |
+| 0 Interfaces | New methods in `boot::Interface` and the stub (`isUpdateSupported()`, `isSecondaryPending()`, `isRestartRequested()`, `setReadyForRestart()`, `revert()`), and the module's C API as a header without code: one function per method in `boot::Interface`, plus `fuz_init(tx)` and `fuz_receive_smp_frame(frame)` for `serial::Zephyr`. Whether `confirm()` stays in `boot::Interface` depends on the decision about the text command `confirm`. A small PR both read carefully: everything else builds on it. Also decide here who owns reading the header in slot 1 (A2 and B6 need it, and it must account for swap using offset) | – | The host tests pass |
 
 ## Track A: P02
 
@@ -52,8 +52,8 @@ flowchart LR
 |---|---|---|---|
 | A1 status and confirm | The text command `confirm` (if kept, see the decision *The text command `confirm`* in [the flow](flow_en.md)), the lines in `status` (`Firmware`, `Second slot`, `(test at next reset)`, `not supported`, `selftest`) and the text command `selftest fail\|pass`, with the stub | 0 | Host tests; `help` and `status` in `tio` on any board |
 | A2 `boot::Zephyr` | The adapter: each method in `boot::Interface` calls a function in the module (`fuz_get_running_version()`, `fuz_is_confirmed()`, `fuz_get_secondary_version()`, `fuz_confirm()` / `fuz_revert()` …) | 0, B1, B2 | The update demo by hand (as in #91): `status` shows version, confirmed and slot 1; test then revert, Nucleo |
-| A3 Shutdown | `Logic` asks `restartRequested()`, does its shutdown (the line, LED off, blinking off) and signals `readyForRestart()`; the loop keeps running after `readyForRestart()` until the restart, so that the response to `os reset` gets out | A1 | Host tests with the stub |
-| A4 Self-test | The self-test when the image is not confirmed, the line on failure and the report `selfTestDone()`; the demo field `selftest` in NVS | A3; on a board also A2 and B2 | Host tests; on a board, `selftest fail` gives a revert and `selftest pass` a confirm |
+| A3 Shutdown | `Logic` asks `isRestartRequested()`, does its shutdown (the line, LED off, blinking off) and signals `setReadyForRestart()`; the loop keeps running after `setReadyForRestart()` until the restart, so that the response to `os reset` gets out | A1 | Host tests with the stub |
+| A4 Self-test | The self-test when the image is not confirmed, the line on failure, and `confirm()` or `revert()` by the result; the demo field `selftest` in NVS | A3; on a board also A2 and B2 | Host tests; on a board, `selftest fail` gives a revert and `selftest pass` a confirm |
 
 ## Track B: the module
 
@@ -73,5 +73,5 @@ flowchart LR
 | E Whole flow | The whole flow from upload to self-test, confirm or revert, and a hardware test in CI (Nucleo): `selftest fail`, upload, test: revert; then `selftest pass`: confirm | A2–A4, B5, B6 | Both run the demo on their own board before the demo review for the second product's developers |
 
 Meeting points where the tracks must align: step 0 (the interfaces), A3 and B5 (the handshake from each
-side), A2 and B2 (the adapter against the module), A4 and B2 (`selfTestDone()` → confirm or reset), A2 and B6
+side), A2 and B2 (the adapter against the module), A4 and B2 (`confirm()` or `revert()`), A2 and B6
 (the header in slot 1).

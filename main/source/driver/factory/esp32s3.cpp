@@ -79,8 +79,10 @@ Esp32s3::createWatchdog(std::uint32_t timeoutMs) noexcept
 // -----------------------------------------------------------------------------
 std::unique_ptr<driver::boot::Interface> Esp32s3::createBoot() noexcept
 {
-    // Stub until boot::Esp32s3 is written
-    return std::make_unique<driver::boot::Stub>();
+    // No firmware update on ESP-IDF, so the stub only gives the version: v1.0.0, since ESP-IDF
+    // sets none yet
+    return std::make_unique<driver::boot::Stub>(driver::boot::Version{1U, 0U, 0U, 0U}, true, false,
+                                                driver::boot::Version{}, false);
 }
 
 // -----------------------------------------------------------------------------

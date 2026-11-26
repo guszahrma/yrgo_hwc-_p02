@@ -22,7 +22,7 @@ board targets, how an app starts, troubleshooting – is described in its board 
 
 The flashes' partitions are in the board document's
 [Memory layout](../zephyr/boards/electrosmith/daisy_seed/doc/index.md#memory-layout). The room P02 has,
-printed by `tools/flash_layout.py` from a build of 5d52fd9; what the terms mean:
+printed by `tools/flash_layout.py` from a build of 7cb6387; what the terms mean:
 [Boards → Memory layout](boards.md#memory-layout).
 
 | P02 in `slot0_partition` | Value |

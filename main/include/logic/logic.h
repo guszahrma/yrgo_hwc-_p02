@@ -79,7 +79,26 @@ private:
     void handleUnknownCommand(const std::string_view& cmd) noexcept;
     void handleStore() noexcept;
     void handleHang() noexcept;
+    void handleConfirm() noexcept;
+    void handleSelfTest(const std::string_view& args) noexcept;
+    void printVersion(const driver::boot::Version& version) noexcept;
+    void printSelfTestBehaviour() noexcept;
     void loadStoredUserSettings() noexcept;
+
+    /**
+     * How the self-test after the next update behaves (demo, the command 'selftest'): it passes and
+     * confirms the image, fails and reverts, or does not report, so the user confirms by hand or
+     * the next reset reverts.
+     */
+    enum class SelfTestBehaviour : std::uint8_t
+    {
+        Pass,
+        Fail,
+        Skip,
+    };
+
+    /** The name of a self-test behaviour, as stored in NVS and typed after 'selftest'. */
+    static const char* selfTestName(SelfTestBehaviour behaviour) noexcept;
 
     /** One line of input from the serial port, including the terminating '\0'. */
     static constexpr std::size_t InputLineSize{64U};
@@ -115,12 +134,13 @@ private:
     static constexpr std::uint16_t MinPeriodMs{50U};
     static constexpr std::uint16_t MaxPeriodMs{10000U};
 
-    std::uint16_t myPeriodLengthMs; // Blinking period in milliseconds
-    bool myBlinkState;              // false for off, true for on
-    bool myHung;                    // true after 'hang': the watchdog is no longer kicked
-    const char* myBoard;            // Board, from the factory (printed by 'status')
-    const char* myBoardTarget;      // Board target, from the factory (printed by 'status')
-    const char* myPlatform;         // ESP-IDF or Zephyr, from the factory (printed by 'status')
+    std::uint16_t myPeriodLengthMs;        // Blinking period in milliseconds
+    bool myBlinkState;                     // false for off, true for on
+    bool myHung;                           // true after 'hang': the watchdog is no longer kicked
+    SelfTestBehaviour mySelfTestBehaviour; // The self-test after the next update ('selftest')
+    const char* myBoard;                   // Board, from the factory (printed by 'status')
+    const char* myBoardTarget;             // Board target, from the factory (printed by 'status')
+    const char* myPlatform; // ESP-IDF or Zephyr, from the factory (printed by 'status')
     std::unique_ptr<driver::serial::Interface> mySerialDriver; // Serial driver for communication
     std::unique_ptr<driver::gpio::Interface> myStatusLed; // Status LED (role GpioId::StatusLed)
     std::unique_ptr<driver::adc::Interface>
@@ -131,6 +151,7 @@ private:
     std::unique_ptr<driver::nvs::Interface>
         myNvsUserSettingsStorage; // NVS driver for non-volatile storage of Usersettings
     std::unique_ptr<driver::watchdog::Interface> myWatchdog;
-    std::unique_ptr<driver::boot::Interface> myBoot; // Boot driver: firmware versions and confirm
+    std::unique_ptr<driver::boot::Interface>
+        myBoot; // Boot driver: firmware versions, update support, confirm
 };
 } // namespace logic

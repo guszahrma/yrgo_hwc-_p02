@@ -50,7 +50,7 @@ flowchart LR
 
 | Step | What | Depends on | Reviewer tests |
 |---|---|---|---|
-| A1 status and confirm | The text command `confirm` (if kept, see the decision *The text command `confirm`* in [the flow](flow_en.md)), the lines in `status` (`Firmware`, `Second slot`, `(test at next reset)`, `not supported`, `selftest`) and the text command `selftest fail\|pass`, with the stub | 0 | Host tests; `help` and `status` in `tio` on any board |
+| A1 status and confirm | The text command `confirm` (see the decision *The text command `confirm`* in [the flow](flow_en.md)), the lines in `status` (`Firmware`, `Second slot`, `(test at next reset)`, `not supported`, `selftest`) and the text command `selftest pass\|fail\|skip`, with the stub | 0 | Host tests; `help` and `status` in `tio` on any board |
 | A2 `boot::Zephyr` | The adapter: each method in `boot::Interface` calls a function in the module (`fuz_get_running_version()`, `fuz_is_confirmed()`, `fuz_get_secondary_version()`, `fuz_confirm()` / `fuz_revert()` …) | 0, B1, B2 | The update demo by hand (as in #91): `status` shows version, confirmed and slot 1; test then revert, Nucleo |
 | A3 Shutdown | `Logic` asks `isRestartRequested()`, does its shutdown (the line, LED off, blinking off) and signals `setReadyForRestart()`; the loop keeps running after `setReadyForRestart()` until the restart, so that the response to `os reset` gets out | A1 | Host tests with the stub |
 | A4 Self-test | The self-test when the image is not confirmed, the line on failure, and `confirm()` or `revert()` by the result; the demo field `selftest` in NVS | A3; on a board also A2 and B2 | Host tests; on a board, `selftest fail` gives a revert and `selftest pass` a confirm |

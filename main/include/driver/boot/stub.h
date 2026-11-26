@@ -14,10 +14,10 @@ namespace driver::boot
  * @brief Simulated boot driver for factory::Stub and tests, without a bootloader.
  *
  * A test chooses the running version, whether it is confirmed and what the second slot holds, and
- * can count the calls to confirm() (confirmCount()). confirm() never fails. With the simulate
- * functions, a test also chooses whether the board can be updated, whether the second slot is
- * marked for test and whether a restart has been requested, and reads back the calls to
- * setReadyForRestart() and revert(). Nothing restarts: revert() only counts and returns.
+ * whether the board can be updated. The factories use the constructor for boards without a real
+ * boot driver. With the simulate functions, a test changes that state later, chooses what confirm()
+ * returns, marks the second slot for test and requests a restart, and it reads back the calls to
+ * confirm(), setReadyForRestart() and revert(). Nothing restarts: revert() only counts and returns.
  */
 class Stub final : public Interface
 {
@@ -29,15 +29,18 @@ public:
      * @param[in] confirmed True if the running image is confirmed, false if it is being tested
      * @param[in] hasSecondary True if the second slot holds an image
      * @param[in] secondary The version of the image in the second slot (if hasSecondary is true)
+     * @param[in] updateSupported True if the board can be updated
      */
     explicit Stub(Version version = {1U, 0U, 0U, 0U}, bool confirmed = true,
-                  bool hasSecondary = false, Version secondary = {}) noexcept
+                  bool hasSecondary = false, Version secondary = {},
+                  bool updateSupported = true) noexcept
         : myVersion{version}
         , myConfirmed{confirmed}
         , myHasSecondary{hasSecondary}
         , mySecondary{secondary}
         , myConfirmCount{}
-        , myUpdateSupported{true}
+        , myConfirmResult{ConfirmResult::Confirmed}
+        , myUpdateSupported{updateSupported}
         , mySecondaryPending{false}
         , myRestartRequested{false}
         , mySetReadyForRestartCount{}
@@ -91,12 +94,14 @@ public:
      *
      * Does nothing if the image is already confirmed.
      *
-     * @return AlreadyConfirmed if the image was confirmed already, Confirmed otherwise
+     * @return AlreadyConfirmed if the image was confirmed already, otherwise Confirmed or the
+     * result chosen with simulateConfirmResult()
      */
     ConfirmResult confirm() noexcept override
     {
         ++myConfirmCount;
         if (myConfirmed) { return ConfirmResult::AlreadyConfirmed; }
+        if (ConfirmResult::Confirmed != myConfirmResult) { return myConfirmResult; }
         myConfirmed = true;
         return ConfirmResult::Confirmed;
     }
@@ -155,9 +160,36 @@ public:
     std::uint32_t confirmCount() const noexcept { return myConfirmCount; }
 
     /**
+     * @brief Choose whether the running image is confirmed
+     *
+     * @param[in] confirmed True if it is confirmed, false if it is being tested
+     */
+    void simulateConfirmed(const bool confirmed) noexcept { myConfirmed = confirmed; }
+
+    /**
+     * @brief Choose what confirm() returns for an image that is not confirmed
+     *
+     * @param[in] result Confirmed (the default) confirms the image; NotAllowed or Failed leave it
+     *                   not confirmed, as a board where only the client confirms, or a failed write
+     */
+    void simulateConfirmResult(const ConfirmResult result) noexcept { myConfirmResult = result; }
+
+    /**
+     * @brief Choose what the second slot holds
+     *
+     * @param[in] hasSecondary True if the second slot holds an image
+     * @param[in] secondary The version of the image in the second slot (if hasSecondary is true)
+     */
+    void simulateSecondary(const bool hasSecondary, const Version secondary = {}) noexcept
+    {
+        myHasSecondary = hasSecondary;
+        mySecondary    = secondary;
+    }
+
+    /**
      * @brief Choose whether this board can be updated
      *
-     * @param[in] supported True if the board can be updated (the default), false otherwise
+     * @param[in] supported True if the board can be updated, false otherwise
      */
     void simulateUpdateSupported(const bool supported) noexcept { myUpdateSupported = supported; }
 
@@ -209,6 +241,9 @@ private:
 
     /** Number of calls to confirm() */
     std::uint32_t myConfirmCount;
+
+    /** What confirm() returns for an image that is not confirmed */
+    ConfirmResult myConfirmResult;
 
     /** True if the board can be updated */
     bool myUpdateSupported;

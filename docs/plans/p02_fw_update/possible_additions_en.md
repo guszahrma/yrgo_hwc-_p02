@@ -67,6 +67,9 @@ enough.
   half-finished upload. The client gets a timeout in that case anyway.
 * Also provides the measurement for the Nano verification in phase 2 of [the flow](flow_en.md): how much the flash writes stop the
   threads.
+* `status` could show an upload in progress (`Second slot: receiving`). Today it shows `empty` until the image
+  is complete. Needs a code of its own from `fuz_get_secondary_version()` (for example `-EBUSY`), and the
+  module must follow the upload through mcumgr's callbacks (`MGMT_EVT_OP_IMG_MGMT_DFU_STARTED`, `_STOPPED`).
 
 ## C or C++ interface to the module (Option)
 

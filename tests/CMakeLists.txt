@@ -34,6 +34,7 @@ set(TST_FILES
     source/gpio/gpio_mock.c
     source/logic/test_logic.cpp
     source/logic/test_logic_settings.cpp
+    source/logic/test_logic_fw_update.cpp
 )
 
 # Source files.

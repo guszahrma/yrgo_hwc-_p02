@@ -31,8 +31,9 @@ values are loaded again when the board starts. Without `store`, a reset brings b
 
 ## Firmware update
 
-On the Nucleo-G0B1RE and the Arduino Nano ESP32 with Zephyr, P02 can be updated over the serial port.
-`status` shows the running firmware and the second slot, where a new version is received:
+On the Nucleo-G0B1RE and the Arduino Nano ESP32 with Zephyr, P02 will be updated over the serial port
+(not yet: for now a new version is written by hand, see the
+[update demo](platform_zephyr.md#update-demo)). `status` shows the running firmware and the second slot, where a new version is received:
 
 ```
 Firmware: v1.0.0+0 (confirmed)

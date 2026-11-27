@@ -35,6 +35,16 @@ enum class AdcId : std::uint8_t
 };
 
 /**
+ * @brief Watchdog timeout Logic asks createWatchdog() for: the system restarts if Logic stops
+ *        kicking for this long.
+ *
+ * Shared with factory::Zephyr, whose static_assert in createBoot() checks it against
+ * CONFIG_MCUMGR_GRP_OS_RESET_MS, so mcumgr's own restart always comes first (see
+ * logic::Logic::waitForRestart()).
+ */
+static constexpr std::uint32_t WatchdogTimeoutMs{3000U};
+
+/**
  * @brief Factory interface
  */
 class Interface

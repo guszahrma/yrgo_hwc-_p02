@@ -25,8 +25,6 @@ Logic::Logic(driver::factory::Interface& factory) noexcept
     , myBlinkState{false}               // Initialize blink state to off
     , myHung{false}                     // Kick the watchdog until 'hang'
     , myRestarting{false}               // Until a restart for a firmware update goes ahead
-    , myRestartWaitPasses{}
-    , myRestartWaitLimit{}
     , mySelfTestBehaviour{SelfTestBehaviour::Skip} // Until the stored one is loaded
     , myBoard{factory.board()}
     , myBoardTarget{factory.boardTarget()}
@@ -42,7 +40,7 @@ Logic::Logic(driver::factory::Interface& factory) noexcept
     myTimerDriver = factory.createTimer();
     myTimerDriver->stop(); // Blinking is off until 'blink on' or the stored settings start it
     myNvsUserSettingsStorage = factory.createNvs("user_settings");
-    myWatchdog               = factory.createWatchdog(WatchdogTimeoutMs);
+    myWatchdog               = factory.createWatchdog(driver::factory::WatchdogTimeoutMs);
     myBoot                   = factory.createBoot();
 
     if (myWatchdog->causedLastReset())
@@ -80,7 +78,7 @@ void Logic::step() noexcept
 {
     // Must be at least one FreeRTOS tick (10 ms with CONFIG_FREERTOS_HZ=100): shorter sleeps
     // busy-wait in ESP-IDF, so the idle task never runs and the task watchdog fires
-    constexpr std::uint32_t sleepDuration_ms{LoopPassMs};
+    constexpr std::uint8_t sleepDuration_ms{10};
 
     char buffer[InputLineSize]{};
 
@@ -505,6 +503,8 @@ void Logic::loadStoredUserSettings() noexcept
     if (myBlinkState)
         myTimerDriver->start(); // Start the timer for blinking if it was previously on
 }
+
+// --------------------------------------------------------------------------------
 void Logic::prepareForRestart() noexcept
 {
     // Say what the restart is meant to do; the outcome is not known yet
@@ -525,10 +525,8 @@ void Logic::prepareForRestart() noexcept
 
     if (myBoot->setReadyForRestart())
     {
-        // Keep the loop running, so the reply to the restart request is sent
-        myRestarting        = true;
-        myRestartWaitPasses = 0U;
-        myRestartWaitLimit  = (RestartWaitMs + myBoot->restartDelayMs()) / LoopPassMs;
+        // Keep the loop running one more pass, so the reply to the restart request is sent
+        myRestarting = true;
     }
     else
     {
@@ -539,25 +537,21 @@ void Logic::prepareForRestart() noexcept
     }
 }
 
+// --------------------------------------------------------------------------------
 void Logic::waitForRestart() noexcept
 {
-    if (myRestartWaitLimit <= myRestartWaitPasses) { return; }
+    if (myHung) { return; } // Already stopped kicking the watchdog: nothing more to do
 
-    ++myRestartWaitPasses;
-    if (myRestartWaitLimit == myRestartWaitPasses)
-    {
-        // The restart was promised to the client: let the watchdog do it, as after 'hang'. The line
-        // is longer than OutputLineSize with the largest time (10 digits).
-        char line[OutputLineSize + 16U]{};
-        std::snprintf(line, sizeof(line),
-                      "\r\nRestart did not happen within %lu ms: stopping the watchdog kicks, the "
-                      "board restarts\r\n",
-                      static_cast<unsigned long>(RestartWaitMs + myBoot->restartDelayMs()));
-        mySerialDriver->print(line);
-        myHung = true;
-    }
+    // The one extra pass kicked the watchdog and let the reply go out. Whether the restart comes
+    // from mcumgr (the normal case) or, if that fails, from the watchdog (the static_assert in
+    // factory::Zephyr::createBoot() keeps mcumgr's own restart ahead of the watchdog's timeout),
+    // not kicking any longer makes it happen soon either way
+    mySerialDriver->print("\r\nRestart is about to happen: stopping the watchdog kicks, the board "
+                          "will restart soon\r\n");
+    myHung = true;
 }
 
+// --------------------------------------------------------------------------------
 void Logic::shutDown() noexcept
 {
     myTimerDriver->stop();

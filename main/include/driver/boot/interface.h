@@ -123,15 +123,6 @@ public:
     virtual bool setReadyForRestart() noexcept = 0;
 
     /**
-     * @brief Get how long after setReadyForRestart() the restart comes
-     *
-     * The reply to the restart request is sent in this time.
-     *
-     * @return The time from setReadyForRestart() to the restart in milliseconds
-     */
-    virtual std::uint32_t restartDelayMs() const noexcept = 0;
-
-    /**
      * @brief Reject the running image and restart, so the bootloader goes back to the previous one
      *
      * Call it when the self-test after an update has failed. Shut down in an orderly way first, as

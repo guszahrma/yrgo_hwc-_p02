@@ -21,15 +21,6 @@ namespace
 /** Version of the image in the second slot in these tests. */
 constexpr driver::boot::Version SecondaryVersion{2U, 0U, 0U, 0U};
 
-/** Time from "ready" to the restart in these tests, as mcumgr's default. */
-constexpr std::uint32_t RestartDelayMs{250U};
-
-/**
- * Passes of the main loop after "ready" before Logic stops kicking: 5 s (Logic::RestartWaitMs) plus
- * the restart delay, 10 ms per pass (Logic::LoopPassMs).
- */
-constexpr std::uint32_t RestartWaitPasses{(5000U + RestartDelayMs) / 10U};
-
 /**
  * @brief Run one pass of the main loop without input and return what was printed.
  *
@@ -146,25 +137,20 @@ TEST(LogicRestart, WatchdogRestartsTheBoardIfTheRestartDoesNotCome)
     driver::factory::Stub factory{};
     std::unique_ptr<logic::Logic> logic{};
     createLogic(factory, logic);
-    factory.boot().simulateRestartDelayMs(RestartDelayMs);
     factory.boot().simulateRestartRequested(true);
-    stepWithoutInput(*logic);
+    stepWithoutInput(*logic); // "Ready for restart"
 
-    // Each pass sleeps 10 ms, so this test takes about 5 s
-    std::string output{};
-    for (std::uint32_t pass{}; pass < RestartWaitPasses; ++pass)
-    {
-        output = stepWithoutInput(*logic);
-        if (pass < RestartWaitPasses - 1U) { ASSERT_FALSE(contains(output, "did not happen")); }
-    }
-    EXPECT_TRUE(contains(output, "Restart did not happen within 5250 ms: stopping the watchdog "
-                                 "kicks, the board restarts\r\n"));
+    // One more pass kicks the watchdog, then gives up: Logic does not wait any longer than that
+    const std::string output{stepWithoutInput(*logic)};
+    EXPECT_TRUE(contains(
+        output, "Restart is about to happen: stopping the watchdog kicks, the board will restart "
+                "soon\r\n"));
 
     // No kicks after that: on the board, the watchdog now restarts the system
     const std::uint32_t kicksAtGivingUp{factory.watchdog().kickCount()};
-    output = stepWithoutInput(*logic);
+    const std::string nextOutput{stepWithoutInput(*logic)};
     EXPECT_EQ(kicksAtGivingUp, factory.watchdog().kickCount());
-    EXPECT_FALSE(contains(output, "did not happen"));
+    EXPECT_FALSE(contains(nextOutput, "about to happen"));
 }
 
 // ---------------------------------------------------------------------------- declined

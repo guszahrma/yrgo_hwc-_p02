@@ -31,11 +31,10 @@ public:
      * @param[in] hasSecondary True if the second slot holds an image
      * @param[in] secondary The version of the image in the second slot (if hasSecondary is true)
      * @param[in] updateSupported True if the board can be updated
-     * @param[in] restartDelayMs Time from setReadyForRestart() to the restart in milliseconds
      */
     explicit Stub(Version version = {1U, 0U, 0U, 0U}, bool confirmed = true,
-                  bool hasSecondary = false, Version secondary = {}, bool updateSupported = true,
-                  std::uint32_t restartDelayMs = 0U) noexcept
+                  bool hasSecondary = false, Version secondary = {},
+                  bool updateSupported = true) noexcept
         : myVersion{version}
         , myConfirmed{confirmed}
         , myHasSecondary{hasSecondary}
@@ -46,7 +45,6 @@ public:
         , mySecondaryPending{false}
         , myRestartRequested{false}
         , myRestartTimedOut{false}
-        , myRestartDelayMs{restartDelayMs}
         , mySetReadyForRestartCount{}
         , myRevertCount{}
     {
@@ -149,13 +147,6 @@ public:
     }
 
     /**
-     * @brief Get how long after setReadyForRestart() the restart comes
-     *
-     * @return The time from setReadyForRestart() to the restart in milliseconds
-     */
-    std::uint32_t restartDelayMs() const noexcept override { return myRestartDelayMs; }
-
-    /**
      * @brief Reject the running image and restart, so the bootloader goes back to the previous one
      *
      * Nothing restarts: the call is only counted.
@@ -233,14 +224,6 @@ public:
     void simulateRestartTimedOut(const bool timedOut) noexcept { myRestartTimedOut = timedOut; }
 
     /**
-     * @brief Choose how long after setReadyForRestart() the restart comes
-     *
-     * @param[in] delayMs The time in milliseconds
-     */
-    void simulateRestartDelayMs(const std::uint32_t delayMs) noexcept
-    { myRestartDelayMs = delayMs; }
-
-    /**
      * @brief Get the number of calls to setReadyForRestart()
      *
      * @return The number of calls to setReadyForRestart()
@@ -289,9 +272,6 @@ private:
 
     /** True if setReadyForRestart() comes after the time limit for the shutdown */
     bool myRestartTimedOut;
-
-    /** Time from setReadyForRestart() to the restart in milliseconds */
-    std::uint32_t myRestartDelayMs;
 
     /** Number of calls to setReadyForRestart() */
     std::uint32_t mySetReadyForRestartCount;

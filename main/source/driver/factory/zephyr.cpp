@@ -96,15 +96,15 @@ std::unique_ptr<driver::boot::Interface> Zephyr::createBoot() noexcept
     // in: not on the Daisy (RAM load).
     constexpr bool updateSupported{IS_ENABLED(CONFIG_FUZ)};
 
-    // mcumgr restarts this long after the reply to 'os reset'; not defined until mcumgr is built in
 #ifdef CONFIG_MCUMGR_GRP_OS_RESET_MS
-    constexpr std::uint32_t restartDelayMs{CONFIG_MCUMGR_GRP_OS_RESET_MS};
-#else
-    constexpr std::uint32_t restartDelayMs{0U};
+    // Logic stops kicking the watchdog one pass after "ready" (logic.cpp): mcumgr's own restart
+    // must always come before the watchdog's timeout, or a working restart would look like a
+    // watchdog failure
+    static_assert(CONFIG_MCUMGR_GRP_OS_RESET_MS < WatchdogTimeoutMs,
+                  "mcumgr's restart delay must stay below WatchdogTimeoutMs");
 #endif
     return std::make_unique<driver::boot::Stub>(driver::boot::Version{1U, 0U, 0U, 0U}, true, false,
-                                                driver::boot::Version{}, updateSupported,
-                                                restartDelayMs);
+                                                driver::boot::Version{}, updateSupported);
 }
 
 // -----------------------------------------------------------------------------

@@ -50,6 +50,21 @@ Self-test behaviour after next update: skip (demo: confirm by hand, or the next 
   you: `confirm`, or reset to go back. `skip` is the default, so nothing is kept unless you choose it.
   Run `store` before the update: the new version reads the saved value.
 
+When the update tool on the PC asks the board to restart (`smpmgr os reset`), P02 first shuts down:
+it turns the LED off, stops blinking and prints
+
+```
+Preparing for restart: v2.0.0+0 will be started as a test
+Ready for restart
+```
+
+(`firmware not changed` instead when no new version is marked for test). Nothing is saved: run `store`
+before the restart to keep your settings. Until the board restarts, P02 answers every command with
+`Preparing for restart: command rejected`. If the restart is declined (P02 was too slow), P02 says so and
+continues with the stored settings, as after a reset. P02 does not wait to see whether the restart comes:
+right after "Ready for restart" it stops kicking the [watchdog](#watchdog). Normally the client's own
+restart happens before the watchdog's timeout; if it does not, the watchdog restarts the board instead.
+
 For now the lines show `v1.0.0+0 (confirmed)` and `empty`: P02 cannot read the bootloader yet. On the
 Daisy Seed and on ESP-IDF there is no firmware update: `status` shows `Firmware update: not supported`,
 and `confirm` and `selftest` say so too.

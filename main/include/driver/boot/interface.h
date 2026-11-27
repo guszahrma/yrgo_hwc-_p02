@@ -105,7 +105,8 @@ public:
      * @brief Check if a restart has been requested for a firmware update
      *
      * Ask this in every pass of the main loop. When it is true, shut down in an orderly way and
-     * then call setReadyForRestart().
+     * then call setReadyForRestart(). It goes false again when setReadyForRestart() is called, or
+     * when the time limit for the shutdown has passed, so each true is one new request.
      *
      * @return True if a restart has been requested, false otherwise
      */

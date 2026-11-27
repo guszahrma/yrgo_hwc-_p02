@@ -16,8 +16,9 @@ namespace driver::boot
  * A test chooses the running version, whether it is confirmed and what the second slot holds, and
  * whether the board can be updated. The factories use the constructor for boards without a real
  * boot driver. With the simulate functions, a test changes that state later, chooses what confirm()
- * returns, marks the second slot for test and requests a restart, and it reads back the calls to
- * confirm(), setReadyForRestart() and revert(). Nothing restarts: revert() only counts and returns.
+ * returns, marks the second slot for test, requests a restart and lets its time limit pass, and it
+ * reads back the calls to confirm(), setReadyForRestart() and revert(). Nothing restarts:
+ * setReadyForRestart() and revert() only count and return.
  */
 class Stub final : public Interface
 {
@@ -43,6 +44,7 @@ public:
         , myUpdateSupported{updateSupported}
         , mySecondaryPending{false}
         , myRestartRequested{false}
+        , myRestartTimedOut{false}
         , mySetReadyForRestartCount{}
         , myRevertCount{}
     {
@@ -131,12 +133,17 @@ public:
     /**
      * @brief Report that the shutdown is done, so the restart may go ahead
      *
-     * @return True if a restart has been requested, false otherwise
+     * Clears the restart request, as the module does. Nothing restarts: the call is only counted.
+     *
+     * @return True if a restart has been requested and its time limit has not passed (see
+     *         simulateRestartTimedOut()), false otherwise
      */
     bool setReadyForRestart() noexcept override
     {
         ++mySetReadyForRestartCount;
-        return myRestartRequested;
+        const bool goesAhead{myRestartRequested && !myRestartTimedOut};
+        myRestartRequested = false;
+        return goesAhead;
     }
 
     /**
@@ -208,6 +215,15 @@ public:
     void simulateRestartRequested(const bool requested) noexcept { myRestartRequested = requested; }
 
     /**
+     * @brief Choose whether the time limit for the shutdown has passed when setReadyForRestart() is
+     *        called, as when the client has already been answered busy
+     *
+     * @param[in] timedOut True if setReadyForRestart() comes too late, false otherwise (the
+     * default)
+     */
+    void simulateRestartTimedOut(const bool timedOut) noexcept { myRestartTimedOut = timedOut; }
+
+    /**
      * @brief Get the number of calls to setReadyForRestart()
      *
      * @return The number of calls to setReadyForRestart()
@@ -253,6 +269,9 @@ private:
 
     /** True if a restart has been requested */
     bool myRestartRequested;
+
+    /** True if setReadyForRestart() comes after the time limit for the shutdown */
+    bool myRestartTimedOut;
 
     /** Number of calls to setReadyForRestart() */
     std::uint32_t mySetReadyForRestartCount;

@@ -24,6 +24,7 @@ Logic::Logic(driver::factory::Interface& factory) noexcept
     : myPeriodLengthMs{DefaultPeriodMs} // Until loadStoredUserSettings() reads the stored one
     , myBlinkState{false}               // Initialize blink state to off
     , myHung{false}                     // Kick the watchdog until 'hang'
+    , myRestarting{false}               // Until a restart for a firmware update goes ahead
     , mySelfTestBehaviour{SelfTestBehaviour::Skip} // Until the stored one is loaded
     , myBoard{factory.board()}
     , myBoardTarget{factory.boardTarget()}
@@ -39,7 +40,7 @@ Logic::Logic(driver::factory::Interface& factory) noexcept
     myTimerDriver = factory.createTimer();
     myTimerDriver->stop(); // Blinking is off until 'blink on' or the stored settings start it
     myNvsUserSettingsStorage = factory.createNvs("user_settings");
-    myWatchdog               = factory.createWatchdog(WatchdogTimeoutMs);
+    myWatchdog               = factory.createWatchdog(driver::factory::WatchdogTimeoutMs);
     myBoot                   = factory.createBoot();
 
     if (myWatchdog->causedLastReset())
@@ -85,6 +86,10 @@ void Logic::step() noexcept
     // kicks stop, and the watchdog restarts the system as if the loop had hung.
     if (!myHung) { myWatchdog->kick(); }
 
+    // A restart for a firmware update: shut down once per request, then wait for it
+    if (myRestarting) { waitForRestart(); }
+    else if (myBoot->isRestartRequested()) { prepareForRestart(); }
+
     // Handle a command if a whole line has arrived; otherwise sleep briefly so the loop does not
     // busy-wait.
     if (mySerialDriver->readLine(buffer, sizeof(buffer)))
@@ -92,6 +97,13 @@ void Logic::step() noexcept
         mySerialDriver->print("\r\n\r\nReading line...");
         mySerialDriver->print(buffer);
         mySerialDriver->print("\r\n");
+
+        // The restart may come at any moment: a command such as 'store' could be cut off
+        if (myRestarting)
+        {
+            mySerialDriver->print("Preparing for restart: command rejected\r\n");
+            return;
+        }
 
         std::string_view input{buffer, std::strlen(buffer)};
 
@@ -490,5 +502,60 @@ void Logic::loadStoredUserSettings() noexcept
     myTimerDriver->setPeriod(myPeriodLengthMs);
     if (myBlinkState)
         myTimerDriver->start(); // Start the timer for blinking if it was previously on
+}
+
+// --------------------------------------------------------------------------------
+void Logic::prepareForRestart() noexcept
+{
+    // Say what the restart is meant to do; the outcome is not known yet
+    driver::boot::Version secondary{};
+    if (myBoot->isSecondaryPending() && myBoot->secondaryVersion(secondary))
+    {
+        mySerialDriver->print("\r\nPreparing for restart: ");
+        printVersion(secondary);
+        mySerialDriver->print(" will be started as a test\r\n");
+    }
+    else
+    {
+        mySerialDriver->print("\r\nPreparing for restart: firmware not changed\r\n");
+    }
+
+    shutDown();
+    mySerialDriver->print("Ready for restart\r\n");
+
+    if (myBoot->setReadyForRestart())
+    {
+        // Keep the loop running one more pass, so the reply to the restart request is sent
+        myRestarting = true;
+    }
+    else
+    {
+        // The client has already been answered busy: continue as after a reset
+        mySerialDriver->print("Restart declined (too late): firmware not changed, continuing with "
+                              "the stored settings\r\n");
+        loadStoredUserSettings();
+    }
+}
+
+// --------------------------------------------------------------------------------
+void Logic::waitForRestart() noexcept
+{
+    if (myHung) { return; } // Already stopped kicking the watchdog: nothing more to do
+
+    // The one extra pass kicked the watchdog and let the reply go out. Whether the restart comes
+    // from mcumgr (the normal case) or, if that fails, from the watchdog (the static_assert in
+    // factory::Zephyr::createBoot() keeps mcumgr's own restart ahead of the watchdog's timeout),
+    // not kicking any longer makes it happen soon either way
+    mySerialDriver->print("\r\nRestart is about to happen: stopping the watchdog kicks, the board "
+                          "will restart soon\r\n");
+    myHung = true;
+}
+
+// --------------------------------------------------------------------------------
+void Logic::shutDown() noexcept
+{
+    myTimerDriver->stop();
+    myBlinkState = false;
+    myStatusLed->write(false);
 }
 } // namespace logic
